@@ -47,6 +47,7 @@ from pants.tasks.pathdeps import PathDeps
 from pants.tasks.prepare_resources import PrepareResources
 from pants.tasks.protobuf_gen import ProtobufGen
 from pants.tasks.provides import Provides
+from pants.tasks.python.python_run_tests import PythonRunTests
 from pants.tasks.python.setup import SetupPythonEnvironment
 from pants.tasks.reporting_server import RunServer, KillServer
 from pants.tasks.roots import ListRoots
@@ -235,6 +236,9 @@ goal(name='junit', action=JUnitRun, dependencies=['compile', 'resources', 'boots
 ).install('test').with_description('Test compiled code.')
 
 goal(name='specs', action=SpecsRun, dependencies=['compile', 'resources', 'bootstrap']
+).install('test')
+
+goal(name='pytest', action=PythonRunTests, dependencies=['resources', 'bootstrap']
 ).install('test')
 
 goal(name='bench', action=BenchmarkRun, dependencies=['compile', 'resources', 'bootstrap']

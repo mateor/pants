@@ -99,11 +99,12 @@ class PythonTestBuilder(object):
     self.successes = {}
     self._conn_timeout = conn_timeout
 
-  def run(self):
+  def run(self, workunit=None):
     self.successes = {}
-    rv = self._run_tests(self.targets)
+    stdout = workunit.output('stdout') if workunit else sys.stdout
+    rv = self._run_tests(self.targets, workunit)
     for target in sorted(self.successes):
-      print('%-80s.....%10s' % (target, self.successes[target]))
+      print('%-80s.....%10s' % (target, self.successes[target]), file=stdout)
     return 0 if rv.success else 1
 
   @classmethod
@@ -132,7 +133,7 @@ class PythonTestBuilder(object):
       except OSError as e:
         if e.errno != errno.EEXIST:
           raise PythonTestBuilder.ChrootBuildingException(
-            "Unable to establish JUnit target: %s!  %s" % (target, e))
+            'Unable to establish JUnit target: %s!  %s' % (target, e))
       args.append('--junitxml=%s' % xml_path)
     return args
 
@@ -169,11 +170,14 @@ class PythonTestBuilder(object):
     popen.kill()
     return PythonTestResult.timeout()
 
-  def _run_python_test(self, target):
+  def _run_python_test(self, target, workunit):
     po = None
     rv = PythonTestResult.exception()
     coverage_rc = None
     coverage_enabled = 'PANTS_PY_COVERAGE' in os.environ
+
+    stdout = workunit.output('stdout') if workunit else sys.stdout
+    stderr = workunit.output('stderr') if workunit else sys.stderr
 
     try:
       builder = PEXBuilder(interpreter=self.interpreter)
@@ -196,13 +200,13 @@ class PythonTestBuilder(object):
         test_args.extend(args)
       sources = [os.path.join(target.target_base, source) for source in target.sources]
       po = PEX(builder.path(), interpreter=self.interpreter).run(
-          args=test_args + sources, blocking=False, setsid=True)
+          args=test_args + sources, blocking=False, setsid=True, stdout=stdout, stderr=stderr)
       # TODO(wickman)  If coverage is enabled, write an intermediate .html that points to
       # each of the coverage reports generated and webbrowser.open to that page.
       rv = PythonTestBuilder.wait_on(po, timeout=target.timeout)
     except Exception as e:
       import traceback
-      print('Failed to run test!', file=sys.stderr)
+      print('Failed to run test!', file=stderr)
       traceback.print_exc()
       rv = PythonTestResult.exception()
     finally:
@@ -213,13 +217,13 @@ class PythonTestBuilder(object):
           os.killpg(po.pid, signal.SIGTERM)
         except OSError as e:
           if e.errno == errno.EPERM:
-            print("Unable to kill process group: %d" % po.pid)
+            print('Unable to kill process group: %d' % po.pid, file=stderr)
           elif e.errno != errno.ESRCH:
             rv = PythonTestResult.exception()
     self.successes[target._create_id()] = rv
     return rv
 
-  def _run_python_test_suite(self, target, fail_hard=True):
+  def _run_python_test_suite(self, target, workunit, fail_hard):
     tests = OrderedSet([])
     def _gather_deps(trg):
       if isinstance(trg, PythonTests):
@@ -232,14 +236,14 @@ class PythonTestBuilder(object):
 
     failed = False
     for test in tests:
-      rv = self._run_python_test(test)
+      rv = self._run_python_test(test, workunit)
       if not rv.success:
         failed = True
         if fail_hard:
           return rv
     return PythonTestResult.rc(1 if failed else 0)
 
-  def _run_tests(self, targets):
+  def _run_tests(self, targets, workunit):
     fail_hard = 'PANTS_PYTHON_TEST_FAILSOFT' not in os.environ
     if 'PANTS_PY_COVERAGE' in os.environ:
       # Coverage often throws errors despite tests succeeding, so make PANTS_PY_COVERAGE
@@ -248,9 +252,9 @@ class PythonTestBuilder(object):
     failed = False
     for target in targets:
       if isinstance(target, PythonTests):
-        rv = self._run_python_test(target)
+        rv = self._run_python_test(target, workunit)
       elif isinstance(target, PythonTestSuite):
-        rv = self._run_python_test_suite(target, fail_hard)
+        rv = self._run_python_test_suite(target, workunit, fail_hard)
       else:
         raise PythonTestBuilder.InvalidDependencyException(
           "Invalid dependency in python test target: %s" % target)
