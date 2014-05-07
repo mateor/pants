@@ -47,7 +47,7 @@ class TarArchiver(Archiver):
   def create(self, basedir, outdir, name, prefix=None):
     tarpath = os.path.join(outdir, '%s.%s' % (name, self.extension))
     with open_tar(tarpath, self.mode, dereference=True, errorlevel=1) as tar:
-      tar.add(basedir, arcname=prefix or '')
+      tar.add(basedir, arcname=prefix or '.')
     return tarpath
 
 
@@ -63,10 +63,10 @@ class ZipArchiver(Archiver):
     with open_zip(path) as zip:
       for path in zip.namelist():
         # While we're at it, we also perform this safety test.
-        if path.startswith('/') or path.startswith('..'):
+        if path.startswith(b'/') or path.startswith(b'..'):
           raise ValueError('Zip file contains unsafe path: %s' % path)
         # Ignore directories. extract() will create parent dirs as needed.
-        if not path.endswith('/'):
+        if not path.endswith(b'/'):
           zip.extract(path, outdir)
 
   def __init__(self, compression):
@@ -94,6 +94,7 @@ ZIP = ZipArchiver(ZIP_DEFLATED)
 _ARCHIVER_BY_TYPE = OrderedDict(tar=TGZ, tgz=TGZ, tbz2=TBZ2, zip=ZIP)
 
 TYPE_NAMES = frozenset(_ARCHIVER_BY_TYPE.keys())
+
 
 def archiver(typename):
   """Returns Archivers in common configurations.
