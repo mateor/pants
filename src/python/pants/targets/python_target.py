@@ -6,11 +6,13 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 
 from collections import defaultdict
 
-from twitter.common.collections import maybe_list, OrderedSet
+from twitter.common.collections import maybe_list
 from twitter.common.python.interpreter import PythonIdentity
 
 from pants.base.target import Target, TargetDefinitionException
+from pants.targets.pants_target import Pants
 from pants.targets.python_artifact import PythonArtifact
+from pants.targets.resources import Resources
 from pants.targets.with_dependencies import TargetWithDependencies
 from pants.targets.with_sources import TargetWithSources
 
@@ -30,7 +32,19 @@ class PythonTarget(TargetWithDependencies, TargetWithSources):
     TargetWithDependencies.__init__(self, name, dependencies=dependencies, exclusives=exclusives)
 
     self.add_labels('python')
-    self.resources = self._resolve_paths(resources) if resources else OrderedSet()
+    if resources:
+      # Support both old-style (filesets) and new-style (resources() targets), for now.
+      # TODO: Get rid of old-style after all repos have transitioned.
+      resources_tgt_refs = []
+      resources_paths = []
+      for r in resources:
+        (resources_tgt_refs if isinstance(r, Pants) else resources_paths).append(r)
+      resources_tgts = list(self.resolve_all(resources_tgt_refs))
+      if resources_paths:
+        resources_tgts.append(Resources(name + '_resources', resources_paths))
+      self.resources = resources_tgts
+    else:
+      self.resources =  []
 
     if provides and not isinstance(provides, PythonArtifact):
       raise TargetDefinitionException(self,
@@ -44,6 +58,11 @@ class PythonTarget(TargetWithDependencies, TargetWithSources):
         PythonIdentity.parse_requirement(req)
       except ValueError as e:
         raise TargetDefinitionException(self, str(e))
+
+  def resource_paths(self):
+    for tgt in self.resources:
+      for path in tgt.sources:
+        yield path
 
   def _walk(self, walked, work, predicate=None):
     super(PythonTarget, self)._walk(walked, work, predicate)
