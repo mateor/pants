@@ -298,11 +298,11 @@ a:visited {
 }
 
 .ansi-1, .ansi-1 a {
-  font-weight:bold;
+  font-weight: bold;
 }
 
 .ansi-4, .ansi-4 a {
-  text-decoration:underline;
+  text-decoration: underline;
 }
 
 .ansi-30, .ansi-30 a {

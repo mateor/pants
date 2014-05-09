@@ -271,6 +271,7 @@ class HtmlReporter(Reporter):
     parts = HtmlReporter._ANSI_COLOR_CODE_RE.split(s)
     ret = []
     span_depth = 0
+    # Note that len(parts) is always odd: text, code, text, code, ..., text.
     for i in range(0, len(parts), 2):
       ret.append(parts[i])
       if i + 1 < len(parts):

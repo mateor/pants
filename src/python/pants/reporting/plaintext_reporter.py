@@ -159,12 +159,11 @@ class PlainTextReporter(Reporter):
     return b'  ' * (len(workunit.ancestors()) - 1)
 
   _time_string_filler = b' ' * len('HH:MM:SS mm:ss ')
+
   def _prefix(self, workunit, s):
     if self.settings.indent:
-      def replace(s, c):
-        return s.replace(c, c + PlainTextReporter._time_string_filler + self._indent(workunit))
+      def replace(x, c):
+        return x.replace(c, c + PlainTextReporter._time_string_filler + self._indent(workunit))
       return replace(replace(s, b'\r'), b'\n')
-      #ret =    s.replace(b'\r', b'\r' + PlainTextReporter._time_string_filler + self._indent(workunit))
-      #return ret.replace(b'\n', b'\n' + PlainTextReporter._time_string_filler + self._indent(workunit))
     else:
       return PlainTextReporter._time_string_filler + s
