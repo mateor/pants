@@ -9,17 +9,20 @@ import os
 from pants.base.workunit import WorkUnit
 from pants.python.test_builder import PythonTestBuilder
 from pants.targets.python_tests import PythonTests, PythonTestSuite
-from pants.tasks import Task, TaskError
+from pants.tasks import TaskError
+from pants.tasks.python.python_task import PythonTask
 
 
-class PythonRunTests(Task):
+class PythonRunTests(PythonTask):
   def execute(self, targets):
     def is_python_test(target):
       return isinstance(target, PythonTests) or isinstance(target, PythonTestSuite)
 
     test_targets = filter(is_python_test, targets)
     if test_targets:
-      test_builder = PythonTestBuilder(test_targets, ['--color', 'yes'], '.')
+      test_builder = PythonTestBuilder(test_targets, ['--color', 'yes'], '.',
+                                       interpreter=self.interpreter,
+                                       conn_timeout=self.conn_timeout)
       with self.context.new_workunit(name='run',
                                      labels=[WorkUnit.TOOL, WorkUnit.TEST]) as workunit:
         # pytest uses py.io.terminalwriter for output. That class detects the terminal
