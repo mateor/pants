@@ -98,7 +98,7 @@ class PythonChroot(object):
     self.debug('  Dumping library: %s' % library)
     for filename in library.sources:
       copy_to_chroot(library.target_base, filename, self._builder.add_source)
-    for filename in library.resources:
+    for filename in library.resource_paths():
       copy_to_chroot(library.target_base, filename, self._builder.add_resource)
 
   def _dump_requirement(self, req, dynamic, repo):

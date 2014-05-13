@@ -48,7 +48,7 @@ class WhatChangedTest(BaseWhatChangedTest):
     super(WhatChangedTest, cls).setUpClass()
 
     cls.create_target('root', dedent('''
-      source_root('src/py', python_library)
+      source_root('src/py', python_library, resources)
       source_root('resources/a1', resources)
     '''))
 
@@ -134,13 +134,14 @@ class WhatChangedTest(BaseWhatChangedTest):
   def test_build(self):
     self.assert_console_output(
       'root/src/py/a/BUILD:alpha',
+      'root/src/py/a/BUILD:alpha_resources',  # The synthetic resources target.
       'root/src/py/a/BUILD:beta',
       workspace=self.workspace(files=['root/src/py/a/BUILD'])
     )
 
   def test_resource_changed(self):
     self.assert_console_output(
-      'root/src/py/a/BUILD:alpha',
+      'root/src/py/a/BUILD:alpha_resources',
       workspace=self.workspace(files=['root/src/py/a/test.resources'])
     )
 
