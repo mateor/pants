@@ -9,13 +9,25 @@ from pants.tasks import Task, TaskError
 
 
 class PythonTask(Task):
+  @classmethod
+  def setup_parser(cls, option_group, args, mkflag):
+    option_group.add_option(mkflag('timeout'), dest='pytest_conn_timeout', type='int',
+                            default=0, help='Number of seconds to wait for http connections.')
+    option_group.add_option(mkflag('interpreter'), dest='pytest_interpreters', default=[],
+                            action='append',
+                            help="Constrain what Python interpreters to use.  Uses Requirement "
+                                 "format from pkg_resources, e.g. 'CPython>=2.6,<3' or 'PyPy'. "
+                                 "By default, no constraints are used.  Multiple constraints may "
+                                 "be added.  They will be ORed together.")
+
   def __init__(self, context, workdir):
     super(PythonTask, self).__init__(context, workdir)
-    self.conn_timeout = self.context.options.conn_timeout
+    self.conn_timeout = self.context.options.pytest_conn_timeout or \
+                        self.context.config.getdefault('connection_timeout')
 
     self.interpreter_cache = PythonInterpreterCache(self.context.config,
                                                     logger=self.context.log.debug)
-    interpreters = self.context.options.interpreters or [b'']
+    interpreters = self.context.options.pytest_interpreters or [b'']
     self.interpreter_cache.setup(filters=interpreters)
     interpreters = self.interpreter_cache.select_interpreter(
       list(self.interpreter_cache.matches(interpreters)))
