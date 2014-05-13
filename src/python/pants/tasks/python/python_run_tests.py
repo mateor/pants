@@ -16,7 +16,11 @@ from pants.tasks.python.python_task import PythonTask
 class PythonRunTests(PythonTask):
   def execute(self, targets):
     def is_python_test(target):
-      return isinstance(target, PythonTests) or isinstance(target, PythonTestSuite)
+      # Note that we ignore PythonTestSuite, because we'll see the PythonTests targets
+      # it depends on anyway,so if we don't we'll end up running the tests twice.
+      # TODO(benjy): Once we're off the 'build' command we can get rid of python_test_suite,
+      # or make it an alias of dependencies().
+      return isinstance(target, PythonTests)
 
     test_targets = filter(is_python_test, targets)
     if test_targets:
