@@ -10,7 +10,6 @@ import os
 import sys
 import traceback
 
-
 from twitter.common import log
 from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import safe_mkdir
@@ -281,9 +280,6 @@ class Goal(Command):
     is_explain = self.options.explain
     update_reporting(self.options, is_console_task() or is_explain, self.run_tracker)
 
-    if self.options.dry_run:
-      print('****** Dry Run ******')
-
     context = Context(
       self.config,
       self.options,
@@ -301,7 +297,7 @@ class Goal(Command):
       context.log.error('Unknown goal(s): %s\n' % ' '.join(phase.name for phase in unknown))
       return 1
 
-    engine = GroupEngine(print_timing=self.options.time)
+    engine = GroupEngine()
     return engine.execute(context, self.phases)
 
   def cleanup(self):
