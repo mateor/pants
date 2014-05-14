@@ -102,7 +102,7 @@ if [[ "${skip_integration:-false}" == "false" ]]; then
   banner "Running pants Integration tests"
   (
     PANTS_PYTHON_TEST_FAILSOFT=1 ./pants.pex build ${INTERPRETER_CONSTRAINTS[@]} \
-      tests/python/pants_test:ci-integration
+       --timeout=50 tests/python/pants_test:ci-integration
   ) || die "Pants /integration failure"
 fi
 
