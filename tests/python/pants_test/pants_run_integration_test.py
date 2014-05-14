@@ -60,6 +60,7 @@ class PantsRunIntegrationTest(unittest.TestCase):
         result = self.command.run(self.lock)
         yield result
       finally:
+        print("\n came here to release")
         self.lock.release()
         self.run_tracker.end()
 
