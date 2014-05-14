@@ -25,7 +25,7 @@ class JarPublishIntegrationTest(PantsRunIntegrationTest):
                        'jvm-example-lib-0.0.1-SNAPSHOT-sources.jar'])
 
 
-  def test_java_publish(self, MagicMock):
+  def test_scala_publish1(self, MagicMock):
     self.package_namespace = 'com/pants/example/hello-greet/0.0.1-SNAPSHOT/'
     self.publish_test('src/java/com/pants/examples/hello/greet',
                       ['ivy-0.0.1-SNAPSHOT.xml',
