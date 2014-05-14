@@ -58,14 +58,13 @@ class PantsRunIntegrationTest(unittest.TestCase):
       try:
         self.lock = Lock.acquire(self.runfile)
         result = self.command.run(self.lock)
-        print("\n came here to %s" %result)
         yield result
       finally:
-        print("\n came here to release")
         self.lock.release()
         self.run_tracker.end()
 
   @classmethod
   def tearDown(self):
     NailgunTask._DAEMON_OPTION_PRESENT = False
+    print("Removing %s " %self.pants_workdir)
     safe_rmtree(self.pants_workdir)
