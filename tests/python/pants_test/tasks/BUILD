@@ -234,6 +234,18 @@ python_tests(
 )
 
 python_tests(
+  name = 'jar_publish_integration',
+  sources = ['test_jar_publish_integration.py'],
+  dependencies = [
+    pants('3rdparty/python:mock'),
+    pants(':base-test'),
+    pants('tests/python/pants_test:int-test'),
+    pants('tests/python/pants_test/base:base-test'),
+    pants('tests/python/pants_test:base-test'),
+  ],
+)
+
+python_tests(
   name = 'ivy_utils',
   sources = ['test_ivy_utils.py'],
   dependencies = [

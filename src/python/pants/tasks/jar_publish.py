@@ -116,7 +116,7 @@ class DependencyWriter(object):
     # the graph
     dependencies = OrderedDict()
     internal_codegen = {}
-    configurations = set()
+    configurations = set(confs) if confs else set()
     for dep in target_internal_dependencies(target):
       jar = as_jar(dep)
       dependencies[(jar.org, jar.name)] = self.internaldep(jar, dep)
@@ -177,6 +177,10 @@ class PomWriter(DependencyWriter):
 
 
 class IvyWriter(DependencyWriter):
+  JAVADOC_CONFIG = 'javadoc'
+  SOURCES_CONFIG = 'sources'
+  DEFAULT_CONFIG = 'default'
+
   def __init__(self, get_db):
     super(IvyWriter, self).__init__(
         get_db,
@@ -266,7 +270,7 @@ class JarPublish(Task, ScmPublish):
          # ivysettings.xml resolver to use for publishing
          'resolver': 'maven.twttr.com',
          # ivy configurations to publish
-         'confs': ['default', 'sources', 'docs'],
+         'confs': ['default', 'sources', 'javadoc'],
          # address of a Credentials target to use when publishing
          'auth': 'address/of/credentials/BUILD:target',
          # help message if unable to initialize the Credentials target.
@@ -572,9 +576,9 @@ class JarPublish(Task, ScmPublish):
 
         confs = set(repo['confs'])
         if self.context.options.jar_create_sources:
-          confs.add('sources')
+          confs.add(IvyWriter.SOURCES_CONFIG)
         if self.context.options.jar_create_javadoc:
-          confs.add('docs')
+          confs.add(IvyWriter.JAVADOC_CONFIG)
         ivyxml = stage_artifacts(target, jar, newver.version(), changelog, confs=list(confs))
 
         if self.dryrun:
