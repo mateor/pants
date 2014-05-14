@@ -58,6 +58,7 @@ class PantsRunIntegrationTest(unittest.TestCase):
       try:
         self.lock = Lock.acquire(self.runfile)
         result = self.command.run(self.lock)
+        print("\n came here to %s" %result)
         yield result
       finally:
         print("\n came here to release")
