@@ -238,10 +238,7 @@ python_tests(
   sources = ['test_jar_publish_integration.py'],
   dependencies = [
     pants('3rdparty/python:mock'),
-    pants(':base-test'),
     pants('tests/python/pants_test:int-test'),
-    pants('tests/python/pants_test/base:base-test'),
-    pants('tests/python/pants_test:base-test'),
   ],
 )
 
