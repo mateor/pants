@@ -15,7 +15,6 @@ from twitter.common.python.pex_builder import PEXBuilder
 from pants.base.address import BuildFileAddress, parse_spec
 from pants.base.build_file import BuildFile
 from pants.base.config import Config
-from pants.base.target import Target
 from pants.commands.command import Command
 from pants.python.interpreter_cache import PythonInterpreterCache
 from pants.python.python_chroot import PythonChroot
@@ -55,8 +54,8 @@ class Py(Command):
   def __init__(self, run_tracker, root_dir, parser, argv):
     Command.__init__(self, run_tracker, root_dir, parser, argv)
 
-    self.target = None
-    self.extra_targets = []
+    self.targets = []
+    self.binary = None  # One of self.targets.
     self.config = Config.load()
 
     interpreters = self.options.interpreters or [b'']
@@ -69,7 +68,7 @@ class Py(Command):
     self.interpreter = interpreters[0]
 
     for req in self.options.extra_requirements:
-      self.extra_targets.append(PythonRequirement(req, use_2to3=True))
+      self.targets.append(PythonRequirement(req, use_2to3=True))
 
     # We parse each arg in the context of the cli usage:
     #   ./pants command (options) [spec] (build args)
@@ -84,16 +83,14 @@ class Py(Command):
         break
 
       def not_a_target(debug_msg):
-        self.debug('Not a target, assuming option: %s.' % e)
+        self.debug('Not a target, assuming option: %s.' % debug_msg)
         # We failed to parse the arg as a target or else it was in valid address format but did not
         # correspond to a real target.  Assume this is the 1st of the build args and terminate
         # processing args for target addresses.
         self.args.insert(0, arg)
 
-      target = None
       try:
         print(root_dir, arg)
-        # import pdb; pdb.set_trace()
         self.build_file_parser.inject_spec_closure_into_build_graph(arg, self.build_graph)
         spec_path, target_name = parse_spec(arg)
         build_file = BuildFile(root_dir, spec_path)
@@ -106,27 +103,15 @@ class Py(Command):
         not_a_target(debug_msg=e)
         break
 
-      for resolved in filter(lambda t: t.is_concrete, target.resolve()):
-        if isinstance(resolved, PythonBinary):
-          binaries.append(resolved)
-        else:
-          self.extra_targets.append(resolved)
+      if isinstance(target, PythonBinary):
+        if self.binary:
+          self.error('Can only process 1 binary target, got %s and %s' %
+                     (self.binary.address, target.address))
+        self.binary = target
+      self.targets.append(target)
 
-    if len(binaries) == 0:
-      # treat as a chroot
-      pass
-    elif len(binaries) == 1:
-      # We found a binary and are done, the rest of the args get passed to it
-      self.target = binaries[0]
-    else:
-      self.error('Can only process 1 binary target, %s contains %d:\n\t%s' % (
-        arg, len(binaries), '\n\t'.join(str(binary.address) for binary in binaries)
-      ))
-
-    if self.target is None:
-      if not self.extra_targets:
-        self.error('No valid target specified!')
-      self.target = self.extra_targets.pop(0)
+    if not self.targets:
+      self.error('No valid targets specified!')
 
   def debug(self, message):
     if self.options.verbose:
@@ -140,11 +125,10 @@ class Py(Command):
       self.error('Cannot specify both --entry_point and --ipython!')
 
     if self.options.verbose:
-      print('Build operating on target: %s %s' % (self.target,
-        'Extra targets: %s' % ' '.join(map(str, self.extra_targets)) if self.extra_targets else ''))
+      print('Build operating on targets: %s' % ' '.join(self.targets))
 
     builder = PEXBuilder(tempfile.mkdtemp(), interpreter=self.interpreter,
-        pex_info=self.target.pexinfo if isinstance(self.target, PythonBinary) else None)
+                         pex_info=self.binary.pexinfo if self.binary else None)
 
     if self.options.entry_point:
       builder.set_entry_point(self.options.entry_point)
@@ -161,20 +145,22 @@ class Py(Command):
       requirements = self.config.getlist('python-ipython', 'requirements', default=[])
 
       for requirement in requirements:
-        self.extra_targets.append(PythonRequirement(requirement))
+        self.targets.append(PythonRequirement(requirement))
 
     executor = PythonChroot(
-        self.target,
+        self.targets,
         self.root_dir,
         builder=builder,
+        platforms=self.binary.platforms if self.binary else None,
         interpreter=self.interpreter,
-        extra_targets=self.extra_targets,
         conn_timeout=self.options.conn_timeout)
 
     executor.dump()
 
     if self.options.pex:
-      pex_name = os.path.join(self.root_dir, 'dist', '%s.pex' % self.target.name)
+      if not self.binary:
+        self.error('Cannot specify --pex without a binary target!')
+      pex_name = os.path.join(self.root_dir, 'dist', '%s.pex' % self.binary.name)
       builder.build(pex_name)
       print('Wrote %s' % pex_name)
       return 0

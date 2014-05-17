@@ -178,8 +178,7 @@ class PythonTestBuilder(object):
       builder.info.entry_point = target.entry_point
       builder.info.ignore_errors = target._soft_dependencies
       chroot = PythonChroot(
-          target,
-          self.root_dir,
+          [target],
           extra_requirements=self.generate_test_targets(),
           builder=builder,
           platforms=('current',),

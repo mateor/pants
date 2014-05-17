@@ -41,9 +41,10 @@ class PythonBinaryBuilder(object):
     builder = PEXBuilder(distpath, pex_info=pexinfo, interpreter=self.interpreter)
 
     self.chroot = PythonChroot(
-        target,
+        [target],
         root_dir,
         builder=builder,
+        platforms=target.platforms,
         interpreter=self.interpreter,
         conn_timeout=conn_timeout)
 
