@@ -99,11 +99,11 @@ if [[ "${skip_python:-false}" == "false" ]]; then
 fi
 
 if [[ "${skip_integration:-false}" == "false" ]]; then
-  banner "Running pants Integration tests"
+  banner "Running Pants Integration tests"
   (
     PANTS_PYTHON_TEST_FAILSOFT=1 ./pants.pex build ${INTERPRETER_CONSTRAINTS[@]} \
        tests/python/pants_test:integration
-  ) || die "Pants /integration failure"
+  ) || die "Pants Integration test failure"
 fi
 
 banner "CI SUCCESS"

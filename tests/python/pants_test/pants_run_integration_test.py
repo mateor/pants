@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from tempfile import mkdtemp
 from textwrap import dedent
 
+from twitter.common.contextutil import temporary_dir
 from twitter.common.dirutil import Lock, safe_open, safe_rmtree
 
 from mock import patch
@@ -24,28 +25,20 @@ class PantsRunIntegrationTest(unittest.TestCase):
 
   PANTS_SUCCESS_CODE = 0
 
-  @classmethod
-  def setUp(self):
-    self.pants_workdir = mkdtemp(suffix='PANTS_WORK_DIR')
-    ini = dedent('''
-          [DEFAULT]
-          pants_workdir:  %(workdir)s
-          ''' % dict(workdir=self.pants_workdir))
-
-    with safe_open(os.path.join(self.pants_workdir, 'pants.ini'), mode='w') as fp:
-       fp.write(ini)
-
   @contextmanager
-  def run_pants(self, command_args=None, clean_all=False):
-    with patch.dict('os.environ', {'PANTS_CONFIG_OVERRIDE': os.path.join(self.pants_workdir,
-                                                                         'pants.ini'),
-                                   'PANTS_DEV': '1'}):
-      if clean_all:
-        subprocess.call(['./pants', 'goal', 'clean-all'])
-      pants_commands = ['./pants', 'goal'] + command_args
-      result = subprocess.call(pants_commands)
-      yield result
+  def run_pants(self, command_args=None):
+    with temporary_dir() as work_dir:
+      print(work_dir)
+      ini = dedent('''
+              [DEFAULT]
+              pants_workdir:  %(workdir)s
+              ''' % dict(workdir=work_dir))
 
-  @classmethod
-  def tearDown(self):
-    safe_rmtree(self.pants_workdir)
+      ini_file_name = os.path.join(work_dir, 'pants.ini')
+      with safe_open(ini_file_name, mode='w') as fp:
+        fp.write(ini)
+      with patch.dict('os.environ',{'PANTS_CONFIG_OVERRIDE': ini_file_name,
+                                    'PANTS_DEV': '1'}):
+        pants_commands = ['./pants', 'goal'] + command_args
+        result = subprocess.call(pants_commands)
+        yield result
