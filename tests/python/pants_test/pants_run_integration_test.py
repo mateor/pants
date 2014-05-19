@@ -36,10 +36,12 @@ class PantsRunIntegrationTest(unittest.TestCase):
        fp.write(ini)
 
   @contextmanager
-  def run_pants(self, command_args=None):
+  def run_pants(self, command_args=None, clean_all=False):
     with patch.dict('os.environ', {'PANTS_CONFIG_OVERRIDE': os.path.join(self.pants_workdir,
                                                                          'pants.ini'),
                                    'PANTS_DEV': '1'}):
+      if clean_all:
+        subprocess.call(['./pants', 'goal', 'clean-all'])
       pants_commands = ['./pants', 'goal'] + command_args
       result = subprocess.call(pants_commands)
       yield result
