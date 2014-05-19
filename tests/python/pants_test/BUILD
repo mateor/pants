@@ -43,7 +43,7 @@ python_tests(
 )
 
 python_test_suite(
-  name = 'ci-integration',
+  name = 'integration',
   dependencies = [
     pants('tests/python/pants_test/tasks:jar_publish_integration'),
   ]
