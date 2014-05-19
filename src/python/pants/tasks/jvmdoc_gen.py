@@ -188,7 +188,6 @@ class JvmdocGen(Task):
         #      raise self._value
         #  NameError: global name 'self' is not defined
         futures = []
-        print("%s " %gendir)
         for gendir, (target, command) in jobs.items():
           futures.append(pool.apply_async(create_jvmdoc, args=(command, gendir)))
 
