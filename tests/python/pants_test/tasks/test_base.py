@@ -4,19 +4,20 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-from StringIO import StringIO
+import os
+import pytest
+
 from contextlib import closing
 from optparse import OptionGroup, OptionParser
-import os
+from StringIO import StringIO
 
-import pytest
 from twitter.common.collections import maybe_list
 
 from pants.base.target import Target
 from pants.commands.goal import SpecParser
 from pants.goal import Context, Mkflag
-from pants.tasks.task import Task
-from pants.tasks.console_task import ConsoleTask
+from pants.backend.core.tasks.task import Task
+from pants.backend.core.tasks.console_task import ConsoleTask
 from pants_test.base_test import BaseTest
 from pants_test.base.context_utils import create_config, create_run_tracker
 
