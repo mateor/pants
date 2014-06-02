@@ -128,7 +128,6 @@ class Distribution(object):
   def jdk(self):
     self.validate()
     return self._is_jdk
-
   @property
   def system_properties(self):
     """Returns a dict containing the system properties of this java distribution."""
