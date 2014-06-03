@@ -10,6 +10,7 @@ class AndroidTarget(Target):
     """A base class for all Android targets"""
 
     def __init__(self,
+                 name=None,
                  address=None,
                  sources=None,
                  sources_rel_path=None,
@@ -17,11 +18,13 @@ class AndroidTarget(Target):
                  resources=None,
                  **kwargs):
         """
+        :param name:
         :param address:
         :param sources:
-        :param sources_rel_path:
+        :param sources_rel_path: #TODO: Use? Used in payload for Jvm
         :param excludes:
         :param resources:
-        :param kwargs:
         :return:
         """
+        self.add_labels('android')
+        #TODO Handle the manifest-- target platform, etc.
