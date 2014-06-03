@@ -15,21 +15,22 @@ from pants.backend.codegen.tasks.code_gen import CodeGen
 
 
 
-class AaptGen(CodeGen, AndroidTask):
+class AaptGen(AndroidTask, CodeGen):
     """
     CodeGen for Android app building with the Android Asset Packaging Tool.
     There may be an aapt superclass, as it has future packaging functions besides codegen.
 
     aapt supports 6 major commands: {dump, list, add, remove, crunch, package}
-    For right now, pants is only supporting 'package'. More to come as we see use cases.
+    For right now, pants is only supporting 'package'. More to come as we support Release builds (crunch, at minimum).
 
     Commands and flags for aapt can be seen here:
     https://android.googlesource.com/platform/frameworks/base/+/master/tools/aapt/Command.cpp
     """
 
-    def __init__(self):
+    def __init__(self, context, workdir):
         #define the params needed in the BUILD file {name, sources, dependencies, etc.}
-        pass
+        super(AaptGen, self).__init__(self, context, workdir)
+        self.aapt = self._dist.aapt_tool()
 
     def is_gentarget(self, target):
         """Must return True if it handles generating for the target."""
@@ -53,7 +54,8 @@ class AaptGen(CodeGen, AndroidTask):
                 raise TaskError('Unrecognized android gen lang: %s' % lang)
             output_dir = safe_mkdir(self._aapt_out(target))
             manifest_location = self.manifest(target)
-            args = ["-m -J", output_dir, "-M". manifest_location, "-S", target.resources, "-I"]
+            # TODO: in process- resolve the proper android.jar tool and pass it as final arg
+            args = ["package", "-m -J", output_dir, "-M". manifest_location, "-S", target.resources, "-I", ]
 
         # if aapt returns NULL -- file does not exist or no permission to read.
 

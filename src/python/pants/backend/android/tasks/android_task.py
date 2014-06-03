@@ -4,7 +4,16 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-from pants.tasks.task import Task
+from pants.backend.core.tasks.task import Task
+from pants.base.exceptions import TaskError
+from pants.android.distribution.android_distribution import AndroidDistribution
 
 class AndroidTask(Task):
-    pass
+
+    def __init__(self, context, workdir):
+        super(AndroidTask, self).__init__(context, workdir)
+        # TODO (mateor): should I use a workunit here?
+        try:
+            self._dist = AndroidDistribution.cached()
+        except AndroidDistribution.Error as e:
+            raise TaskError(e)
