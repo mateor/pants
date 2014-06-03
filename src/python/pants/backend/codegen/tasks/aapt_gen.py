@@ -8,13 +8,14 @@ import os
 
 from twitter.common.dirutil import safe_mkdir
 
-from pants.tasks.task import Task
-from pants.tasks.task import TaskError
-from pants.tasks.code_gen import CodeGen
+from pants.backend.android.targets.android_target import AndroidTarget
+from pants.base.exceptions import TaskError
+from pants.backend.android.tasks.android_task import AndroidTask
+from pants.backend.codegen.tasks.code_gen import CodeGen
 
 
 
-class AaptGen(CodeGen):
+class AaptGen(CodeGen, AndroidTask):
     """
     CodeGen for Android app building with the Android Asset Packaging Tool.
     There may be an aapt superclass, as it has future packaging functions besides codegen.
@@ -31,9 +32,9 @@ class AaptGen(CodeGen):
         pass
 
     def is_gentarget(self, target):
-        """Nust return True if it handles generating for the target."""
+        """Must return True if it handles generating for the target."""
         # TODO: this should be "isInstance(target, AndroidBinary)" when that target is written
-        return True
+        return isinstance(target, AndroidTarget)
 
     def genlangs(self, lang, targets):
         # this returns the language the generated code will be in
@@ -51,7 +52,8 @@ class AaptGen(CodeGen):
             if lang != 'java':
                 raise TaskError('Unrecognized android gen lang: %s' % lang)
             output_dir = safe_mkdir(self._aapt_out(target))
-
+            manifest_location = self.manifest(target)
+            args = ["-m -J", output_dir, "-M". manifest_location, "-S", target.resources, "-I"]
 
         # if aapt returns NULL -- file does not exist or no permission to read.
 
@@ -72,3 +74,10 @@ class AaptGen(CodeGen):
 
     def _aapt_out(self, target):
         return os.path.join(target.address.safe_spec_path, 'bin')
+
+    def manifest(self, target):
+        #TODO This probably needs to go in android_binary target.
+
+        # Android builds proscribe the AndroidManifest.xml location, but
+        #  perhaps there is a better way to handle this
+        return os.path.join(target.address.safe_spec_path, 'AndroidManifest.xml')
