@@ -73,7 +73,7 @@ class AndroidDistribution(object):
         if self._validated_binaries:
             return
         try:
-            self._validated_executable(self._android_tool())  # Calling purely for the check and cache side effects
+            self._validated_executable(self.android_tool())  # Calling purely for the check and cache side effects
         except self.Error:
             raise
 
