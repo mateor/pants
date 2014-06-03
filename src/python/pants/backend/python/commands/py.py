@@ -52,8 +52,20 @@ class Py(Command):
                       help='Show verbose output.')
     parser.epilog = """Interact with the chroot of the specified target."""
 
-  def __init__(self, run_tracker, root_dir, parser, argv):
-    Command.__init__(self, run_tracker, root_dir, parser, argv)
+  def __init__(self,
+               run_tracker,
+               root_dir,
+               parser,
+               argv,
+               build_file_parser,
+               build_graph):
+    Command.__init__(self,
+                     run_tracker,
+                     root_dir,
+                     parser,
+                     argv,
+                     build_file_parser,
+                     build_graph)
 
     self.binary = None
     self.targets = []
@@ -126,7 +138,8 @@ class Py(Command):
       self.error('Cannot specify both --entry_point and --ipython!')
 
     if self.options.verbose:
-      print('Build operating on targets: %s' % ' '.join(self.targets))
+      print('Build operating on targets: %s' % ' '.join(str(target) for target in self.targets))
+
 
     builder = PEXBuilder(tempfile.mkdtemp(), interpreter=self.interpreter,
                          pex_info=self.binary.pexinfo if self.binary else None)
