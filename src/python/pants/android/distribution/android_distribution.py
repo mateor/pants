@@ -32,7 +32,7 @@ class AndroidDistribution(object):
         dist = cls._ANDROID_SDK.get(key)
         if not dist:
             dist = cls.locate()
-        cls._ANDROID_SDK = dist
+        cls._ANDROID_SDK[key] = dist
         return dist
 
 
@@ -103,4 +103,5 @@ class AndroidDistribution(object):
 
     def _android_tool(self):
         return (os.path.join('tools','android'))
+
 
