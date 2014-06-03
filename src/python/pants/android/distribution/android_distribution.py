@@ -69,7 +69,6 @@ class AndroidDistribution(object):
         self._validated_binaries = {}
 
 
-
     def validate(self):
         if self._validated_binaries:
             return
@@ -78,30 +77,30 @@ class AndroidDistribution(object):
         except self.Error:
             raise
 
-    def _validated_executable(self, name):
-        exe = self._validated_binaries.get(name)
+    def _validated_executable(self, tool):
+        exe = self._validated_binaries.get(tool)
         if not exe:
-            exe = self._validate_executable(name)
-            self._validated_binaries[name] = exe
+            exe = self._validate_executable(tool)
+            self._validated_binaries[tool] = exe
         return exe
 
-    def _validate_executable(self, name):
-        exe = os.path.join(self._sdk_path, name)
-        #TODO remove Debug
-        print(exe)
-        if not self._is_executable(exe):
+    def _validate_executable(self, tool):
+        if not self._is_executable(tool):
             raise self.Error('Failed to locate the %s executable, %s does not appear to be a'
-                             ' valid %s' % (name, self, 'Android SDK'))
-        return exe
+                             ' valid %s' % (tool, self, 'Android SDK'))
+        return tool
 
     @staticmethod
     def _is_executable(path):
         return os.path.isfile(path) and os.access(path, os.X_OK)
 
-    def _aapt_tool(self):
-        pass
 
-    def _android_tool(self):
-        return (os.path.join('tools','android'))
+    #TODO: Consider where the best place for these really are, or if this is even a good model at all
+    def aapt_tool(self):
+        #TODO: SOON! Implement the platform_target resolver, some way some how.
+        return (os.path.join(self._sdk_path, 'build-tools/19.1.0', 'android'))
+
+    def android_tool(self):
+        return (os.path.join(self._sdk_path, 'tools','android'))
 
 
