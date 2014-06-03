@@ -16,6 +16,8 @@ class AndroidTarget(Target):
                  sources_rel_path=None,
                  excludes=None,
                  resources=None,
+                 platform_target=None,
+                 keystore=None,
                  **kwargs):
         """
         :param name:
@@ -24,6 +26,8 @@ class AndroidTarget(Target):
         :param sources_rel_path: #TODO: Use? Used in payload for Jvm
         :param excludes:
         :param resources:
+        :param platform_target: which Google API to use, e.g. "17" or "19"
+        :param keystore: 'debug' or 'release' TODO: Set 'debug as default'
         :return:
         """
         self.add_labels('android')
