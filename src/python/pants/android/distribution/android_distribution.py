@@ -65,7 +65,8 @@ class AndroidDistribution(object):
         self._sdk_path = sdk_path
         # Implement these min/target sdks as I come to it. I need a manifest parser first.
         self._minimum_sdk = minimum_sdk
-        self._target_sdk = target_sdk
+        #TODO: SOON! Implement the platform_target resolver, by parsing manifest, etc.
+        self._target_sdk = "19.1.0"
         self._validated_binaries = {}
 
 
@@ -97,8 +98,7 @@ class AndroidDistribution(object):
 
     #TODO: Consider where the best place for these really are, or if this is even a good model at all
     def aapt_tool(self):
-        #TODO: SOON! Implement the platform_target resolver, some way some how.
-        return (os.path.join(self._sdk_path, 'build-tools/19.1.0', 'android'))
+        return (os.path.join(self._sdk_path, ('build-tools/' + self._target_sdk), 'aapt'))
 
     def android_tool(self):
         return (os.path.join(self._sdk_path, 'tools','android'))
