@@ -13,8 +13,8 @@ import threading
 from pants.backend.jvm.ivy_utils import IvyUtils
 from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.backend.jvm.targets.jvm_target import JvmTarget
-from pants.base.cache_manager import (InvalidationCacheManager, InvalidationCheck,
-                                      VersionedTargetSet)
+from pants.base.cache_manager import VersionedTargetSet
+from pants.base.exceptions import TaskError
 from pants.base.fingerprint_strategy import FingerprintStrategy
 from pants.ivy.bootstrapper import Bootstrapper
 from pants.java.executor import Executor
@@ -50,14 +50,15 @@ class IvyTaskMixin(object):
                   silent=False,
                   workunit_name=None,
                   workunit_labels=None):
+    # NOTE: Always pass all the targets to exec_ivy, as they're used to calculate the name of
+    # the generated module, which in turn determines the location of the XML report file
+    # ivy generates. We recompute this name from targets later in order to find that file.
+    # TODO: This is fragile. Refactor so that we're not computing the name twice.
     if executor and not isinstance(executor, Executor):
       raise ValueError('The executor must be an Executor instance, given %s of type %s'
                        % (executor, type(executor)))
     ivy = Bootstrapper.default_ivy(java_executor=executor,
                                    bootstrap_workunit_factory=self.context.new_workunit)
-
-    targets = set([target for target in targets if isinstance(target, (JvmTarget, JarLibrary))])
-
     if not targets:
       return []
 
