@@ -8,5 +8,13 @@ from pants.backend.android.targets.android_target import AndroidTarget
 
 class AndroidBinary(AndroidTarget):
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self,
+                 name,
+                 sources,
+                 provides=None,
+                 dependencies=None,
+                 excludes=None,
+                 **kwargs):
+
+        # Placeholder until we get around to thinking about libraries and their needs
+        super(AndroidBinary, self).__init__(name=name, sources=sources, **kwargs)

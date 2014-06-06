@@ -8,7 +8,7 @@ import os
 
 from twitter.common.dirutil import safe_mkdir
 
-from pants.backend.android.targets.android_target import AndroidTarget
+from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.base.exceptions import TaskError
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.codegen.tasks.code_gen import CodeGen
@@ -30,12 +30,10 @@ class AaptGen(AndroidTask, CodeGen):
     def __init__(self, context, workdir):
         #define the params needed in the BUILD file {name, sources, dependencies, etc.}
         super(AaptGen, self).__init__(self, context, workdir)
-        self.aapt = self._dist.aapt_tool()
 
     def is_gentarget(self, target):
         """Must return True if it handles generating for the target."""
-        # TODO: this should be "isInstance(target, AndroidBinary)" when that target is written
-        return isinstance(target, AndroidTarget)
+        return isinstance(target, AndroidBinary)
 
     def genlangs(self, lang, targets):
         # this returns the language the generated code will be in
@@ -48,15 +46,17 @@ class AaptGen(AndroidTask, CodeGen):
         May return a list of pairs (target, files) where files is a list of files
         to be cached against the target.
         """
+
+
         # Here is action.
+
+            # somewhere here we will need to handle "crunch" command for release builds.
+
         for target in targets:
             if lang != 'java':
                 raise TaskError('Unrecognized android gen lang: %s' % lang)
-            output_dir = safe_mkdir(self._aapt_out(target))
-            manifest_location = self.manifest(target)
-            # TODO: in process- resolve the proper android.jar tool and pass it as final arg
-            args = ["package", "-m -J", output_dir, "-M". manifest_location, "-S", target.resources, "-I", ]
-
+            aapt_output = safe_mkdir(self._aapt_out(target))
+            args = ["package", "-m -J", aapt_output, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
         # if aapt returns NULL -- file does not exist or no permission to read.
 
     def createtarget(self, lang, gentarget, dependees):
@@ -70,10 +70,6 @@ class AaptGen(AndroidTask, CodeGen):
 
     # The CodeGen superclass implements some caching in execute() Investigate more.
 
-    # somewhere in here we need to setup output directories. antler_gen makes the java_out
-    #    so lets make output dirs in the classes to which they belong. That means we need:
-    #    safe_mkdir(bin) --- antlr does it in genlang()
-
     def _aapt_out(self, target):
         return os.path.join(target.address.safe_spec_path, 'bin')
 
@@ -82,4 +78,13 @@ class AaptGen(AndroidTask, CodeGen):
 
         # Android builds proscribe the AndroidManifest.xml location, but
         #  perhaps there is a better way to handle this
+        #   N.B. Buck allows any name for Manifest and just aliases the file when passed to tooling. Value?
         return os.path.join(target.address.safe_spec_path, 'AndroidManifest.xml')
+
+
+    # resolve the tools on a per-target basis
+    def aapt_tool(self, target):
+        return (os.path.join(self._sdk_path, ('build-tools/' + target.build_tools_version), 'aapt'))
+
+    def android_jar_tool(self, target):
+        return (os.path.join(self._sdk_path, 'platforms', ('android-' + target.target_sdk_version), 'android.jar'))
