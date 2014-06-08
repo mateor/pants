@@ -79,14 +79,6 @@ class AaptGen(AndroidTask, CodeGen):
   def _aapt_out(self, target):
     return os.path.join(target.address.safe_spec_path, 'bin')
 
-  def manifest(self, target):
-    #TODO This probably needs to go in android_binary target.
-
-    # Android builds proscribe the AndroidManifest.xml location, but
-    #  perhaps there is a better way to handle this
-    #   N.B. Buck allows any name for Manifest and just aliases the file when passed to tooling. Value?
-    return os.path.join(target.address.safe_spec_path, 'AndroidManifest.xml')
-
 
   # resolve the tools on a per-target basis
   def aapt_tool(self, target):
