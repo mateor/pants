@@ -31,9 +31,10 @@ class AaptGen(AndroidTask, CodeGen):
     #define the params needed in the BUILD file {name, sources, dependencies, etc.}
     super(AaptGen, self).__init__(self, context, workdir)
 
-    def is_gentarget(self, target):
-      """Must return True if it handles generating for the target."""
-      return isinstance(target, AndroidBinary)
+
+  def is_gentarget(self, target):
+    """Must return True if it handles generating for the target."""
+    return isinstance(target, AndroidBinary)
 
   def genlangs(self, lang, targets):
     # this returns a dict of the language the generated code will be in
@@ -47,7 +48,7 @@ class AaptGen(AndroidTask, CodeGen):
     to be cached against the target.
     """
 
-    #TODO: Each invocation of a particular aapt tool could be a batch job, instead of each target in serial
+    #TODO: Since each invocation of aapt here creates a new package, I don't think we can execute as a batch job by type
     # Here is action.
 
     # somewhere here we will need to handle "crunch" command for release builds.
@@ -78,7 +79,6 @@ class AaptGen(AndroidTask, CodeGen):
 
   def _aapt_out(self, target):
     return os.path.join(target.address.safe_spec_path, 'bin')
-
 
   # resolve the tools on a per-target basis
   def aapt_tool(self, target):
