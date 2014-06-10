@@ -5,7 +5,9 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
                         print_function, unicode_literals)
 
 import os
+import subprocess
 
+from twitter.common import log
 from twitter.common.dirutil import safe_mkdir
 
 from pants.backend.android.targets.android_binary import AndroidBinary
@@ -48,27 +50,19 @@ class AaptGen(AndroidTask, CodeGen):
     to be cached against the target.
     """
 
-    #TODO: Since each invocation of aapt here creates a new package, I don't think we can execute as a batch job by type
-    # Here is action.
-
+    #TODO: Each invocation of aapt creates a new package, I don't think it can batch for each aapt binary used
     # somewhere here we will need to handle "crunch" command for release builds.
     for target in targets:
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: %s' % lang)
       output_dir = safe_mkdir(self._aapt_out(target))
-      args = ["package", "-m -J", output_dir, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
-      sources = self._calculate_sources([target])
+      args = [self.aapt_tool(target), "package", "-m -J", output_dir, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
+      log.debug('Executing: %s' % ' '.join(args))
+      process = subprocess.Popen(args)
+      result = process.wait()
+      if result != 0:
+        raise TaskError('Android %s ... exited non-zero (%i)' % (self.aapt_tool, result))
 
-  def _calculate_sources(self, targets):
-    #could this be moved up into codegen and overriden where needed?
-    sources = set()
-
-    def collect_sources(target):
-      if self.is_gentarget(target):
-        sources.update(target.sources_relative_to_buildroot())
-    for target in targets:
-      target.walk(collect_sources)
-    return sources
 
   def createtarget(self, lang, gentarget, dependees):
     """from: CodeGen: aapt class must override and create a synthetic target.
