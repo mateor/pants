@@ -35,11 +35,10 @@ class AaptGen(AndroidTask, CodeGen):
 
 
   def is_gentarget(self, target):
-    """Must return True if it handles generating for the target."""
+    # I have flip-flopped again, this should prob. be AndroidTarget
     return isinstance(target, AndroidBinary)
 
   def genlangs(self, lang, targets):
-    # this returns a dict of the language the generated code will be in
     return dict(java=lambda t: t.is_jvm)
 
   def genlang(self, lang, targets):
@@ -49,19 +48,18 @@ class AaptGen(AndroidTask, CodeGen):
     May return a list of pairs (target, files) where files is a list of files
     to be cached against the target.
     """
-
-    #TODO: Each invocation of aapt creates a new package, I don't think it can batch for each aapt binary used
+    #TODO:Investigate.Each invocation of aapt creates a package, I don't think it can batch for each aapt binary used
     # somewhere here we will need to handle "crunch" command for release builds.
     for target in targets:
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: %s' % lang)
       output_dir = safe_mkdir(self._aapt_out(target))
-      args = [self.aapt_tool(target), "package", "-m -J", output_dir, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
+      args = [self.aapt_tool(target), "package", "-m",  "-J", output_dir, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
       log.debug('Executing: %s' % ' '.join(args))
       process = subprocess.Popen(args)
       result = process.wait()
       if result != 0:
-        raise TaskError('Android %s ... exited non-zero (%i)' % (self.aapt_tool, result))
+        raise TaskError('Android %s ... exited non-zero (%i)' % (self.aapt_tool(target), result))
 
 
   def createtarget(self, lang, gentarget, dependees):
