@@ -16,6 +16,7 @@ class AndroidTarget(Target):
                sources_rel_path=None,
                excludes=None,
                manifest="AndroidManifest.xml",
+               package=None,
                resources="res",
                # build_tools_version should be defined in ini
                build_tools_version="19.1.0",
@@ -31,6 +32,7 @@ class AndroidTarget(Target):
       :param sources_rel_path: #TODO: Use? Used in payload for Jvm
       :param excludes:
       :param manifest: Name of the android manifest (required by tooling to be named AndroidManifest.xml)
+      :param package: Package name of app as string: 'com.pants.examples.hello' #TODO manifest parser.
       :param resources:
       :param build_tools_version: Android API for the Build Tools (separate from SDK version) Default to latest
       :param target_sdk_version: Version of the Android SDK the android target is built for
@@ -43,4 +45,5 @@ class AndroidTarget(Target):
       self.build_tools_version = build_tools_version
       self.target_sdk_version = target_sdk_version
       self.release_type = keystore
+      self.package = package
       #TODO Handle the manifest-- target platform, etc.
