@@ -8,7 +8,7 @@ from pants.base.build_manual import manual
 from pants.backend.android.targets.android_target import AndroidTarget
 
 @manual.builddict(tags=["android"])
-class PythonThriftLibrary(AndroidTarget):
+class AndroidResources(AndroidTarget):
   """Generates an R class from android resource files. This allows resources to be referenced from java code"""
 
   def __init__(self, **kwargs):
@@ -21,5 +21,5 @@ class PythonThriftLibrary(AndroidTarget):
     :param dict exclusives: An optional dict of exclusives tags. See CheckExclusives for details.
     """
 
-    super(AndroidTarget, self).__init__(**kwargs)
+    super(AndroidResources, self).__init__(**kwargs)
     self.add_labels('codegen')
