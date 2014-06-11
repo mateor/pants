@@ -4,6 +4,6 @@
 android_binary(name='android-example',
   sources='HelloWorld.java',
   resources=[
-    pants('src/android/example/res'),
+   'src/android/example/res'
     ],
 )
