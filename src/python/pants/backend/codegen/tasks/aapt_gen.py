@@ -81,7 +81,7 @@ class AaptGen(AndroidTask, CodeGen):
 
   # resolve the tools on a per-target basis
   def aapt_tool(self, target):
-    return (os.path.join(self._sdk_path, ('build-tools/' + target.build_tools_version), 'aapt'))
+    return (os.path.join(self._dist._sdk_path, ('build-tools/' + target.build_tools_version), 'aapt'))
 
   def android_jar_tool(self, target):
-    return (os.path.join(self._sdk_path, 'platforms', ('android-' + target.target_sdk_version), 'android.jar'))
+    return (os.path.join(self._dist._sdk_path, 'platforms', ('android-' + target.target_sdk_version), 'android.jar'))
