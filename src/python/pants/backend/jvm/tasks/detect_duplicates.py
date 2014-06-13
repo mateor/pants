@@ -14,12 +14,12 @@ from pants.base.exceptions import TaskError
 from pants.java.jar.manifest import Manifest
 
 
-EXCLUDED_FILES = "dependencies,license,notice,.DS_Store,notice.txt,cmdline.arg.info.txt.1," \
-                 "license.txt"
+EXCLUDED_FILES = ("dependencies,license,notice,.DS_Store,notice.txt,cmdline.arg.info.txt.1,"
+                  "license.txt")
+
 
 class DuplicateDetector(JvmBinaryTask):
   """ Detect classes and resources with the same qualified name on the classpath. """
-
 
   @staticmethod
   def _isdir(name):
@@ -27,7 +27,7 @@ class DuplicateDetector(JvmBinaryTask):
 
   @classmethod
   def setup_parser(cls, option_group, args, mkflag):
-    JvmBinaryTask.setup_parser(option_group, args, mkflag)
+    super(DuplicateDetector, cls).setup_parser(option_group, args, mkflag)
     option_group.add_option(mkflag("fail-fast"), mkflag("fail-fast", negate=True),
                             dest="fail_fast", default=False,
                             action="callback", callback=mkflag.set_bool,
@@ -37,7 +37,6 @@ class DuplicateDetector(JvmBinaryTask):
                             help="A comma separated list of files to exclude from duplicate check, "
                                  "defaults to: [%default]")
 
-
   def __init__(self, context, workdir):
     super(DuplicateDetector, self).__init__(context, workdir)
     self._fail_fast = context.options.fail_fast
@@ -46,7 +45,6 @@ class DuplicateDetector(JvmBinaryTask):
       self._excludes = EXCLUDED_FILES
     context.products.require_data('classes_by_target')
     context.products.require_data('resources_by_target')
-
 
   def execute(self):
     for binary_target in filter(self.is_binary, self.context.targets()):
@@ -104,7 +102,7 @@ class DuplicateDetector(JvmBinaryTask):
       with closing(ZipFile(external_dep)) as dep_zip:
         for qualified_file_name in dep_zip.namelist():
           file_name = os.path.basename(qualified_file_name)
-          if file_name.lower() in self._excludes:
+          if file_name.decode('utf-8').lower() in self._excludes:
             continue
           jar_name = os.path.basename(external_dep)
           if (not self._isdir(qualified_file_name)) and Manifest.PATH != qualified_file_name:

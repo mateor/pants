@@ -9,7 +9,6 @@ import sys
 from collections import defaultdict
 from contextlib import contextmanager
 
-from twitter.common.collections import OrderedSet
 from twitter.common.dirutil import Lock
 from twitter.common.process import ProcessProviderFactory
 from twitter.common.process.process_provider import ProcessProvider
@@ -257,7 +256,7 @@ class Context(object):
   def resolve(self, spec):
     """Returns an iterator over the target(s) the given address points to."""
     self.build_file_parser.inject_spec_closure_into_build_graph(spec, self.build_graph)
-    return self.build_graph.transitive_subgraph_of_addresses([SyntheticAddress(spec)])
+    return self.build_graph.transitive_subgraph_of_addresses([SyntheticAddress.parse(spec)])
 
   @contextmanager
   def state(self, key, default=None):

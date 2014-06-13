@@ -6,12 +6,31 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 
 import os
 
+from twitter.common.lang import AbstractClass
 
-# TODO(pl): Add a nice docstring for this
+
+
 def parse_spec(spec, relative_to=''):
+  """Parses a target address spec and returns the path from the root of the repo to this Target
+  and Target name.
+  :param string spec: target address spec
+  For Example
+  ::
+    some_target(name='mytarget',
+      dependencies=['path/to/buildfile:targetname']
+    )
+
+  Where  ``path/to/buildfile:targetname`` is the dependent target address spec
+
+  In case, the target name is empty it returns the last component of the path as target name.
+  ::
+    spec_path, target_name = parse_spec('path/to/buildfile/foo')
+
+  Will return spec_path as 'path/to/buildfile/foo' and target_name as 'foo'
+  """
   spec_parts = spec.rsplit(':', 1)
   if len(spec_parts) == 1:
-    spec_path = spec_parts[0]
+    spec_path = os.path.normpath(spec_parts[0])
     assert spec_path, (
       'Attempted to parse a bad spec string {spec}: empty spec string'
       .format(spec=spec)
@@ -25,7 +44,7 @@ def parse_spec(spec, relative_to=''):
   return spec_path, target_name
 
 
-class Address(object):
+class Address(AbstractClass):
   """A target address.
 
   An address is a unique name representing a
@@ -49,6 +68,9 @@ class Address(object):
     :param string spec_path: The path from the root of the repo to this Target.
     :param string target_name: The name of a target this Address refers to.
     """
+    # TODO(John Sirois): AbstractClass / Interface should probably have this feature built in.
+    if type(self) == Address:
+      raise TypeError('Cannot instantiate abstract class Address')
     norm_path = os.path.normpath(spec_path)
     self.spec_path = norm_path if norm_path != '.' else ''
     self.target_name = target_name
@@ -57,6 +79,7 @@ class Address(object):
   def spec(self):
     return '{spec_path}:{target_name}'.format(spec_path=self.spec_path,
                                               target_name=self.target_name)
+
   @property
   def path_safe_spec(self):
     return ('{safe_spec_path}.{target_name}'
@@ -119,9 +142,10 @@ class BuildFileAddress(Address):
 
 
 class SyntheticAddress(Address):
-  def __init__(self, spec, relative_to=''):
+  @classmethod
+  def parse(cls, spec, relative_to=''):
     spec_path, target_name = parse_spec(spec, relative_to=relative_to)
-    super(SyntheticAddress, self).__init__(spec_path=spec_path, target_name=target_name)
+    return cls(spec_path, target_name)
 
   def __repr__(self):
     return "SyntheticAddress({spec})".format(spec=self.spec)

@@ -44,8 +44,9 @@ class PythonTarget(Target):
 
     self._provides = provides
 
-    self.compatibility = maybe_list(compatibility or ())
-    for req in self.compatibility:
+    self._compatibility = maybe_list(compatibility or ())
+    # Check that the compatibility requirements are well-formed.
+    for req in self._compatibility:
       try:
         PythonIdentity.parse_requirement(req)
       except ValueError as e:
@@ -55,7 +56,7 @@ class PythonTarget(Target):
   def traversable_specs(self):
     if self._provides:
       for spec in self._provides._binaries.values():
-        address = SyntheticAddress(spec, relative_to=self.address.spec_path)
+        address = SyntheticAddress.parse(spec, relative_to=self.address.spec_path)
         yield address.spec
 
   @property
@@ -66,9 +67,13 @@ class PythonTarget(Target):
     # TODO(pl): This is an awful hack
     for key, binary in self._provides._binaries.iteritems():
       if isinstance(binary, Compatibility.string):
-        address = SyntheticAddress(binary, relative_to=self.address.spec_path)
+        address = SyntheticAddress.parse(binary, relative_to=self.address.spec_path)
         self._provides._binaries[key] = self._build_graph.get_target(address)
     return self._provides
+
+  @property
+  def compatibility(self):
+    return self._compatibility
 
   @property
   def resources(self):
@@ -99,11 +104,11 @@ class PythonTarget(Target):
   def _synthesize_resources_target(self):
     # Create an address for the synthetic target.
     spec = self.address.spec + '_synthetic_resources'
-    synthetic_address = SyntheticAddress(spec=spec)
+    synthetic_address = SyntheticAddress.parse(spec=spec)
     # For safety, ensure an address that's not used already, even though that's highly unlikely.
     while self._build_graph.contains_address(synthetic_address):
       spec += '_'
-      synthetic_address = SyntheticAddress(spec=spec)
+      synthetic_address = SyntheticAddress.parse(spec=spec)
 
     self._build_graph.inject_synthetic_target(synthetic_address, Resources,
                                               sources=self.payload.resources,
