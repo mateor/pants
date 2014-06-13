@@ -3,6 +3,7 @@
 
 android_binary(name='android-example',
   sources='HelloWorld.java',
+  home=[pants('src/android/example')],
   package='com.pants.examples.hello',
   resources=[
    pants('src/android/example/res')

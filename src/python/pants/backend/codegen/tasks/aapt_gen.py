@@ -49,7 +49,7 @@ class AaptGen(AndroidTask, CodeGen):
     to be cached against the target.
     """
     #TODO:Investigate.Each invocation of aapt creates a package, I don't think it can batch for each aapt binary used
-    # somewhere here we will need to handle "crunch" command for release builds.
+    # somewhere in an aapt class we will need to handle "crunch" command for release builds.
     for target in targets:
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: %s' % lang)
@@ -67,10 +67,17 @@ class AaptGen(AndroidTask, CodeGen):
     The target must contain the sources generated for the given gentarget.
     """
     #This method creates the new target to replace the acted upon resources in the target graph
+    #target.address.spec_path
+    aapt_gen_file = ["R.java"]
+    genfiles = []
+    for source in gentarget.sources:
+
+
+
 
 
   def _aapt_out(self, target):
-    return os.path.join(target.address.safe_spec_path, 'bin')
+    return os.path.join(target.home, 'bin')
 
   # resolve the tools on a per-target basis
   def aapt_tool(self, target):
