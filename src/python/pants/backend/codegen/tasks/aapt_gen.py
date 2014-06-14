@@ -69,10 +69,12 @@ class AaptGen(AndroidTask, CodeGen):
     #This method creates the new target to replace the acted upon resources in the target graph
     #target.address.spec_path
     aapt_gen_file = ["R.java"]
-    genfiles = []
-    for source in gentarget.sources:
 
 
+
+  def package_path(self, target):
+    #needs to convert the package name (com.foo.bar) into a package path (com/foo/bar)
+    return target.package.replace('.', os.sep)
 
 
 
