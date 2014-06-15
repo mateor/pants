@@ -11,10 +11,11 @@ from twitter.common import log
 from twitter.common.dirutil import safe_mkdir
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.base.exceptions import TaskError
+from pants.backend.jvm.targets.java_library import JavaLibrary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.codegen.tasks.code_gen import CodeGen
-
+from pants.base.address import SyntheticAddress
+from pants.base.exceptions import TaskError
 
 
 class AaptGen(AndroidTask, CodeGen):
@@ -54,7 +55,8 @@ class AaptGen(AndroidTask, CodeGen):
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: %s' % lang)
       output_dir = safe_mkdir(self._aapt_out(target))
-      args = [self.aapt_tool(target), "package", "-m",  "-J", output_dir, "-M", target.manifest, "-S", target.resources, "-I", self.android_jar_tool(target)]
+      args = [self.aapt_tool(target), "package", "-m",  "-J", output_dir, "-M", target.manifest,
+              "-S", target.resources, "-I", self.android_jar_tool(target)]
       log.debug('Executing: %s' % ' '.join(args))
       process = subprocess.Popen(args)
       result = process.wait()
@@ -67,12 +69,26 @@ class AaptGen(AndroidTask, CodeGen):
     The target must contain the sources generated for the given gentarget.
     """
     #This method creates the new target to replace the acted upon resources in the target graph
-    #target.address.spec_path
-    aapt_gen_file = ["R.java"]
-
-
+    # create the path and sources
+    aapt_gen_file = os.path.join(gentarget.target_base, self._aapt_out(gentarget), gentarget.package, 'R.java')
+    #Use the address to create a syntheticTarget address
+    address = SyntheticAddress.parse(spec_path=aapt_gen_file, target_name = gentarget.id)
+    # create new JavaLibraryTarget
+    tgt = self.context.add_new_target(address,
+                                      JavaLibrary,
+                                      name=gentarget.id,
+                                      #TODO:are sources full path? Address seem to be
+                                      sources=aapt_gen_file,
+                                      provides=gentarget.provides,
+                                      dependencies=[],
+                                      excludes=gentarget.excludes)
+    # update (or inject?) deps
+    for dependee in dependees:
+      dependee.update_dependencies([tgt])
+    return tgt
 
   def package_path(self, target):
+    #TODO test this
     #needs to convert the package name (com.foo.bar) into a package path (com/foo/bar)
     return target.package.replace('.', os.sep)
 
