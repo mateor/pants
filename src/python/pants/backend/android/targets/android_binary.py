@@ -18,4 +18,3 @@ class AndroidBinary(AndroidTarget):
 
     # Placeholder until we get around to thinking about libraries and their needs
     super(AndroidBinary, self).__init__(name=name, sources=sources, **kwargs)
-    self.add_labels('codegen')
