@@ -77,9 +77,8 @@ class AaptGen(AndroidTask, CodeGen):
     return target.package.replace('.', os.sep)
 
 
-
   def _aapt_out(self, target):
-    return os.path.join(target.home, 'bin')
+    return os.path.join(target.target_base, 'bin')
 
   # resolve the tools on a per-target basis
   def aapt_tool(self, target):
