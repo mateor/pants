@@ -43,9 +43,8 @@ class AndroidTarget(Target):
       """
       self.add_labels('android')
       self.build_tools_version = build_tools_version
-      self.home = home
       self.release_type = keystore
       self.resources = resources
       self.package = package
       self.target_sdk_version = target_sdk_version
-      #TODO Handle the manifest-- target platform, etc.
+      #TODO manifest parser for the fields it can handle.

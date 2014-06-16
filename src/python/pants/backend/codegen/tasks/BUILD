@@ -23,6 +23,21 @@ python_library(
 )
 
 python_library(
+  name = 'aapt_gen',
+  sources = ['aapt_gen.py'],
+  dependencies = [
+    pants('3rdparty/python/twitter/commons:twitter.common.dirutil'),
+    pants('3rdparty/python/twitter/commons:twitter.common.log'),
+    pants(':code_gen'),
+    pants(':common'),
+    pants('src/python/pants/backend/android/targets:android'),
+    pants('src/python/pants/backend/android/tasks:android_task'),
+    pants('src/python/pants/backend/jvm/targets:java'),
+    pants('src/python/pants/base:address'),
+    ],
+  )
+
+python_library(
   name = 'apache_thrift_gen',
   sources = ['apache_thrift_gen.py'],
   dependencies = [

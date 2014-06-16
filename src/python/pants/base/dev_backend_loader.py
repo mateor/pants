@@ -16,6 +16,7 @@ def load_backends_from_source(build_file_parser, additional_backends=None):
   :param additional_backends: An optional list of additional packages to load backends from.
   """
   backend_packages = [
+    'pants.backend.android'
     'pants.backend.core',
     'pants.backend.python',
     'pants.backend.jvm',

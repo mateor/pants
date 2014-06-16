@@ -11,9 +11,9 @@ from twitter.common import log
 from twitter.common.dirutil import safe_mkdir
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.backend.jvm.targets.java_library import JavaLibrary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.codegen.tasks.code_gen import CodeGen
+from pants.backend.jvm.targets.java_library import JavaLibrary
 from pants.base.address import SyntheticAddress
 from pants.base.exceptions import TaskError
 
@@ -21,7 +21,7 @@ from pants.base.exceptions import TaskError
 class AaptGen(AndroidTask, CodeGen):
   """
   CodeGen for Android app building with the Android Asset Packaging Tool.
-  There may be an aapt superclass, as it has future packaging functions besides codegen.
+  There may be an aapt superclass or mixin, as aapt binary has future packaging functions besides codegen.
 
   aapt supports 6 major commands: {dump, list, add, remove, crunch, package}
   For right now, pants is only supporting 'package'. More to come as we support Release builds (crunch, at minimum).
@@ -33,7 +33,7 @@ class AaptGen(AndroidTask, CodeGen):
   def __init__(self, context, workdir):
     #define the params needed in the BUILD file {name, sources, dependencies, etc.}
     super(AaptGen, self).__init__(self, context, workdir)
-
+    lang = 'java'
 
   def is_gentarget(self, target):
     # I have flip-flopped again, this should prob. be AndroidTarget
@@ -102,3 +102,8 @@ class AaptGen(AndroidTask, CodeGen):
 
   def android_jar_tool(self, target):
     return (os.path.join(self._dist._sdk_path, 'platforms', ('android-' + target.target_sdk_version), 'android.jar'))
+
+  #TODO: Tests. UTF-coding headers
+  #todo: Publish and improve docs for Android files
+  #todo: debate merits of AaptClassMixin class
+  #TODO: check BUILD file imports once more

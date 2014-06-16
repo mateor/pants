@@ -23,3 +23,4 @@ class AndroidResources(AndroidTarget):
 
     super(AndroidResources, self).__init__(**kwargs)
     self.add_labels('codegen')
+    self.add_labels('aapt')

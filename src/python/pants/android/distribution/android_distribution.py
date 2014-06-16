@@ -5,8 +5,7 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
                         print_function, unicode_literals)
 
 import os
-#TODO Reinstate log stuff
-#from twitter.common import log
+from twitter.common import log
 
 class AndroidDistribution(object):
   """
@@ -51,7 +50,7 @@ class AndroidDistribution(object):
           try:
               dist = cls(path)
               dist.validate()
-              #log.debug('Located %s' % ('SDK'))
+              log.debug('Located %s' % ('SDK'))
               return dist
           except (ValueError, cls.Error):
               pass
@@ -93,7 +92,7 @@ class AndroidDistribution(object):
   def _is_executable(path):
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
-  #   The android tool is used to manage the SDK itself....staying here for now.
+  #The android tool is used to manage the SDK itself....staying here for now.
   def android_tool(self):
     return (os.path.join(self._sdk_path, 'tools','android'))
 
