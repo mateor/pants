@@ -1,5 +1,16 @@
 
 python_library(
+  name = 'android',
+  sources = [
+    'android_resources.py',
+    ],
+  dependencies = [
+    pants('src/python/pants/base:build_manual'),
+    pants('src/python/pants/backend/android/targets:android'),
+    ],
+  )
+
+python_library(
   name = 'java',
   sources = [
     'java_antlr_library.py',
