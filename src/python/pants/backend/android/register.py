@@ -38,4 +38,4 @@ def register_commands():
 
 def register_goals():
   #no callable goals yet
-  return
+  pass
