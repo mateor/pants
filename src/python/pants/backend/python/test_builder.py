@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
@@ -47,7 +48,7 @@ class PythonTestResult(object):
     return self._rc == 0
 
 
-DEFAULT_COVERAGE_CONFIG = """
+DEFAULT_COVERAGE_CONFIG = b"""
 [run]
 branch = True
 timid = True
@@ -83,7 +84,6 @@ class PythonTestBuilder(object):
     PythonRequirement('pytest'),
     PythonRequirement('pytest-timeout'),
     PythonRequirement('pytest-cov'),
-    PythonRequirement('coverage'),
     PythonRequirement('unittest2', version_filter=lambda py, pl: py.startswith('2')),
     PythonRequirement('unittest2py3k', version_filter=lambda py, pl: py.startswith('3'))
   ]
@@ -154,7 +154,7 @@ class PythonTestBuilder(object):
         return set(os.path.dirname(source).replace(os.sep, '.')
                    for source in target.sources_relative_to_source_root())
 
-    coverage_modules = set(itertools.chain([compute_coverage_modules(t) for t in targets]))
+    coverage_modules = set(itertools.chain(*[compute_coverage_modules(t) for t in targets]))
     args = ['-p', 'pytest_cov',
             '--cov-config', filename,
             '--cov-report', 'html',

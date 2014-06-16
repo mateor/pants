@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
@@ -127,6 +128,14 @@ class JvmDependencyAnalyzer(object):
       for dep in target.dependencies:
         transitive_deps.update(transitive_deps_by_target.get(dep, []))
         transitive_deps.add(dep)
+
+      # Need to handle the case where a java_sources target has dependencies.
+      # In particular if it depends back on the original target.
+      if hasattr(target, 'java_sources'):
+        for java_source_target in target.java_sources:
+          for transitive_dep in java_source_target.dependencies:
+            transitive_deps_by_target[java_source_target].add(transitive_dep)
+
       transitive_deps_by_target[target] = transitive_deps
     return transitive_deps_by_target
 

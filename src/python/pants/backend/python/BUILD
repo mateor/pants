@@ -5,6 +5,7 @@ python_library(
   name = 'plugin',
   sources = ['__init__.py', 'register.py'],
   dependencies = [
+    pants('src/python/pants/backend/python/commands:pants_old'),
     pants('src/python/pants/backend/python/targets:python'),
     pants('src/python/pants/backend/python/tasks:python'),
     pants(':all_utils'),
@@ -169,7 +170,6 @@ python_library(
     pants('3rdparty/python/twitter/commons:twitter.common.dirutil'),
     pants('3rdparty/python/twitter/commons:twitter.common.lang'),
     pants('3rdparty/python/twitter/commons:twitter.common.python'),
-    pants('3rdparty/python:coverage'),
     pants('3rdparty/python:pytest'),
     pants('3rdparty/python:pytest-cov'),
     pants(':python_chroot'),

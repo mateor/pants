@@ -1,11 +1,10 @@
+# coding=utf-8
 # Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-from pants.base.build_environment import get_buildroot
-from pants.base.build_file import BuildFile
 from pants.base.exceptions import TaskError
 from pants.backend.core.tasks.console_task import ConsoleTask
 
@@ -49,7 +48,6 @@ class ListTargets(ConsoleTask):
     self._provides = context.options.list_provides
     self._provides_columns = context.options.list_provides_columns
     self._documented = context.options.list_documented
-    self._root_dir = get_buildroot()
 
   def console_output(self, targets):
     if self._provides:
@@ -58,15 +56,14 @@ class ListTargets(ConsoleTask):
         return '%s%s%s' % (provided_jar.org, '#', provided_jar.name)
 
       extractors = dict(
-          address=lambda target: target.address.build_file_spec,
+          address=lambda target: target.address.spec,
           artifact_id=extract_artifact_id,
           repo_name=lambda target: target.provides.repo.name,
           repo_url=lambda target: target.provides.repo.url,
           repo_db=lambda target: target.provides.repo.push_db,
       )
 
-      def print_provides(column_extractors, address):
-        target = self.context.build_graph.get_target(address)
+      def print_provides(column_extractors, target):
         if target.is_exported:
           return ' '.join(extractor(target) for extractor in column_extractors)
 
@@ -76,34 +73,25 @@ class ListTargets(ConsoleTask):
         raise TaskError('Invalid columns specified %s. Valid ones include address, artifact_id, '
                         'repo_name, repo_url and repo_db.' % self._provides_columns)
 
-      print_fn = lambda address: print_provides(column_extractors, address)
+      print_fn = lambda target: print_provides(column_extractors, target)
     elif self._documented:
-      def print_documented(address):
-        target = self.context.build_graph.get_target(address)
+      def print_documented(target):
         if target.description:
-          return '%s\n  %s' % (address.build_file_spec,
+          return '%s\n  %s' % (target.address.spec,
                                '\n  '.join(target.description.strip().split('\n')))
       print_fn = print_documented
     else:
-      print_fn = lambda addr: addr.build_file_spec
+      print_fn = lambda target: target.address.spec
 
     visited = set()
-    for address in self._addresses():
-      result = print_fn(address)
+    for target in self._targets():
+      result = print_fn(target)
       if result and result not in visited:
         visited.add(result)
         yield result
 
-  def _addresses(self):
+  def _targets(self):
     if self.context.target_roots:
-      for target in self.context.target_roots:
-        yield target.address
+      return self.context.target_roots
     else:
-      build_file_parser = self.context.build_file_parser
-      build_graph = self.context.build_graph
-      for build_file in BuildFile.scan_buildfiles(get_buildroot()):
-        build_file_parser.parse_build_file(build_file)
-        for address in build_file_parser.addresses_by_build_file[build_file]:
-          build_file_parser.inject_spec_closure_into_build_graph(address.spec, build_graph)
-      for target in build_graph._target_by_address.values():
-        yield target.address
+      return self.context.build_file_parser.scan().targets()

@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
@@ -256,6 +257,11 @@ class Target(AbstractTarget):
   @property
   def is_synthetic(self):
     return self.address.is_synthetic
+
+  @property
+  def is_original(self):
+    """Returns ``True`` if this target is derived from no other."""
+    return self.derived_from == self
 
   def get_all_exclusives(self):
     """ Get a map of all exclusives declarations in the transitive dependency graph.

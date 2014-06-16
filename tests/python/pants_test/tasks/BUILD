@@ -80,6 +80,14 @@ python_tests(
 )
 
 python_tests(
+  name = 'jvm_bundle_integration',
+  sources = ['test_jvm_bundle_integration.py'],
+  dependencies = [
+    pants('tests/python/pants_test:int-test'),
+  ],
+)
+
+python_tests(
   name = 'cache_manager',
   sources = ['test_cache_manager.py'],
   dependencies = [
@@ -337,6 +345,7 @@ python_tests(
   name = 'scrooge_gen',
   sources = ['test_scrooge_gen.py'],
   dependencies = [
+    pants('3rdparty/python:mock'),
     pants(':base'),
     pants('src/python/pants/backend/codegen/targets:java'),
     pants('src/python/pants/backend/codegen/tasks:scrooge_gen'),
