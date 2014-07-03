@@ -23,48 +23,48 @@ class AndroidDistribution(object):
   class Error(Exception):
     """Indicates an invalid java distribution."""
 
-    _ANDROID_SDK = {}
+  _ANDROID_SDK = {}
 
-    @classmethod
-    def cached(cls):
-      key = 'sdk'
-      dist = cls._ANDROID_SDK.get(key)
-      if not dist:
-          dist = cls.locate()
-      cls._ANDROID_SDK[key] = dist
-      return dist
+  @classmethod
+  def cached(cls):
+    key = 'sdk'
+    dist = cls._ANDROID_SDK.get(key)
+    if not dist:
+      dist = cls.locate()
+    cls._ANDROID_SDK[key] = dist
+    return dist
 
 
-    @classmethod
-    def locate(cls):
-      def sdk_path(sdk_env_var):
-        sdk = os.environ.get(sdk_env_var)
-        return os.path.abspath(sdk) if sdk else None
+  @classmethod
+  def locate(cls):
+    def sdk_path(sdk_env_var):
+      sdk = os.environ.get(sdk_env_var)
+      return os.path.abspath(sdk) if sdk else None
 
-      def search_path():
-          yield sdk_path('ANDROID_HOME')
-          yield sdk_path('ANDROID_SDK_HOME')
-          yield sdk_path('ANDROID_SDK')
+    def search_path():
+      yield sdk_path('ANDROID_HOME')
+      yield sdk_path('ANDROID_SDK_HOME')
+      yield sdk_path('ANDROID_SDK')
 
-      for path in filter(None, search_path()):
-          try:
-              dist = cls(path)
-              dist.validate()
-              log.debug('Located %s' % ('SDK'))
-              return dist
-          except (ValueError, cls.Error):
-              pass
-      raise cls.Error('Failed to locate and set %s' % ('SDK'))
+    for path in filter(None, search_path()):
+      try:
+        dist = cls(path)
+        dist.validate()
+        log.debug('Located %s' % ('SDK'))
+        return dist
+      except (ValueError, cls.Error):
+        pass
+    raise cls.Error('Failed to locate and set %s' % ('SDK'))
 
 
   #create a distribution (aapt, all the rest of tools as needed)
   def __init__(self, sdk_path, minimum_sdk=None, target_sdk=None):
-      if not os.path.isdir(sdk_path):
-          raise ValueError('The specified android sdk path is invalid: %s' % sdk_path)
-      self._sdk_path = sdk_path
-      # Implement these min/target sdks as I come to it. I need a manifest parser first.
-      self._minimum_sdk = minimum_sdk
-      self._validated_binaries = {}
+    if not os.path.isdir(sdk_path):
+      raise ValueError('The specified android sdk path is invalid: %s' % sdk_path)
+    self._sdk_path = sdk_path
+    # Implement these min/target sdks as I come to it. I need a manifest parser first.
+    self._minimum_sdk = minimum_sdk
+    self._validated_binaries = {}
 
 
   def validate(self):
