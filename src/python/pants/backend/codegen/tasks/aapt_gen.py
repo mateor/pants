@@ -55,8 +55,10 @@ class AaptGen(AndroidTask, CodeGen):
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: %s' % lang)
       output_dir = safe_mkdir(self._aapt_out(target))
-      args = [self.aapt_tool(target), "package", "-m",  "-J", output_dir, "-M", target.manifest,
-              "-S", target.resources, "-I", self.android_jar_tool(target)]
+      # instead of ignore assets, we could move the BUILD dict up a level. May need it later anyway.
+      args = [self.aapt_tool(target), 'package', '-m',  '-J', output_dir, '-M', target.manifest,
+              '-S', target.resources, "-I", self.android_jar_tool(target),
+              '--ignore-assets', 'BUILD*']
       log.debug('Executing: %s' % ' '.join(args))
       process = subprocess.Popen(args)
       result = process.wait()
