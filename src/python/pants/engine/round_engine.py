@@ -58,8 +58,7 @@ class RoundEngine(Engine):
       if dependees is None:
         dependees = set()
         dependees_by_phase[phase] = dependees
-      # TODO(ity): Fix this check, this should never be called with the phase == dependee
-      if dependee and dependee is not phase:
+      if dependee:
         dependees.add(dependee)
 
     for phase, phase_info in phase_info_by_phase.items():
