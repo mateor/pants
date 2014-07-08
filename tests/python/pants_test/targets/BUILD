@@ -20,16 +20,14 @@ python_test_suite(
     pants(':python_binary'),
     pants(':python_target'),
     pants(':scala_library'),
+    pants(':wiki_page')
   ]
 )
 
 python_test_suite(
   name = 'integration',
   dependencies = [
-# TODO(lahosken): this test works on my laptop, but not in Travis-land.
-#   Investigating and/or finding someone smarter to investigate:
-#   https://github.com/pantsbuild/pants/issues/250
-#    pants(':scala_library_integration'),
+    pants(':scala_library_integration'),
   ],
 )
 
@@ -143,3 +141,12 @@ python_tests(
   ]
 )
 
+python_tests(
+  name = 'wiki_page',
+  sources = ['test_wiki_page.py'],
+  dependencies = [
+    pants('3rdparty/python/twitter/commons:twitter.common.confluence'),
+    pants('src/python/pants/backend/core/targets:common'),
+    pants('tests/python/pants_test:base_test'),
+  ]
+)

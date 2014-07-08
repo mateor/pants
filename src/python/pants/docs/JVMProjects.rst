@@ -76,7 +76,8 @@ especially relevant.
   A ``java_thrift_library`` generates Java code from ``.thrift`` source; a JVM
   target that has this target in its ``dependencies`` can ``import`` the
   generated Java code. A ``java_protobuf_library`` is similar, but generates
-  Java code from protobuffer source.
+  Java code from protobuffer source. A ``jaxb_library`` definition generates
+  code to read and write XML using an XML schema (.xsd files).
 
 *************************
 BUILD for a Simple Binary
@@ -88,6 +89,7 @@ code shows the BUILD file for a simple Java binary (in the ``main/`` directory):
 
 .. literalinclude:: ../../../java/com/pants/examples/hello/main/BUILD
    :start-after: runnable
+   :end-before: README page
 
 This small program has just two dependencies. One is a library, a
 ``java_library``, a compiled set of source code from this workspace.

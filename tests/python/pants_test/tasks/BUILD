@@ -6,6 +6,7 @@ python_library(
   sources = ['test_base.py'],
   dependencies = [
     pants('3rdparty/python/twitter/commons:twitter.common.collections'),
+    pants('src/python/pants/base:cmd_line_spec_parser'),
     pants('src/python/pants/base:target'),
     pants('src/python/pants/commands:goal'),
     pants('src/python/pants/goal'),
@@ -40,6 +41,7 @@ python_test_suite(
     pants(':jar_task'),
     pants(':jaxb_gen'),
     pants(':jvm_task'),
+    pants(':jvmdoc_gen'),
     pants(':list_goals'),
     pants(':listtargets'),
     pants(':minimal_cover'),
@@ -258,6 +260,7 @@ python_tests(
     pants('3rdparty/python/twitter/commons:twitter.common.contextutil'),
     pants('3rdparty/python/twitter/commons:twitter.common.dirutil'),
     pants(':base'),
+    pants('src/python/pants/backend/android/targets:android'),
     pants('src/python/pants/backend/codegen/targets:java'),
     pants('src/python/pants/backend/core/targets:common'),
     pants('src/python/pants/backend/jvm/targets:java'),
@@ -444,6 +447,17 @@ python_tests(
     pants('3rdparty/python/twitter/commons:twitter.common.dirutil'),
     pants('src/python/pants/backend/core/tasks:check_exclusives'),
     pants('src/python/pants/backend/jvm/tasks:jvm_task'),
+    pants('tests/python/pants_test:base_test'),
+  ]
+)
+
+python_tests(
+  name = 'jvmdoc_gen',
+  sources = ['test_jvmdoc_gen.py'],
+  dependencies = [
+    pants('3rdparty/python/twitter/commons:twitter.common.dirutil'),
+    pants('src/python/pants/backend/core/tasks:check_exclusives'),
+    pants('src/python/pants/backend/jvm/tasks:jvmdoc_gen'),
     pants('tests/python/pants_test:base_test'),
   ]
 )

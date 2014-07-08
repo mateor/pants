@@ -22,11 +22,10 @@ class AndroidBinary(AndroidTarget):
                **kwargs):
     """
    :param string name: The name of this target, which combined with this
-      build file defines the :doc:`target address <target_addresses>`.
+      build file defines the target :class:`pants.base.address.Address`.
     :param sources: A list of filenames representing the source code.
-    :type sources: ``Fileset`` or list of strings. Paths are relative to the
-      BUILD file's directory.
-    :param excludes: List of :ref:`exclude <bdict_exclude>`\s
+    :type sources: list of strings
+    :param excludes: One or more :class:`pants.targets.exclude.Exclude` instances
       to filter this target's transitive dependencies against.
     :param package: Package name of app, e.g. 'com.pants.examples.hello'
     :type package: string
@@ -39,5 +38,5 @@ class AndroidBinary(AndroidTarget):
       Set as 'debug' by default.
     """
 
-    # TODO (mateor): Add some Compatibility error checks.
+    # TODO: Add some Compatibility error checks.
     super(AndroidBinary, self).__init__(name=name, sources=sources, **kwargs)

@@ -14,7 +14,7 @@ from twitter.common.collections import OrderedSet
 from pants.backend.jvm.targets.jvm_target import JvmTarget
 from pants.base.build_environment import get_buildroot
 from pants.base.build_manual import manual
-from pants.base.payload import hash_sources, Payload, SourcesMixin
+from pants.base.payload import hash_sources, SourcesPayload
 
 
 # TODO(Garrett Malmquist): Create an ExtensiblePayloads class which all Payloads can extend from in
@@ -24,7 +24,7 @@ from pants.base.payload import hash_sources, Payload, SourcesMixin
 # be a good idea to just put this code in the Payload class itself, so that any payload could derive
 # from any other payload without excessive copypasta. A change like this could reduce JaxbPayload to
 # about 4 lines of code.
-class JaxbPayload(SourcesMixin, Payload):
+class JaxbPayload(SourcesPayload):
   def __init__(self,
                sources_rel_path=None,
                sources=None,
@@ -32,8 +32,7 @@ class JaxbPayload(SourcesMixin, Payload):
                excludes=None,
                configurations=None,
                package=None):
-    self.sources_rel_path = sources_rel_path
-    self.sources = list(sources or [])
+    super(JaxbPayload, self).__init__(sources_rel_path, sources)
     self.provides = provides
     self.excludes = OrderedSet(excludes)
     self.configurations = OrderedSet(configurations)
@@ -67,23 +66,22 @@ class JaxbLibrary(JvmTarget):
     """Initialize the JaxbLibrary target, currently with a lot of copypasta for the payload.
 
     :param package: java package (com.company.package) in which to generate the output java files.
-    If left unspecified, pants will attempt to guess it from the file path leading to the schema
-    (xsd) file. This will only be accurate if the .xsd file is in the format
-    .../com/company/package/schema.xsd; it is recommended that the package be manually defined in
-    the BUILD file for robustness.
+      If left unspecified, pants will attempt to guess it from the file path leading to the schema
+      (xsd) file. This will only be accurate if the .xsd file is in the format
+      .../com/company/package/schema.xsd; it is recommended that the package be manually defined in
+      the BUILD file for robustness.
     :param language: currently, anything other than 'java' is unsupported (this is the default)
     :param buildflags: currently unused Parameters inherited from JvmTarget.
     :param string name: The name of this target, which combined with this build file defines the
-    target :class:`pants.base.address.Address`.
+      target :class:`pants.base.address.Address`.
     :param sources: A list of filenames representing the source code this library is compiled from.
     :type sources: ``FileSet`` or list of strings.
-    :param dependencies: List of :class:`pants.base.target.Target` instances this target depends on.
-    :type dependencies: Other targets that this target depends on.
+    :param dependencies: Other targets that this target depends on.
     :type dependencies: List of target specs.
     :param excludes: One or more :class:`pants.targets.exclude.Exclude` instances to filter this
-    target's transitive dependencies against.
+      target's transitive dependencies against.
     :param configurations: One or more ivy configurations to resolve for this target. This parameter
-    is not intended for general use.
+      is not intended for general use.
     :type configurations: tuple of strings
     """
     super(JaxbLibrary, self).__init__(**kwargs)

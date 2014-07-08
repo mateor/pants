@@ -106,6 +106,7 @@ python_library(
   sources = ['dev_backend_loader.py'],
   dependencies = [
     pants('3rdparty/python/twitter/commons:twitter.common.collections'),
+    pants('src/python/pants/backend/android:plugin'),
     pants('src/python/pants/backend/codegen:plugin'),
     pants('src/python/pants/backend/core:plugin'),
     pants('src/python/pants/backend/jvm:plugin'),
@@ -192,8 +193,8 @@ python_library(
 )
 
 python_library(
-  name = 'spec_parser',
-  sources = ['spec_parser.py'],
+  name = 'cmd_line_spec_parser',
+  sources = ['cmd_line_spec_parser.py'],
   dependencies = [
     pants(':address'),
     pants(':build_file'),

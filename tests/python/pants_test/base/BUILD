@@ -31,9 +31,11 @@ python_test_suite(
     pants(':build_file_parser'),
     pants(':build_invalidator'),
     pants(':build_root'),
+    pants(':cmd_line_spec_parser'),
     pants(':double_dag'),
     pants(':generator'),
     pants(':hash_utils'),
+    pants(':payload'),
     pants(':revision'),
     pants(':run_info'),
   ]
@@ -107,6 +109,15 @@ python_tests(
 )
 
 python_tests(
+  name = 'cmd_line_spec_parser',
+  sources = ['test_cmd_line_spec_parser.py'],
+  dependencies = [
+    pants('src/python/pants/base:cmd_line_spec_parser'),
+    pants('tests/python/pants_test:base_test'),
+  ]
+)
+
+python_tests(
   name = 'double_dag',
   sources = ['test_double_dag.py'],
   dependencies = [
@@ -133,6 +144,16 @@ python_tests(
     pants('3rdparty/python:mox'),
     pants('3rdparty/python/twitter/commons:twitter.common.contextutil'),
     pants('src/python/pants/base:hash_utils'),
+    pants('tests/python/pants_test:base_test'),
+  ]
+)
+
+python_tests(
+  name = 'payload',
+  sources = ['test_payload.py'],
+  dependencies = [
+    pants('src/python/pants/backend/core'),
+    pants('src/python/pants/base:payload'),
     pants('tests/python/pants_test:base_test'),
   ]
 )

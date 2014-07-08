@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Required on OS X.
-export set ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future
+source build-support/set_archflags.sh
 
 function banner() {
   echo
@@ -61,6 +60,8 @@ if [[ "${skip_bootstrap:-false}" == "false" ]]; then
 fi
 
 ./pants.pex goal clean-all || die "Failed to clean-all."
+./pants.pex goal goals || die "Failed to list goals."
+./pants.pex goal list :: || die "Failed to list all targets."
 
 # TODO(John sirois): Re-plumb build such that it grabs constraints from the built python_binary
 # target(s).
