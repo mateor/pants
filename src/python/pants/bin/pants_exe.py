@@ -5,6 +5,7 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+import logging
 import optparse
 import os
 import sys
@@ -13,7 +14,6 @@ import traceback
 import psutil
 from twitter.common.dirutil import Lock
 
-from pants.base.address import Address
 from pants.base.build_environment import get_buildroot, get_version
 from pants.base.build_file_parser import BuildFileParser
 from pants.base.build_graph import BuildGraph
@@ -92,6 +92,8 @@ def _run():
   [main]
   roots: ['src/python/pants_internal/test/',]
   """
+
+  logging.basicConfig()
   version = get_version()
   if len(sys.argv) == 2 and sys.argv[1] == _VERSION_OPTION:
     _do_exit(version)

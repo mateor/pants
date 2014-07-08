@@ -43,11 +43,13 @@ class PythonBinary(PythonTarget):
     :param name: target name
     :param source: the python source file that becomes this binary's __main__.
       If None specified, drops into an interpreter by default.
-    :param dependencies: List of :class:`pants.base.target.Target` instances
-      this target depends on.
-    :type dependencies: list of targets
-    :param entry_point: the default entry point for this binary.  if None, drops into the entry
-      point that is defined by source
+    :param dependencies: Other targets that this target depends on.
+    :type dependencies: list of target specs
+    :param string entry_point: the default entry point for this binary.  if None, drops into the entry
+      point that is defined by source. Something like
+      "pants.bin.pants_exe:main", where "pants.bin.pants_exe" is the package
+      name and "main" is the function name (if ommitted, the module is
+      executed directly, presuming it has a ``__main.py__``).
     :param inherit_path: inherit the sys.path of the environment that this binary runs in
     :param zip_safe: whether or not this binary is safe to run in compacted (zip-file) form
     :param always_write_cache: whether or not the .deps cache of this PEX file should always

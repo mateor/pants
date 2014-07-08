@@ -13,7 +13,6 @@ def target_aliases():
   return {
     'android_binary': AndroidBinary,
     'android_resources': AndroidResources,
-
   }
 
 

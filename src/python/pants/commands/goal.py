@@ -29,7 +29,7 @@ from pants.base.rcfile import RcFile
 from pants.base.workunit import WorkUnit
 from pants.commands.command import Command
 from pants.engine.engine import Engine
-from pants.engine.linear_engine import LinearEngine
+from pants.engine.round_engine import RoundEngine
 from pants.goal import Context, GoalError, Phase
 from pants.goal.help import print_help
 from pants.goal.initialize_reporting import update_reporting
@@ -177,11 +177,10 @@ class Goal(Command):
       # Bootstrap user goals by loading any BUILD files implied by targets.
       spec_parser = CmdLineSpecParser(self.root_dir, self.build_file_parser)
       with self.run_tracker.new_workunit(name='parse', labels=[WorkUnit.SETUP]):
-        for spec in specs:
-          for address in spec_parser.parse_addresses(spec):
-            self.build_file_parser.inject_spec_closure_into_build_graph(address.spec,
-                                                                        self.build_graph)
-            self.targets.append(self.build_graph.get_target(address))
+        for address in spec_parser.parse_addresses(specs):
+          self.build_file_parser.inject_spec_closure_into_build_graph(address.spec,
+                                                                      self.build_graph)
+          self.targets.append(self.build_graph.get_target(address))
     self.phases = [Phase(goal) for goal in goals]
 
     rcfiles = self.config.getdefault('rcfiles', type=list,
@@ -258,7 +257,7 @@ class Goal(Command):
       context.log.error('Unknown goal(s): %s\n' % ' '.join(phase.name for phase in unknown))
       return 1
 
-    engine = LinearEngine()
+    engine = RoundEngine()
     return engine.execute(context, self.phases)
 
   def cleanup(self):
