@@ -26,7 +26,7 @@ class AndroidResources(AndroidTarget):
     :type dependencies: list of target specs
     """
     super(AndroidResources, self).__init__(**kwargs)
-    address =  kwargs['address']
+    address=kwargs['address']
     try:
       self.resource_dir = os.path.join(address.spec_path, resource_dir)
     except AttributeError:
