@@ -61,9 +61,7 @@ class AndroidTarget(Target):
     self.build_tools_version = build_tools_version
     self.release_type = release_type
 
-    try:
-      os.path.isfile(os.path.join(address.spec_path, manifest))
-    except AttributeError:
+    if not os.path.isfile(os.path.join(address.spec_path, manifest)):
       raise TargetDefinitionException(self, 'Android targets must specify a \'manifest\' '
                                   'that points to the \'AndroidManifest.xml\'')
     self.manifest = os.path.join(self.address.spec_path, manifest)

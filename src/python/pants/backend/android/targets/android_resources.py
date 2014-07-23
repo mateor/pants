@@ -7,7 +7,6 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 
 import os
 
-from pants.base.build_manual import manual
 from pants.base.exceptions import TargetDefinitionException
 from pants.backend.android.targets.android_target import AndroidTarget
 
@@ -26,7 +25,8 @@ class AndroidResources(AndroidTarget):
     :type dependencies: list of target specs
     """
     super(AndroidResources, self).__init__(**kwargs)
-    address=kwargs['address']
+
+    address = kwargs['address']
     try:
       self.resource_dir = os.path.join(address.spec_path, resource_dir)
     except AttributeError:
