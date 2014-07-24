@@ -10,33 +10,15 @@ from pants.goal import Goal as goal
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_gen import AaptGen
+from pants.base.build_file_aliases import BuildFileAliases
 
-def target_aliases():
-  return {
-    'android_binary': AndroidBinary,
-    'android_resources': AndroidResources,
-  }
-
-
-def object_aliases():
-  return {}
-
-
-def partial_path_relative_util_aliases():
-  return {}
-
-
-def applicative_path_relative_util_aliases():
-  return {}
-
-
-def target_creation_utils():
-  return {}
-
-
-def register_commands():
-  pass
-
+def build_file_aliases():
+  return BuildFileAliases.create(
+    targets={
+      'android_binary': AndroidBinary,
+      'android_resources': AndroidResources,
+    }
+  )
 
 def register_goals():
   goal(name='aapt', action=AaptGen).install('gen')

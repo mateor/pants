@@ -8,14 +8,7 @@ python_library(
   dependencies = [
     pants('src/python/pants/backend/android/targets:android'),
     pants('src/python/pants/backend/android/tasks:all'),
-  ]
-)
-
-python_library(
-  name = 'distribution',
-  sources = globs('distribution/*.py'),
-  dependencies = [
-    pants('3rdparty/python/twitter/commons:twitter.common.log'),
+    pants('src/python/pants/base:build_file_aliases'),
   ]
 )
 
