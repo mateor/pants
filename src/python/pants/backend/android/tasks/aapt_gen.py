@@ -124,11 +124,8 @@ class AaptGen(AndroidTask, CodeGen):
     spec_path = os.path.join(os.path.relpath(self.workdir, get_buildroot()), 'bin')
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     deps = OrderedSet()
-    jars_tgt = self.context.add_new_target(SyntheticAddress(spec_path, gentarget.id),
-                                           JarDependency,
-                                           url=self.android_jar_tool(gentarget.target_sdk),
-                                           derived_from=gentarget)
-    deps.add(jars_tgt)
+    jar_tgt = JarDependency(org='com.google', name='android', url=self.android_jar_tool(gentarget.target_sdk))
+    deps.add(jar_tgt)
     tgt = self.context.add_new_target(address,
                                       JavaLibrary,
                                       derived_from=gentarget,
