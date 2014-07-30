@@ -125,7 +125,7 @@ class AaptGen(AndroidTask, CodeGen):
     spec_path = os.path.join(os.path.relpath(self.workdir, get_buildroot()))
     deps = OrderedSet()
     jar_url='file://' + self.android_jar_tool(gentarget.target_sdk)
-    jars_tgt = self.context.add_new_target(SyntheticAddress(spec_path, gentarget.target_sdk),
+    jars_tgt = self.context.add_new_target(SyntheticAddress(spec_path, gentarget.id + '-jars'),
                                            JarLibrary,
                                            jars=[ JarDependency(org='com.google', name='android',
                                                                 url=jar_url) ],
@@ -137,7 +137,6 @@ class AaptGen(AndroidTask, CodeGen):
                                       derived_from=gentarget,
                                       sources=aapt_gen_file,
                                       dependencies=deps)
-
     for dependee in dependees:
       dependee.inject_dependency(tgt.address)
     return tgt
