@@ -1,0 +1,40 @@
+# coding=utf-8
+# Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
+# Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
+                        print_function, unicode_literals)
+
+from pants.backend.android.targets.android_dex import AndroidDex
+from pants.backend.android.tasks.android_task import AndroidTask
+from pants.backend.jvm.tasks.nailgun_task import NailgunTask
+from pants.base.exceptions import TaskError
+from pants.base.workunit import WorkUnit
+
+class DxCompile(NailgunTask, AndroidTask):
+  """
+  Compile java classes into dex files, Dalvik executables.
+  """
+  _CONFIG_SECTION = 'dx-tool'
+
+  @classmethod
+  def setup_parser(cls, option_group, args, mkflag):
+    # VM options go here
+    pass
+
+
+  def init(self):
+    pass
+
+  @property
+  def config_section(self):
+    return self._CONFIG_SECTION
+
+
+  def execute(self):
+    safe_mkdir(self.workdir)
+
+    with self.context.new_workunit(name='jar-create', labels=[WorkUnit.MULTITOOL]):
+      for target in self.context.targets(is_jvm_library):
+
+    #TODO check for empty class files there is no valid empty dex file.
