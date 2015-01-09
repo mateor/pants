@@ -31,7 +31,6 @@ class SignApkTask(Task):
   def __init__(self, *args, **kwargs):
     super(SignApkTask, self).__init__(*args, **kwargs)
     self._distdir = self.context.config.getdefault('pants_distdir')
-    self._build_type = self.get_options().build_type
     # No Java 8 for Android. I am considering max=1.7.0_50. See comment in render_args().
     self._dist = Distribution.cached(maximum_version="1.7.0_99")
 

@@ -7,17 +7,15 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 
 import os
 
-from pants.backend.android.targets.build_type_mixin import BuildTypeMixin
 from pants.base.exceptions import TargetDefinitionException
 from pants.base.target import Target
 from pants.base.build_environment import get_buildroot
 
 
-class Keystore(Target, BuildTypeMixin):
+class Keystore(Target):
   """Represents a keystore configuration"""
 
   def __init__(self,
-               build_type=None,
                source=None,
                keystore_alias=None,
                keystore_password=None,
@@ -44,11 +42,11 @@ class Keystore(Target, BuildTypeMixin):
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password
     self.key_password = key_password
-    self._build_type = None
-    self._keystore = build_type
-
-  @property
-  def build_type(self):
-    if self._build_type is None:
-      self._build_type = self.get_build_type(self._keystore)
-    return self._build_type
+  #   self._build_type = None
+  #   self._keystore = build_type
+  #
+  # @property
+  # def build_type(self):
+  #   if self._build_type is None:
+  #     self._build_type = self.get_build_type(self._keystore)
+  #   return self._build_type
