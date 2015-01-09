@@ -9,7 +9,6 @@ from pants.backend.core.tasks.task import Task
 from pants.backend.android.distribution.android_distribution import AndroidDistribution
 
 class AndroidTask(Task):
-  # The flag for release/debug will eventually go here (as we build out the ops in other tasks)
   @classmethod
   def register_options(cls, register):
     super(AndroidTask, cls).register_options(register)

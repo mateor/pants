@@ -26,6 +26,8 @@ class AndroidTarget(JvmTarget):
                # most recent build_tools_version should be defined elsewhere
                build_tools_version="19.1.0",
                manifest=None,
+               keystore_config_location=None,
+               keystores=None,
                **kwargs):
     """
     :param build_tools_version: API for the Build Tools (separate from SDK version).
@@ -48,6 +50,8 @@ class AndroidTarget(JvmTarget):
       raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
                                             'at path {1}'.format(manifest, manifest_path))
     self.manifest = manifest_path
+    self.keystores = keystores
+    self.keystore_config = keystore_config_location
 
     self.package = self.get_package_name()
     self.target_sdk = self.get_target_sdk()

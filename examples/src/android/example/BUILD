@@ -6,9 +6,10 @@ android_binary(
   name='hello',
   sources=rglobs('src/*.java'),
   manifest='AndroidManifest.xml',
+  keystore_config_location='~/.pants.d/android/keystore_config.ini',
+  keystores=['debug'],
   dependencies = [
     ':resources',
-    '3rdparty/android/authentication/keys/debug:debug'
   ],
 )
 

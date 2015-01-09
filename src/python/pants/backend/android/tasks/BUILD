@@ -64,8 +64,8 @@ python_library(
 )
 
 python_library(
-  name = 'jarsigner_task',
-  sources = ['jarsigner_task.py'],
+  name = 'sign_apk',
+  sources = ['sign_apk_task.py'],
   dependencies = [
     'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:android_task',
