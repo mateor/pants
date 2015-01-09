@@ -13,7 +13,7 @@ from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
-class KeyResolver(object):
+class KeyResolver(Task):
   """Parse the android_keystore.ini files and instantiate Keystore objects from the info"""
   pass
 
@@ -27,6 +27,10 @@ class SignApkTask(Task):
   @classmethod
   def is_signtarget(cls, target):
     return isinstance(target, AndroidBinary)
+
+  @classmethod
+  def product_types(cls):
+    return ['debug_apk', 'release_apk']
 
   def __init__(self, *args, **kwargs):
     super(SignApkTask, self).__init__(*args, **kwargs)
@@ -70,6 +74,24 @@ class SignApkTask(Task):
 
   def execute(self):
     print("WE ARE IN THE SIGN_APK task")
+    with self.context.new_workunit(name='sign_apk', labels=[WorkUnit.MULTITOOL]):
+      targets = self.context.targets(self.is_signtarget)
+      for target in targets:
+        #TODO (BEFORE REVIEW) Add invalidation framework.
+        safe_mkdir(self.sign_apk_out(target))
+        keys = []
+
+        def get_apk(target):
+          """Return the unsigned.apk product created by AaptBuilder."""
+          unsigned_apks = self.context.products.get('apk')
+          for tgts, prods in unsigned_apks.get(target).items():
+            unsigned_path = os.path.join(tgts)
+            for prod in prods:
+              return os.path.join(unsigned_path, prod)
+
+        unsigned_apk = get_apk(target)
+        print(unsigned_apk)
+
   # def execute(self):
   #
   #   with self.context.new_workunit(name='jarsigner', labels=[WorkUnit.MULTITOOL]):
@@ -120,5 +142,5 @@ class SignApkTask(Task):
   #           raise TaskError(self, "No key matched the {0} target's build type "
   #                                 "[release, debug]".format(target))
 
-  def jarsigner_out(self, target):
+  def sign_apk_out(self, target):
     return os.path.join(self._distdir, target.app_name)
