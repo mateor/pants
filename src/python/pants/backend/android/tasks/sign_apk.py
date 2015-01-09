@@ -6,16 +6,18 @@ import os
 import subprocess
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.backend.android.targets.keystore import Keystore
 from pants.backend.core.tasks.task import Task
-from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
-class KeyResolver(Task):
-  """Parse the android_keystore.ini files and instantiate Keystore objects from the info"""
-  pass
+class KeyResolver(object):
+  """Parse the android_keystore.ini files and instantiate Keystore objects with the info."""
+  def __init__(self, config_file=None):
+    #TODO(BEFORE REVIEW) if config is none, default to debug entry in pants.ini?
+    # That will allow us to raise an exception if the build definition is release,
+    # thereby protecting from putting secret credentials in pants.ini.
+    self.config_file = config_file
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
@@ -84,9 +86,9 @@ class SignApkTask(Task):
         def get_apk(target):
           """Return the unsigned.apk product created by AaptBuilder."""
           unsigned_apks = self.context.products.get('apk')
-          for tgts, prods in unsigned_apks.get(target).items():
+          for tgts, products in unsigned_apks.get(target).items():
             unsigned_path = os.path.join(tgts)
-            for prod in prods:
+            for prod in products:
               return os.path.join(unsigned_path, prod)
 
         unsigned_apk = get_apk(target)
