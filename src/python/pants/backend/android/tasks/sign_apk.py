@@ -11,13 +11,6 @@ from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
-class KeyResolver(object):
-  """Parse the android_keystore.ini files and instantiate Keystore objects with the info."""
-  def __init__(self, target):
-    #TODO(BEFORE REVIEW) if config is none, default to debug entry in pants.ini?
-    # That will allow us to raise an exception if the build definition is release,
-    # thereby protecting from putting secret credentials in pants.ini.
-    self.config_file = target.keystore_config
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
@@ -92,7 +85,9 @@ class SignApkTask(Task):
               return os.path.join(unsigned_path, prod)
 
         unsigned_apk = get_apk(target)
+        print("Target's config file: {0}".format(target.keystore_config))
         print(unsigned_apk)
+        # target.keystores = KeyResolver.resolve(target.keystore_config)
 
   # def execute(self):
   #
