@@ -13,11 +13,11 @@ from pants.util.dirutil import safe_mkdir
 
 class KeyResolver(object):
   """Parse the android_keystore.ini files and instantiate Keystore objects with the info."""
-  def __init__(self, config_file=None):
+  def __init__(self, target):
     #TODO(BEFORE REVIEW) if config is none, default to debug entry in pants.ini?
     # That will allow us to raise an exception if the build definition is release,
     # thereby protecting from putting secret credentials in pants.ini.
-    self.config_file = config_file
+    self.config_file = target.keystore_config
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""

@@ -12,6 +12,10 @@ from pants.base.target import Target
 from pants.base.build_environment import get_buildroot
 
 
+
+# This is going to become a subclass of object. Pants isn't building this so it
+# shouldn't be a target.
+
 class Keystore(Target):
   """Represents a keystore configuration"""
 

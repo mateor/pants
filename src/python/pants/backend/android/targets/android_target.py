@@ -26,7 +26,7 @@ class AndroidTarget(JvmTarget):
                # most recent build_tools_version should be defined elsewhere
                build_tools_version="19.1.0",
                manifest=None,
-               keystore_config_location=None,
+               keystore_config_file=None,
                keystores=None,
                **kwargs):
     """
@@ -35,6 +35,10 @@ class AndroidTarget(JvmTarget):
     :param manifest: path/to/file of 'AndroidManifest.xml' (required name). Paths are relative
       to the BUILD file's directory.
       Set as 'debug' by default.
+    :param keystore_config_file: path/to/file of the config file containing the definition of
+      debug and release keystores.
+    :param keystores: List of keystore names. Pants will build a signed apk for every keystore
+      in this list.
     """
     super(AndroidTarget, self).__init__(address=address, **kwargs)
 
@@ -51,7 +55,7 @@ class AndroidTarget(JvmTarget):
                                             'at path {1}'.format(manifest, manifest_path))
     self.manifest = manifest_path
     self.keystores = keystores
-    self.keystore_config = keystore_config_location
+    self.keystore_config = keystore_config_file
 
     self.package = self.get_package_name()
     self.target_sdk = self.get_target_sdk()
