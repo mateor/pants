@@ -74,7 +74,6 @@ class SignApkTask(Task):
     return args
 
   def execute(self):
-    print("WE ARE IN THE SIGN_APK task")
     with self.context.new_workunit(name='sign_apk', labels=[WorkUnit.MULTITOOL]):
       targets = self.context.targets(self.is_signtarget)
       for target in targets:
@@ -93,6 +92,9 @@ class SignApkTask(Task):
         unsigned_apk = get_apk(target)
         print("Target's config file: {0}".format(target.keystore_configs))
         print(unsigned_apk)
+
+        # TODO (BEFORE REVIEW) Better way to handle this config_file pipeline?
+        # If keystore is not set in BUILD, use well-known debug key installed with Android SDK
         if target.keystore_configs is None:
           target.keystore_configs = self.get_options().keystore_config_file
         if target.keystores is None:
