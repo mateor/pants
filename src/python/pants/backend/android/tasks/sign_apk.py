@@ -6,11 +6,13 @@ import os
 import subprocess
 
 from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.keystore.key_resolver import KeyResolver
 from pants.backend.core.tasks.task import Task
 from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
+_CONFIG_SECTION = 'android-keystore-config'
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
@@ -36,6 +38,10 @@ class SignApkTask(Task):
   @property
   def distribution(self):
     return self._dist
+
+  @property
+  def config_section(self):
+    return _CONFIG_SECTION
 
   def prepare(self, round_manager):
     round_manager.require_data('apk')
@@ -87,7 +93,13 @@ class SignApkTask(Task):
         unsigned_apk = get_apk(target)
         print("Target's config file: {0}".format(target.keystore_configs))
         print(unsigned_apk)
-        # target.keystores = KeyResolver.resolve(target.keystore_configs)
+        if target.keystore_configs is None:
+          target.keystore_configs = self.get_options().keystore_config_file
+        if target.keystores is None:
+          target.keystores = self.get_artifact_cache().keystores
+        print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
+        print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
+        #target.keystores = KeyResolver.resolve(target.keystore_configs)
 
   # def execute(self):
   #

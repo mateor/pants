@@ -7,7 +7,7 @@ android_binary(
   sources=rglobs('src/*.java'),
   manifest='AndroidManifest.xml',
   keystore_config_files=['~/.pants.d/android/keystore_config.ini'],
-  keystores=['debug'],
+  keystores=['default-debug'],
   dependencies = [
     ':resources',
   ],
