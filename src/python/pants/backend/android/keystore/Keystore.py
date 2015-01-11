@@ -5,22 +5,13 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-import os
-
-from pants.base.exceptions import TargetDefinitionException
-from pants.base.target import Target
-from pants.base.build_environment import get_buildroot
-
-
-
-# This is going to become a subclass of object. Pants isn't building this so it
-# shouldn't be a target.
 
 class Keystore(object):
   """Represents a keystore configuration"""
 
   def __init__(self,
-               source=None,
+               build_type=None,
+               keystore_location=None,
                keystore_alias=None,
                keystore_password=None,
                key_password=None,
@@ -36,7 +27,12 @@ class Keystore(object):
 
     # TODO (mateor) if debug location is empty, create a debug.keystore with keytool.
 
+    #TODO(BEFORE REVIEW) error catch and think through the build typing.
+    self.build_type = build_type
+
+
+    #Error catching for these fields can be done in the KeyResolver
+    self.keystore_location = keystore_location
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password
     self.key_password = key_password
-    

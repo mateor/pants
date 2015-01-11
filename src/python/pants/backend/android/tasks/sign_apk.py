@@ -85,9 +85,9 @@ class SignApkTask(Task):
               return os.path.join(unsigned_path, prod)
 
         unsigned_apk = get_apk(target)
-        print("Target's config file: {0}".format(target.keystore_config))
+        print("Target's config file: {0}".format(target.keystore_configs))
         print(unsigned_apk)
-        # target.keystores = KeyResolver.resolve(target.keystore_config)
+        # target.keystores = KeyResolver.resolve(target.keystore_configs)
 
   # def execute(self):
   #
