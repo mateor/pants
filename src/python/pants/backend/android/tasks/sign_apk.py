@@ -17,6 +17,8 @@ _CONFIG_SECTION = 'android-keystore-config'
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
 
+  #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
+
   @classmethod
   def register_options(cls, register):
     super(SignApkTask, cls).register_options(register)
@@ -102,7 +104,7 @@ class SignApkTask(Task):
         print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
         print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
-
+        KeyResolver.resolve(target)
   # def execute(self):
   #
   #   with self.context.new_workunit(name='jarsigner', labels=[WorkUnit.MULTITOOL]):

@@ -10,7 +10,7 @@ python_library(
     ':aapt_gen',
     ':aapt_task',
     ':dx_compile',
-    ':jarsigner_task',
+    ':sign_apk',
   ],
 )
 

@@ -48,13 +48,4 @@ python_tests(
 )
 
 
-python_tests(
-  name = 'jarsigner_integration',
-  sources = [
-    'test_jarsigner_integration.py',
-  ],
-  dependencies = [
-    'tests/python/pants_test/android:android_integration_test',
-    'tests/python/pants_test/tasks:base',
-  ],
-)
+# TODO (BEFORE REVIEW) Integrate a SignApk test suite.

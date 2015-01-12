@@ -9,6 +9,8 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 from pants.base.config import ChainedConfig
 
 
+_CONFIG_SECTION = 'android-keystore'
+
 class KeyResolver(ChainedConfig):
   """Parse the keystore config files and instantiate Keystore objects with the info."""
   def __init__(self, target):
@@ -19,7 +21,11 @@ class KeyResolver(ChainedConfig):
     super(KeyResolver, self).__init__(self.configs)
 
   @classmethod
-  def resolve(cls, config_file):
+  def resolve(cls, target):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
     # This needs to take the target's keystores and pull them from the keystore.configs.
-    pass
+    parser = cls.load(target.keystore_configs)
+    key_defs = {}
+    for key in target.keystores:
+      key_defs[key] = parser.getdict('android-keystore', key)
+    print(key_defs)
