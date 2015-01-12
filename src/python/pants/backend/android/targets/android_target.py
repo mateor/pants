@@ -26,8 +26,6 @@ class AndroidTarget(JvmTarget):
                # most recent build_tools_version should be defined elsewhere
                build_tools_version="19.1.0",
                manifest=None,
-               keystore_config_files=None,
-               keystore_names=None,
                **kwargs):
     """
     :param build_tools_version: API for the Build Tools (separate from SDK version).
@@ -54,8 +52,6 @@ class AndroidTarget(JvmTarget):
       raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
                                             'at path {1}'.format(manifest, manifest_path))
     self.manifest = manifest_path
-    self.keystore_names = keystore_names
-    self.keystore_configs = keystore_config_files
 
     # This will be filled with Keystore objects by backend.android.credentials.key_resolver.
     self.keystores = []

@@ -65,7 +65,7 @@ python_library(
 
 python_library(
   name = 'sign_apk',
-  sources = ['sign_apk_task.py'],
+  sources = ['sign_apk.py'],
   dependencies = [
     'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:android_task',

@@ -16,12 +16,17 @@ from pants.util.dirutil import safe_mkdir
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
-
-  #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
-
   @classmethod
   def register_options(cls, register):
     super(SignApkTask, cls).register_options(register)
+    register('--keystore-config-location',
+             help='Location of the .ini file containing the parameters of Android keystores.')
+
+
+  #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
+
+  #TODO(BEFORE REVIEW) Remove stuff from 3rdParty, .gitignore, etc.
+
 
   @classmethod
   def is_signtarget(cls, target):
@@ -92,13 +97,16 @@ class SignApkTask(Task):
 
         # TODO (BEFORE REVIEW) Better way to handle this config_file pipeline?
         # If keystore is not set in BUILD, use well-known debug key installed with Android SDK
-        if target.keystore_configs is None:
-          target.keystore_configs = self.get_options().keystore_config_file
-          target.keystores = self.get_artifact_cache().keystores
+       # if target.keystore_configs is None:
+        #  target.keystore_configs = self.get_options().keystore_config_file
+         # target.keystores = self.get_artifact_cache().keystores
 
         #print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
         #print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
+        config_file = self.get_options().keystore_config_location
+        print("CONFIG_FILE: {0}".format(config_file))
+        exit()
         keystores = KeyResolver.resolve(target)
         for key in keystores:
           process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
@@ -157,4 +165,6 @@ class SignApkTask(Task):
   #                                 "[release, debug]".format(target))
 
   def sign_apk_out(self, target):
+
+    #TODO(BEFORE REVIEW) output to a folder under key name, so that it is obvioud which package is which.
     return os.path.join(self._distdir, target.app_name)

@@ -6,8 +6,12 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+try:
+  import ConfigParser
+except ImportError:
+  import configparser as ConfigParser
+
 from pants.backend.android.credentials.keystore import Keystore
-from pants.base.config import ChainedConfig
 
 
 _CONFIG_SECTION = 'android-keystore'
@@ -36,7 +40,9 @@ class KeyResolver(object):
 
     # For now, 'keystore_names' is required.
 
-    parser = ChainedConfig.load(target.keystore_configs)
+    parser = ConfigParser.SafeConfigParser()
+    parser.read()
+    parser.load(target.keystore_configs)
     #print("sections: {0}".format(parser.__))
     keys = []
 
@@ -47,6 +53,8 @@ class KeyResolver(object):
                           keystore_password=parser.get_required(key, 'keystore_password'),
                           key_password=parser.get_required(key, 'key_password'))
       return keystore
+
+      #TODO (BEFORE REVIEW) Errorcatch bad values (especially build_type)
 
       print("Location: {0}".format(parser.get_required(key, 'keystore_location')))
 
