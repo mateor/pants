@@ -6,7 +6,7 @@ import os
 import subprocess
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.backend.android.keystore.key_resolver import KeyResolver
+from pants.backend.android.credentials.key_resolver import KeyResolver
 from pants.backend.core.tasks.task import Task
 from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution

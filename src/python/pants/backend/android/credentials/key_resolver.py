@@ -6,6 +6,7 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+from pants.backend.android.credentials.keystore import Keystore
 from pants.base.config import ChainedConfig
 
 
@@ -25,14 +26,24 @@ class KeyResolver(ChainedConfig):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
     # This needs to take the target's keystores and pull them from the keystore.configs.
 
-    #TODO: shorthand for homedir in BUILD files? They are supposed to be local only.
+    #TODO: shorthand for homedir in BUILD files? They are supposed to be local only so...
+        # ini answer: pants_supportdir
     # I would like to have per-target config files as an option.
     # as of now, the only answer is to put the config address in pants.ini exclusively.
 
     parser = cls.load(target.keystore_configs)
-    key_defs = {}
-    for key in target.keystores:
-      key_defs[key] = parser.getdict('android-keystore', key)
+    #print("sections: {0}".format(parser.__))
+
+    print(parser.sources())
+    key_defs = []
+    def create_key(key_name):
+
+      print("Location: {0}".format(parser.get(key, 'keystore_location')))
+
+    for key in target.keystore_names:
+      create_key(key)
+
+
     print(key_defs)
     keys = []
     for definition in key_defs:

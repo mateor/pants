@@ -27,7 +27,7 @@ class AndroidTarget(JvmTarget):
                build_tools_version="19.1.0",
                manifest=None,
                keystore_config_files=None,
-               keystores=None,
+               keystore_names=None,
                **kwargs):
     """
     :param build_tools_version: API for the Build Tools (separate from SDK version).
@@ -37,7 +37,7 @@ class AndroidTarget(JvmTarget):
       Set as 'debug' by default.
     :param keystore_config_files: List of path/to/files for config files containing the definition
       of debug and release keystores.
-    :param keystores: List of keystore names. Pants will build a signed apk for every keystore
+    :param keystore_names: List of keystore names. Pants will build a signed apk for every keystore
       in this list.
     """
     super(AndroidTarget, self).__init__(address=address, **kwargs)
@@ -54,8 +54,11 @@ class AndroidTarget(JvmTarget):
       raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
                                             'at path {1}'.format(manifest, manifest_path))
     self.manifest = manifest_path
-    self.keystores = keystores
+    self.keystore_names = keystore_names
     self.keystore_configs = keystore_config_files
+
+    # This will be filled with Keystore objects by backend.android.credentials.key_resolver.
+    self.keystores = []
 
     self.package = self.get_package_name()
     self.target_sdk = self.get_target_sdk()
