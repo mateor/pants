@@ -8,11 +8,11 @@ import subprocess
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.credentials.key_resolver import KeyResolver
 from pants.backend.core.tasks.task import Task
+from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
-_CONFIG_SECTION = 'android-keystore-config'
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
@@ -41,10 +41,6 @@ class SignApkTask(Task):
   def distribution(self):
     return self._dist
 
-  @property
-  def config_section(self):
-    return _CONFIG_SECTION
-
   def prepare(self, round_manager):
     round_manager.require_data('apk')
 
@@ -59,6 +55,7 @@ class SignApkTask(Task):
     # past their validity date. But Android purposefully passes 30 years validity. More research
     # is needed before passing a -tsa flag indiscriminately.
     # http://bugs.java.com/view_bug.do?bug_id=8023338
+
     args = []
     args.extend([self.distribution.binary('jarsigner')])
 
@@ -66,13 +63,14 @@ class SignApkTask(Task):
     args.extend(['-sigalg', 'SHA1withRSA'])
     args.extend(['-digestalg', 'SHA1'])
 
-    args.extend(['-keystore', key.location])
+    args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', (os.path.join(self.jarsigner_out(target), target.app_name
+    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target), target.app_name
                                              + '-' + key.build_type + '-signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
+    print("args: {0}".format(args))
     return args
 
   def execute(self):
@@ -81,7 +79,6 @@ class SignApkTask(Task):
       for target in targets:
         #TODO (BEFORE REVIEW) Add invalidation framework.
         safe_mkdir(self.sign_apk_out(target))
-        keys = []
 
         def get_apk(target):
           """Return the unsigned.apk product created by AaptBuilder."""
@@ -92,22 +89,23 @@ class SignApkTask(Task):
               return os.path.join(unsigned_path, prod)
 
         unsigned_apk = get_apk(target)
-        print("Target's config file: {0}".format(target.keystore_configs))
-        print(unsigned_apk)
 
         # TODO (BEFORE REVIEW) Better way to handle this config_file pipeline?
         # If keystore is not set in BUILD, use well-known debug key installed with Android SDK
         if target.keystore_configs is None:
           target.keystore_configs = self.get_options().keystore_config_file
-        if target.keystores is None:
           target.keystores = self.get_artifact_cache().keystores
-        print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
-        print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
+
+        #print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
+        #print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
         keystores = KeyResolver.resolve(target)
-        print(keystores)
         for key in keystores:
-          print("Keystore: {0} ".format(key.keystore_location))
+          process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
+          result = process.wait()
+          if result != 0:
+            raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
+
   # def execute(self):
   #
   #   with self.context.new_workunit(name='jarsigner', labels=[WorkUnit.MULTITOOL]):
