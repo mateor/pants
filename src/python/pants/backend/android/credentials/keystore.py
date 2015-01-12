@@ -23,15 +23,10 @@ class Keystore(object):
     :param string keystore_password: The password for the keystore.
     :param string key_password: The password for the key.
     """
-    address = kwargs['address']
 
-    # TODO (mateor) if debug location is empty, create a debug.keystore with keytool.
-
-    #TODO(BEFORE REVIEW) error catch and think through the build typing.
     self.build_type = build_type
 
-
-    #Error catching for these fields can be done in the KeyResolver
+    # Error catching for these fields can be done in the KeyResolver
     self.keystore_location = keystore_location
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password

@@ -104,7 +104,10 @@ class SignApkTask(Task):
         print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
         print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
-        KeyResolver.resolve(target)
+        keystores = KeyResolver.resolve(target)
+        print(keystores)
+        for key in keystores:
+          print("Keystore: {0} ".format(key.keystore_location))
   # def execute(self):
   #
   #   with self.context.new_workunit(name='jarsigner', labels=[WorkUnit.MULTITOOL]):

@@ -12,14 +12,13 @@ from pants.base.config import ChainedConfig
 
 _CONFIG_SECTION = 'android-keystore'
 
-class KeyResolver(ChainedConfig):
+class KeyResolver(object):
   """Parse the keystore config files and instantiate Keystore objects with the info."""
-  def __init__(self, target):
+  #def __init__(self, target):
     #TODO(BEFORE REVIEW) if config is none, default to debug entry in pants.ini?
     # That will allow us to raise an exception if the build definition is release,
     # thereby protecting from putting secret credentials in pants.ini.
-    self.configs = [target.keystore_configs]
-    super(KeyResolver, self).__init__(self.configs)
+    #self.configs = [target.keystore_configs]
 
   @classmethod
   def resolve(cls, target):
@@ -31,21 +30,28 @@ class KeyResolver(ChainedConfig):
     # I would like to have per-target config files as an option.
     # as of now, the only answer is to put the config address in pants.ini exclusively.
 
-    parser = cls.load(target.keystore_configs)
+    # I would like to allow a shorthand, where if 'keystore_names' is None or not defined
+    # in the target's BUILD, that would mean that pants would just use all definition in the
+    # keystore_config. If this patch gets traction, I will then put them time into that.
+
+    # For now, 'keystore_names' is required.
+
+    parser = ChainedConfig.load(target.keystore_configs)
     #print("sections: {0}".format(parser.__))
+    keys = []
 
-    print(parser.sources())
-    key_defs = []
     def create_key(key_name):
+      keystore = Keystore(build_type=parser.get_required(key, 'build_type'),
+                          keystore_location=parser.get_required(key, 'keystore_location'),
+                          keystore_alias=parser.get_required(key, 'keystore_alias'),
+                          keystore_password=parser.get_required(key, 'keystore_password'),
+                          key_password=parser.get_required(key, 'key_password'))
+      return keystore
 
-      print("Location: {0}".format(parser.get(key, 'keystore_location')))
+      print("Location: {0}".format(parser.get_required(key, 'keystore_location')))
 
     for key in target.keystore_names:
-      create_key(key)
+      keys.append(create_key(key))
+    return keys
 
-
-    print(key_defs)
-    keys = []
-    for definition in key_defs:
-      key_defs[definition]
 
