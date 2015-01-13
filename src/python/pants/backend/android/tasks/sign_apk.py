@@ -105,10 +105,9 @@ class SignApkTask(Task):
         #print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
         config_file = self.get_options().keystore_config_location
-        print("CONFIG_FILE: {0}".format(config_file))
-        exit()
-        keystores = KeyResolver.resolve(target)
+        keystores = KeyResolver.resolve(config_file)
         for key in keystores:
+          # grab keyname for the out folder name here. Set the keyname in KeyResolver
           process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
           result = process.wait()
           if result != 0:

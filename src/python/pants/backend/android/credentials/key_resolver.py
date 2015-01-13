@@ -11,6 +11,7 @@ try:
 except ImportError:
   import configparser as ConfigParser
 
+from pants.base.config import Config, SingleFileConfig
 from pants.backend.android.credentials.keystore import Keystore
 
 
@@ -25,7 +26,7 @@ class KeyResolver(object):
     #self.configs = [target.keystore_configs]
 
   @classmethod
-  def resolve(cls, target):
+  def resolve(cls, config_file):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
     # This needs to take the target's keystores and pull them from the keystore.configs.
 
@@ -39,11 +40,14 @@ class KeyResolver(object):
     # keystore_config. If this patch gets traction, I will then put them time into that.
 
     # For now, 'keystore_names' is required.
-
-    parser = ConfigParser.SafeConfigParser()
-    parser.read()
-    parser.load(target.keystore_configs)
-    #print("sections: {0}".format(parser.__))
+    print("HWHWHWHWHW")
+    config = Config.create_parser()
+    with open(config_file, 'r') as keystore_config:
+      config.readfp(keystore_config)
+    key_names = config .sections()
+    parser = SingleFileConfig(config_file, config)
+    #parser.load(config_file)
+    print("sections: {0}".format(key_names))
     keys = []
 
     def create_key(key_name):
@@ -58,7 +62,7 @@ class KeyResolver(object):
 
       print("Location: {0}".format(parser.get_required(key, 'keystore_location')))
 
-    for key in target.keystore_names:
+    for key in key_names:
       keys.append(create_key(key))
     return keys
 
