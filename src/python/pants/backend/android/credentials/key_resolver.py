@@ -15,8 +15,6 @@ from pants.base.config import Config, SingleFileConfig
 from pants.backend.android.credentials.keystore import Keystore
 
 
-_CONFIG_SECTION = 'android-keystore'
-
 class KeyResolver(object):
   """Parse the keystore config files and instantiate Keystore objects with the info."""
   #def __init__(self, target):
@@ -38,7 +36,8 @@ class KeyResolver(object):
     keys = {}
 
     def create_key(key_name):
-      keystore = Keystore(build_type=parser.get_required(key_name, 'build_type'),
+      keystore = Keystore(keystore_name=key_name,
+                          build_type=parser.get_required(key_name, 'build_type'),
                           keystore_location=parser.get_required(key_name, 'keystore_location'),
                           keystore_alias=parser.get_required(key_name, 'keystore_alias'),
                           keystore_password=parser.get_required(key_name, 'keystore_password'),

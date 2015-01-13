@@ -10,6 +10,7 @@ class Keystore(object):
   """Represents a keystore configuration"""
 
   def __init__(self,
+               keystore_name=None,
                build_type=None,
                keystore_location=None,
                keystore_alias=None,
@@ -24,9 +25,9 @@ class Keystore(object):
     :param string key_password: The password for the key.
     """
 
-    self.build_type = build_type
-
+    self.keystore_name=keystore_name
     # Error catching for these fields can be done in the KeyResolver
+    self.build_type = build_type
     self.keystore_location = keystore_location
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password

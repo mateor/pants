@@ -14,6 +14,8 @@ from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
 
+_CONFIG_SECTION = 'android-keystore'
+
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
   @classmethod
@@ -61,6 +63,8 @@ class SignApkTask(Task):
     # is needed before passing a -tsa flag indiscriminately.
     # http://bugs.java.com/view_bug.do?bug_id=8023338
 
+    print("NAME: {0}".format(key.keystore_name))
+
     args = []
     args.extend([self.distribution.binary('jarsigner')])
 
@@ -71,7 +75,7 @@ class SignApkTask(Task):
     args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target), target.app_name
+    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target, key.keystore_name), target.app_name
                                              + '-' + key.build_type + '-signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
@@ -83,7 +87,6 @@ class SignApkTask(Task):
       targets = self.context.targets(self.is_signtarget)
       for target in targets:
         #TODO (BEFORE REVIEW) Add invalidation framework.
-        safe_mkdir(self.sign_apk_out(target))
 
         def get_apk(target):
           """Get a handle for the unsigned.apk product created by AaptBuilder."""
@@ -95,12 +98,10 @@ class SignApkTask(Task):
 
         unsigned_apk = get_apk(target)
 
-        # TODO (BEFORE REVIEW) Better way to handle this config_file pipeline?
         config_file = self.get_options().keystore_config_location
         keystores = KeyResolver.resolve(config_file)
-        print(keystores)
         for key in keystores:
-          print("key name: {0}".format(key))
+          safe_mkdir(self.sign_apk_out(target, key))
           # grab keyname for the out folder name here. Set the keyname in KeyResolver
           process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
           result = process.wait()
@@ -157,7 +158,7 @@ class SignApkTask(Task):
   #           raise TaskError(self, "No key matched the {0} target's build type "
   #                                 "[release, debug]".format(target))
 
-  def sign_apk_out(self, target):
+  def sign_apk_out(self, target, key):
 
     #TODO(BEFORE REVIEW) output to a folder under key name, so that it is obvioud which package is which.
-    return os.path.join(self._distdir, target.app_name)
+    return os.path.join(self._distdir, target.app_name, key)
