@@ -30,16 +30,6 @@ class KeyResolver(object):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
     # This needs to take the target's keystores and pull them from the keystore.configs.
 
-    #TODO: shorthand for homedir in BUILD files? They are supposed to be local only so...
-        # ini answer: pants_supportdir
-    # I would like to have per-target config files as an option.
-    # as of now, the only answer is to put the config address in pants.ini exclusively.
-
-    # I would like to allow a shorthand, where if 'keystore_names' is None or not defined
-    # in the target's BUILD, that would mean that pants would just use all definition in the
-    # keystore_config. If this patch gets traction, I will then put them time into that.
-
-    # For now, 'keystore_names' is required.
     config = Config.create_parser()
     with open(config_file, 'r') as keystore_config:
       config.readfp(keystore_config)

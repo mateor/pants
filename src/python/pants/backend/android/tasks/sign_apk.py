@@ -86,7 +86,7 @@ class SignApkTask(Task):
         safe_mkdir(self.sign_apk_out(target))
 
         def get_apk(target):
-          """Return the unsigned.apk product created by AaptBuilder."""
+          """Get a handle for the unsigned.apk product created by AaptBuilder."""
           unsigned_apks = self.context.products.get('apk')
           for tgts, products in unsigned_apks.get(target).items():
             unsigned_path = os.path.join(tgts)
@@ -96,14 +96,6 @@ class SignApkTask(Task):
         unsigned_apk = get_apk(target)
 
         # TODO (BEFORE REVIEW) Better way to handle this config_file pipeline?
-        # If keystore is not set in BUILD, use well-known debug key installed with Android SDK
-       # if target.keystore_configs is None:
-        #  target.keystore_configs = self.get_options().keystore_config_file
-         # target.keystores = self.get_artifact_cache().keystores
-
-        #print("target.keystore_config: {0} , target.keystores: {1}".format(target.keystore_configs, target.keystores))
-        #print(self.context.config.getlist(_CONFIG_SECTION, 'keystore_config_file', default=[]))
-        #target.keystores = KeyResolver.resolve(target.keystore_configs)
         config_file = self.get_options().keystore_config_location
         keystores = KeyResolver.resolve(config_file)
         print(keystores)
