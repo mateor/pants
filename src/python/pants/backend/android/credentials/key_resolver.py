@@ -40,30 +40,29 @@ class KeyResolver(object):
     # keystore_config. If this patch gets traction, I will then put them time into that.
 
     # For now, 'keystore_names' is required.
-    print("HWHWHWHWHW")
     config = Config.create_parser()
     with open(config_file, 'r') as keystore_config:
       config.readfp(keystore_config)
-    key_names = config .sections()
     parser = SingleFileConfig(config_file, config)
-    #parser.load(config_file)
-    print("sections: {0}".format(key_names))
-    keys = []
+    key_names = config.sections()
+    keys = {}
 
     def create_key(key_name):
-      keystore = Keystore(build_type=parser.get_required(key, 'build_type'),
-                          keystore_location=parser.get_required(key, 'keystore_location'),
-                          keystore_alias=parser.get_required(key, 'keystore_alias'),
-                          keystore_password=parser.get_required(key, 'keystore_password'),
-                          key_password=parser.get_required(key, 'key_password'))
+      keystore = Keystore(build_type=parser.get_required(key_name, 'build_type'),
+                          keystore_location=parser.get_required(key_name, 'keystore_location'),
+                          keystore_alias=parser.get_required(key_name, 'keystore_alias'),
+                          keystore_password=parser.get_required(key_name, 'keystore_password'),
+                          key_password=parser.get_required(key_name, 'key_password'))
       return keystore
 
       #TODO (BEFORE REVIEW) Errorcatch bad values (especially build_type)
 
       print("Location: {0}".format(parser.get_required(key, 'keystore_location')))
 
-    for key in key_names:
-      keys.append(create_key(key))
+    for name in key_names:
+      print(name)
+      print(parser.get_required(name, 'keystore_location'))
+      keys[name] = (create_key(name))
     return keys
 
 

@@ -20,7 +20,7 @@ class SignApkTask(Task):
   def register_options(cls, register):
     super(SignApkTask, cls).register_options(register)
     register('--keystore-config-location',
-             help='Location of the .ini file containing the parameters of Android keystores.')
+             help='Location of the .ini file containing keystores definitions.')
 
 
   #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
@@ -106,9 +106,11 @@ class SignApkTask(Task):
         #target.keystores = KeyResolver.resolve(target.keystore_configs)
         config_file = self.get_options().keystore_config_location
         keystores = KeyResolver.resolve(config_file)
+        print(keystores)
         for key in keystores:
+          print("key name: {0}".format(key))
           # grab keyname for the out folder name here. Set the keyname in KeyResolver
-          process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
+          process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
           result = process.wait()
           if result != 0:
             raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
