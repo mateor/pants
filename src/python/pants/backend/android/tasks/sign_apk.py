@@ -14,7 +14,7 @@ from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
 
-_CONFIG_SECTION = 'android-keystore'
+_CONFIG_SECTION = 'android-keystore-location'
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
@@ -99,10 +99,14 @@ class SignApkTask(Task):
         unsigned_apk = get_apk(target)
 
         config_file = self.get_options().keystore_config_location
+        if config_file is None:
+          print("IT IS NONE")
+          config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
+          print(config_file)
+        print(os.path.isfile(config_file))
         keystores = KeyResolver.resolve(config_file)
         for key in keystores:
           safe_mkdir(self.sign_apk_out(target, key))
-          # grab keyname for the out folder name here. Set the keyname in KeyResolver
           process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
           result = process.wait()
           if result != 0:
