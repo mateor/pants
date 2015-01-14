@@ -15,7 +15,6 @@ python_library(
     'android_binary.py',
     'android_resources.py',
     'android_target.py',
-    'keystore.py',
   ],
   dependencies = [
     'src/python/pants/base:build_environment',

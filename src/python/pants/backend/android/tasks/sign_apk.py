@@ -6,7 +6,7 @@ import os
 import subprocess
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.backend.android.credentials.key_resolver import KeyResolver
+from pants.backend.android.credentials.keystore import KeystoreResolver
 from pants.backend.core.tasks.task import Task
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
@@ -101,7 +101,7 @@ class SignApkTask(Task):
         if config_file is None:
           config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
         print(os.path.isfile(config_file))
-        keystores = KeyResolver.resolve(config_file)
+        keystores = KeystoreResolver.resolve(config_file)
         for key in keystores:
           safe_mkdir(self.sign_apk_out(target, key))
           process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))

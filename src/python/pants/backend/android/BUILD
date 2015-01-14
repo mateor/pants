@@ -15,8 +15,16 @@ python_library(
 
 python_library(
   name = 'android_distribution',
-  sources = globs('distribution/*.py'),
+  sources = globs('distribution/android_distribution.py'),
   dependencies = [
     '3rdparty/python/twitter/commons:twitter.common.log',
   ]
+)
+
+python_library(
+  name = 'keystore',
+  sources = globs('credentials/keystore.py'),
+  dependencies = [
+    'src/python/pants/base:config',
+    ]
 )
