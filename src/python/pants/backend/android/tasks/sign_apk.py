@@ -27,8 +27,6 @@ class SignApkTask(Task):
 
   #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
 
-  #TODO(BEFORE REVIEW) Remove stuff from 3rdParty, .gitignore, etc.
-
 
   @classmethod
   def is_signtarget(cls, target):
@@ -75,8 +73,9 @@ class SignApkTask(Task):
     args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target, key.keystore_name), target.app_name
-                                             + '-' + key.build_type + '-signed.apk'))])
+    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target, key.keystore_name),
+                                             target.app_name + '-' + key.build_type +
+                                             '-signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
     print("args: {0}".format(args))
@@ -100,9 +99,7 @@ class SignApkTask(Task):
 
         config_file = self.get_options().keystore_config_location
         if config_file is None:
-          print("IT IS NONE")
           config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
-          print(config_file)
         print(os.path.isfile(config_file))
         keystores = KeyResolver.resolve(config_file)
         for key in keystores:
@@ -111,6 +108,14 @@ class SignApkTask(Task):
           result = process.wait()
           if result != 0:
             raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
+
+
+        # Here is where we can update products to spin out to new tasks (see zipalign)
+        # EXAMPLE
+        # self.context.products.get('apk').add(target, self.workdir).append(target.app_name + "-unsigned.apk")
+
+
+
 
   # def execute(self):
   #
@@ -163,6 +168,7 @@ class SignApkTask(Task):
   #                                 "[release, debug]".format(target))
 
   def sign_apk_out(self, target, key):
-
-    #TODO(BEFORE REVIEW) output to a folder under key name, so that it is obvioud which package is which.
+    #TODO (BEFORE REVIEW) fix this outdir pipeline so that it is not recomputed twice.
+    # IF I cache this somewhere, then I can avoid passing target to render_args.
+    # It willl already be implicit in the 'for target in targets' loop.
     return os.path.join(self._distdir, target.app_name, key)

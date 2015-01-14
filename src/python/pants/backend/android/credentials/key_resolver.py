@@ -6,22 +6,12 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-try:
-  import ConfigParser
-except ImportError:
-  import configparser as ConfigParser
-
 from pants.base.config import Config, SingleFileConfig
 from pants.backend.android.credentials.keystore import Keystore
 
 
 class KeyResolver(object):
   """Parse the keystore config files and instantiate Keystore objects with the info."""
-  #def __init__(self, target):
-    #TODO(BEFORE REVIEW) if config is none, default to debug entry in pants.ini?
-    # That will allow us to raise an exception if the build definition is release,
-    # thereby protecting from putting secret credentials in pants.ini.
-    #self.configs = [target.keystore_configs]
 
   @classmethod
   def resolve(cls, config_file):
@@ -33,6 +23,7 @@ class KeyResolver(object):
       config.readfp(keystore_config)
     parser = SingleFileConfig(config_file, config)
     key_names = config.sections()
+    # keys will be mapped to key_name:Keystore object
     keys = {}
 
     def create_key(key_name):
@@ -45,12 +36,10 @@ class KeyResolver(object):
       return keystore
 
       #TODO (BEFORE REVIEW) Errorcatch bad values (especially build_type)
-
-      print("Location: {0}".format(parser.get_required(key, 'keystore_location')))
+      #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
+        # No, I think that should go in Keystore.
 
     for name in key_names:
-      print(name)
-      print(parser.get_required(name, 'keystore_location'))
       keys[name] = (create_key(name))
     return keys
 
