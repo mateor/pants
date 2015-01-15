@@ -6,51 +6,22 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+import os
+
 from pants.base.config import Config, SingleFileConfig
 
 
-class Keystore(object):
-  """Represents a keystore configuration"""
-
-  def __init__(self,
-               keystore_name=None,
-               build_type=None,
-               keystore_location=None,
-               keystore_alias=None,
-               keystore_password=None,
-               key_password=None,
-               **kwargs):
-    """
-    :param string build_type: What type of package the keystore signs. Either 'debug' or 'release'.
-    :param string source: path/to/keystore
-    :param string keystore_alias: The alias of this keystore.
-    :param string keystore_password: The password for the keystore.
-    :param string key_password: The password for the key.
-    """
-
-    self.keystore_name=keystore_name
-    # Error catching for these fields can be done in the KeyResolver
-    self.build_type = build_type
-    self.keystore_location = keystore_location
-    self.keystore_alias = keystore_alias
-    self.keystore_password = keystore_password
-    self.key_password = key_password
-
-
 class KeystoreResolver(object):
-  """Parse the keystore config files and instantiate Keystore objects with the info."""
+  """Read a keystore config.ini file and instantiate Keystore objects with the info."""
 
   @classmethod
   def resolve(cls, config_file):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
-    # This needs to take the target's keystores and pull them from the keystore.configs.
-
     config = Config.create_parser()
     with open(config_file, 'r') as keystore_config:
       config.readfp(keystore_config)
     parser = SingleFileConfig(config_file, config)
     key_names = config.sections()
-    # keys will be mapped to key_name:Keystore object
     keys = {}
 
     def create_key(key_name):
@@ -63,12 +34,43 @@ class KeystoreResolver(object):
       return keystore
 
       #TODO (BEFORE REVIEW) Turn the KeyResolver into a factory, That is the proper design pattern for this.
-      #TODO (BEFORE REVIEW) Errorcatch bad values (especially build_type)
       #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
-        # No, I think that should go in Keystore.
 
     for name in key_names:
       keys[name] = (create_key(name))
     return keys
 
 
+class Keystore(object):
+  """Represents a keystore configuration."""
+
+  def __init__(self,
+               keystore_name=None,
+               build_type=None,
+               keystore_location=None,
+               keystore_alias=None,
+               keystore_password=None,
+               key_password=None,
+               **kwargs):
+    """
+    :param string name: Name of keystore. This is the [section] of the .ini config file.
+    :param string build_type: What type of the keystore. One of (debug, release).
+    :param string keystore_location: path/to/keystore.
+    :param string keystore_alias: The alias of this keystore.
+    :param string keystore_password: The password for the keystore.
+    :param string key_password: The password for the key.
+    """
+
+    self.keystore_name=keystore_name
+    self.build_type = self.validate_build_type(build_type)
+    # The os call is robust against None b/c it was validated in KeyResolver with get_required().
+    self.keystore_location = os.path.expandvars(keystore_location)
+    self.keystore_alias = keystore_alias
+    self.keystore_password = keystore_password
+    self.key_password = key_password
+
+  def validate_build_type(self, build_type):
+    if build_type.lower() not in ('release', 'debug'):
+      raise ValueError(self, "The 'build_type' must be one of (debug, release)"
+                             " instead of: '{0}'.".format(build_type))
+    return build_type

@@ -109,7 +109,6 @@ class SignApkTask(Task):
           if result != 0:
             raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
 
-        # TODO (BEFORE REVIEW) Check hyphen is package names.
 
         # Here is where we can update products to spin out to new tasks (see zipalign)
         # EXAMPLE
