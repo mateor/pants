@@ -40,13 +40,14 @@ class SignApkTask(Task):
   def __init__(self, *args, **kwargs):
     super(SignApkTask, self).__init__(*args, **kwargs)
     self._distdir = self.context.config.getdefault('pants_distdir')
-    # No Java 8 for Android. I am considering max=1.7.0_50. See comment in render_args().
-    self._dist = Distribution.cached(maximum_version="1.7.0_99")
+    self._dist = None
     self._config_file = self.get_options().keystore_config_location
-
 
   @property
   def distribution(self):
+    if self._dist is None:
+      # No Java 8 for Android. I am considering max=1.7.0_50. See comment in render_args().
+      self._dist = Distribution.cached(maximum_version="1.7.0_99")
     return self._dist
 
   @property
