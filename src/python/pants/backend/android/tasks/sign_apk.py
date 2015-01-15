@@ -42,10 +42,19 @@ class SignApkTask(Task):
     self._distdir = self.context.config.getdefault('pants_distdir')
     # No Java 8 for Android. I am considering max=1.7.0_50. See comment in render_args().
     self._dist = Distribution.cached(maximum_version="1.7.0_99")
+    self._config_file = self.get_options().keystore_config_location
+
 
   @property
   def distribution(self):
     return self._dist
+
+  @property
+  def config_file(self):
+    print("we eat the world")
+    if self._config_file is None:
+      self._config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
+    return self._config_file
 
   def prepare(self, round_manager):
     round_manager.require_data('apk')
@@ -83,6 +92,7 @@ class SignApkTask(Task):
     return args
 
   def execute(self):
+    print("SIGN AODJSHD")
     with self.context.new_workunit(name='sign_apk', labels=[WorkUnit.MULTITOOL]):
       targets = self.context.targets(self.is_signtarget)
       for target in targets:
@@ -99,10 +109,8 @@ class SignApkTask(Task):
         unsigned_apk = get_apk(target)
 
         # TODO (BEFORE REVIEW) check to see if this is standard option interface.
-        config_file = self.get_options().keystore_config_location
-        if config_file is None:
-          config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
-        keystores = KeystoreResolver.resolve(config_file)
+
+        keystores = KeystoreResolver.resolve(self.config_file)
         for key in keystores:
           safe_mkdir(self.sign_apk_out(target, key))
           process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))

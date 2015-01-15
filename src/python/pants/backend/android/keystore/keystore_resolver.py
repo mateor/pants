@@ -17,6 +17,7 @@ class KeystoreResolver(object):
   @classmethod
   def resolve(cls, config_file):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
+    #TODO (BEFORE REVIEW) Check to be robust against no config file. (In SIgnApk)
     config = Config.create_parser()
     with open(config_file, 'r') as keystore_config:
       config.readfp(keystore_config)
