@@ -62,6 +62,7 @@ class KeystoreResolver(object):
                           key_password=parser.get_required(key_name, 'key_password'))
       return keystore
 
+      #TODO (BEFORE REVIEW) Turn the KeyResolver into a factory, That is the proper design pattern for this.
       #TODO (BEFORE REVIEW) Errorcatch bad values (especially build_type)
       #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
         # No, I think that should go in Keystore.

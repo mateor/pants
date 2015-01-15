@@ -61,7 +61,7 @@ class SignApkTask(Task):
     # is needed before passing a -tsa flag indiscriminately.
     # http://bugs.java.com/view_bug.do?bug_id=8023338
 
-    print("NAME: {0}".format(key.keystore_name))
+    print("NAME: {0}, KEY: {1}".format(key.keystore_name, key))
 
     args = []
     args.extend([self.distribution.binary('jarsigner')])
@@ -74,8 +74,8 @@ class SignApkTask(Task):
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
     args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target, key.keystore_name),
-                                             target.app_name + '-' + key.build_type +
-                                             '-signed.apk'))])
+                                             target.app_name + '.' + key.build_type +
+                                             '.signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
     print("args: {0}".format(args))
@@ -109,6 +109,7 @@ class SignApkTask(Task):
           if result != 0:
             raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
 
+        # TODO (BEFORE REVIEW) Check hyphen is package names.
 
         # Here is where we can update products to spin out to new tasks (see zipalign)
         # EXAMPLE
