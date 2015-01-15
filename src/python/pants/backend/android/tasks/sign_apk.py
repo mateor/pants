@@ -6,7 +6,7 @@ import os
 import subprocess
 
 from pants.backend.android.targets.android_binary import AndroidBinary
-from pants.backend.android.credentials.keystore import KeystoreResolver
+from pants.backend.android.keystore.keystore_resolver import KeystoreResolver
 from pants.backend.core.tasks.task import Task
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
@@ -34,6 +34,7 @@ class SignApkTask(Task):
 
   @classmethod
   def product_types(cls):
+    # TODO(BEFORE REVIEW) verfiy these package names.
     return ['debug_apk', 'release_apk']
 
   def __init__(self, *args, **kwargs):
@@ -97,10 +98,10 @@ class SignApkTask(Task):
 
         unsigned_apk = get_apk(target)
 
+        # TODO (BEFORE REVIEW) check to see if this is standard option interface.
         config_file = self.get_options().keystore_config_location
         if config_file is None:
           config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
-        print(os.path.isfile(config_file))
         keystores = KeystoreResolver.resolve(config_file)
         for key in keystores:
           safe_mkdir(self.sign_apk_out(target, key))
@@ -108,6 +109,8 @@ class SignApkTask(Task):
           result = process.wait()
           if result != 0:
             raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
+
+      # TODO(BEFORE REVIEW) DEFINE products
 
 
         # Here is where we can update products to spin out to new tasks (see zipalign)
@@ -167,8 +170,8 @@ class SignApkTask(Task):
   #           raise TaskError(self, "No key matched the {0} target's build type "
   #                                 "[release, debug]".format(target))
 
-  def sign_apk_out(self, target, key):
+  def sign_apk_out(self, target, key_name):
     #TODO (BEFORE REVIEW) fix this outdir pipeline so that it is not recomputed twice.
     # IF I cache this somewhere, then I can avoid passing target to render_args.
     # It willl already be implicit in the 'for target in targets' loop.
-    return os.path.join(self._distdir, target.app_name, key)
+    return os.path.join(self._distdir, target.app_name, key_name)

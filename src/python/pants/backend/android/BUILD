@@ -23,7 +23,7 @@ python_library(
 
 python_library(
   name = 'keystore',
-  sources = globs('credentials/keystore.py'),
+  sources = globs('keystore/keystore_resolver.py'),
   dependencies = [
     'src/python/pants/base:config',
     ]
