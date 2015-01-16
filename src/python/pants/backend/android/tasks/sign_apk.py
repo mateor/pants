@@ -22,7 +22,7 @@ class SignApkTask(Task):
   def register_options(cls, register):
     super(SignApkTask, cls).register_options(register)
     register('--keystore-config-location',
-             help='Location of the .ini file containing keystores definitions.')
+             help='Location of the .ini file containing keystore definitions.')
 
 
   #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
@@ -40,8 +40,14 @@ class SignApkTask(Task):
   def __init__(self, *args, **kwargs):
     super(SignApkTask, self).__init__(*args, **kwargs)
     self._distdir = self.context.config.getdefault('pants_distdir')
-    self._dist = None
     self._config_file = self.get_options().keystore_config_location
+    self._dist = None
+
+  @property
+  def config_file(self):
+    if self._config_file is None:
+      self._config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
+    return self._config_file
 
   @property
   def distribution(self):
@@ -50,12 +56,6 @@ class SignApkTask(Task):
       self._dist = Distribution.cached(maximum_version="1.7.0_99")
     return self._dist
 
-  @property
-  def config_file(self):
-    print("we eat the world")
-    if self._config_file is None:
-      self._config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
-    return self._config_file
 
   def prepare(self, round_manager):
     round_manager.require_data('apk')
@@ -63,21 +63,19 @@ class SignApkTask(Task):
   def render_args(self, target, unsigned_apk, key):
     """Create arg list for the jarsigner process.
 
-    :param AndroidBinary target: Target to be signed
+    :param AndroidBinary target: Target to be signed.
     :param string unsigned_apk: Location of the apk product from the AaptBuilder task.
-    :param list key: List containing the Keystore object intended to sign the target.
+    :param Keystore object: Keystore instance with which to sign the android target.
     """
     # After JDK 1.7.0_51, jars without timestamps print a warning. This causes jars to stop working
     # past their validity date. But Android purposefully passes 30 years validity. More research
     # is needed before passing a -tsa flag indiscriminately.
     # http://bugs.java.com/view_bug.do?bug_id=8023338
 
-    print("NAME: {0}, KEY: {1}".format(key.keystore_name, key))
-
     args = []
     args.extend([self.distribution.binary('jarsigner')])
 
-    # first two are required flags for JDK 7+
+    # These first two params are required flags for JDK 7+
     args.extend(['-sigalg', 'SHA1withRSA'])
     args.extend(['-digestalg', 'SHA1'])
 
@@ -89,35 +87,33 @@ class SignApkTask(Task):
                                              '.signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
-    print("args: {0}".format(args))
     return args
 
   def execute(self):
-    print("SIGN AODJSHD")
     with self.context.new_workunit(name='sign_apk', labels=[WorkUnit.MULTITOOL]):
       targets = self.context.targets(self.is_signtarget)
-      for target in targets:
-        #TODO (BEFORE REVIEW) Add invalidation framework.
+      with self.invalidated(targets) as invalidation_check:
+        invalid_targets = []
+        for vt in invalidation_check.invalid_vts:
+          invalid_targets.extend(vt.targets)
+        for target in invalid_targets:
 
-        def get_apk(target):
-          """Get a handle for the unsigned.apk product created by AaptBuilder."""
-          unsigned_apks = self.context.products.get('apk')
-          for tgts, products in unsigned_apks.get(target).items():
-            unsigned_path = os.path.join(tgts)
-            for prod in products:
-              return os.path.join(unsigned_path, prod)
+          def get_apk(target):
+            """Get a handle for the unsigned.apk product created by AaptBuilder."""
+            unsigned_apks = self.context.products.get('apk')
+            for tgts, products in unsigned_apks.get(target).items():
+              unsigned_path = os.path.join(tgts)
+              for prod in products:
+                return os.path.join(unsigned_path, prod)
 
-        unsigned_apk = get_apk(target)
-
-        # TODO (BEFORE REVIEW) check to see if this is standard option interface.
-
-        keystores = KeystoreResolver.resolve(self.config_file)
-        for key in keystores:
-          safe_mkdir(self.sign_apk_out(target, key))
-          process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
-          result = process.wait()
-          if result != 0:
-            raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
+          unsigned_apk = get_apk(target)
+          keystores = KeystoreResolver.resolve(self.config_file)
+          for key in keystores:
+            safe_mkdir(self.sign_apk_out(target, key))
+            process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
+            result = process.wait()
+            if result != 0:
+              raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
 
       # TODO(BEFORE REVIEW) DEFINE products
 
