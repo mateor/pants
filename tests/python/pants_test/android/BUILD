@@ -47,6 +47,7 @@ python_tests(
     'test_keystore_resolver.py',
   ],
   dependencies = [
+    '3rdparty/python/twitter/commons:twitter.common.collections',
     'src/python/pants/backend/android:keystore_resolver',
     'src/python/pants/base:config',
     'src/python/pants/util:contextutil',

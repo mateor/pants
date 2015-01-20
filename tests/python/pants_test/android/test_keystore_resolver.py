@@ -6,32 +6,56 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+import os
 import textwrap
 from contextlib import contextmanager
 import unittest2 as unittest
 
+from twitter.common.collections import maybe_list
+
 from pants.backend.android.keystore.keystore_resolver import KeystoreResolver
 from pants.base.config import Config, ChainedConfig
-from pants.util.contextutil import temporary_file
+from pants.util.contextutil import temporary_file, temporary_dir
+from pants.util.dirutil import chmod_plus_x, safe_open, touch
+
 
 class TestKeystoreResolver(unittest.TestCase):
 
   @contextmanager
+  # default for testing purposes being sdk 18 and 19, with latest build-tools 19.1.0
+  def distribution(self, installed_sdks=('18', '19'),
+                   installed_build_tools=('19.1.0', ),
+                   files='android.jar',
+                   executables='aapt'):
+    with temporary_dir() as sdk:
+      for sdks in installed_sdks:
+        touch(os.path.join(sdk, 'platforms', 'android-' + sdks, files))
+      for build in installed_build_tools:
+        for exe in maybe_list(executables or ()):
+          path = os.path.join(sdk, 'build-tools', build, exe)
+          with safe_open(path, 'w') as fp:
+            fp.write('')
+          chmod_plus_x(path)
+      yield sdk
+
+  @contextmanager
   def good_config(self):
 
-    with temporary_file() as android_config:
-      android_config.write(textwrap.dedent(
-        """
-      [default-debug]
+    with temporary_dir() as android_config:
+      path = (os.path.join(android_config, 'android_config.ini'))
+      touch(path)
+      with safe_open(path, 'w') as fp:
+        fp.write(textwrap.dedent(
+          """
+        [default-debug]
 
-      build_type: debug
-      keystore_location: %(homedir)s/.android/debug.keystore
-      keystore_alias: androiddebugkey
-      keystore_password: android
-      key_password: android
-        """))
-      android_config.close()
-      yield android_config
+        build_type: debug
+        keystore_location: %(homedir)s/.android/debug.keystore
+        keystore_alias: androiddebugkey
+        keystore_password: android
+        key_password: android
+          """))
+        yield android_config
 
   def setUp(self):
     with self.good_config() as config:
@@ -47,7 +71,10 @@ class TestKeystoreResolver(unittest.TestCase):
 
   def test_resolve(self):
     with self.good_config() as config:
-      KeystoreResolver.resolve(config)
+      config_file = os.path.join(config, 'android_config.ini')
+      self.assertEquals(os.path.isfile(config_file), True)
+      KeystoreResolver.resolve(config_file)
+      #self.assertEquals(os.path.i)
 
 
 # TESTS
