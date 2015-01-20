@@ -10,7 +10,7 @@ import textwrap
 from contextlib import contextmanager
 import unittest2 as unittest
 
-from pants.base.config import Config
+from pants.base.config import Config, ChainedConfig
 from pants.util.contextutil import temporary_file
 
 class TestKeyResolver(unittest.TestCase):
@@ -21,34 +21,35 @@ class TestKeyResolver(unittest.TestCase):
       fd.close()
       yield fd.name
 
+  @contextmanager
+  def good_config(self):
 
-  def setUp(self):
-    with temporary_file() as legit:
-      legit.write(textwrap.dedent(
+    with temporary_file() as android_config:
+      android_config.write(textwrap.dedent(
         """
-        [DEFAULT]
-        name: foo
-        answer: 42
-        scale: 1.2
-        path: /a/b/%(answer)s
-        embed: %(path)s::foo
-        disclaimer:
-          Let it be known
-          that.
+      [default-debug]
 
-        [a]
-        list: [1, 2, 3, %(answer)s]
-
-        [b]
-        preempt: True
-        dict: {
-            'a': 1,
-            'b': %(answer)s,
-            'c': ['%(answer)s', %(answer)s]
-          }
+      build_type: debug
+      keystore_location: %(homedir)s/.android/debug.keystore
+      keystore_alias: androiddebugkey
+      keystore_password: android
+      key_password: android
         """))
-      legit.close()
+      android_config.close()
 
+    with temporary_file() as pantsini:
+      pantsini.write(textwrap.dedent(
+        """
+      [android-keystore-location]
+      keystore_config_location: {0}
+        """.format(android_config)))
+      pantsini.close()
+
+
+    self.config = Config.load(configpaths=[pantsini.name])
+
+  @contextmanager
+  def bad_config(self):
       with temporary_file() as borked:
         borked.write(textwrap.dedent(
           """
@@ -59,7 +60,32 @@ class TestKeyResolver(unittest.TestCase):
           preempt: False
           """))
         borked.close()
-        self.config = Config.load(configpaths=[legit.name, borked.name])
+        yield borked
+        #self.config = Config.load(configpaths=[borked.name])
+
+  @contextmanager
+  def test_config(self):
+    with temporary_file() as borked:
+      borked.write(textwrap.dedent(
+        """
+      [default-debug]
+
+      build_type: debug
+      keystore_location: %(homedir)s/.android/debug.keystore
+      keystore_alias: androiddebugkey
+      keystore_password: android
+      key_password: android
+        """))
+      borked.close()
+      yield borked
+      #self.config = Config.load(configpaths=[borked.name])
 
   def test_resolve(self):
     self.assertEquals(2, 2)
+
+
+# TESTS
+#    That android config file overrrides pants.ini
+#    That the KeyResolver can raise the proper exceptions for bad data.
+
+# I need a contextmanager that can tak arguments for sections.
