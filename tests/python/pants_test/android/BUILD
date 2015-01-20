@@ -42,11 +42,12 @@ python_tests(
 )
 
 python_tests(
-  name = 'key_resolver',
+  name = 'keystore_resolver',
   sources = [
-    'test_key_resolver.py',
+    'test_keystore_resolver.py',
   ],
   dependencies = [
+    'src/python/pants/backend/android:keystore_resolver',
     'src/python/pants/base:config',
     'src/python/pants/util:contextutil',
   ]
