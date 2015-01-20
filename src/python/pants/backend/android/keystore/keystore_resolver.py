@@ -18,6 +18,7 @@ class KeystoreResolver(object):
   def resolve(cls, config_file):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
     #TODO (BEFORE REVIEW) Check to be robust against no config file. (In SIgnApk)
+      # TODO(BEFORE REVIEW) write test to conifrm thism=.
     config = Config.create_parser()
     with open(config_file, 'r') as keystore_config:
       config.readfp(keystore_config)
@@ -65,6 +66,7 @@ class Keystore(object):
     self.keystore_name=keystore_name
     self.build_type = self.validate_build_type(build_type)
     # The os call is robust against None b/c it was validated in KeyResolver with get_required().
+    # TODO (BEFORE REVIEW) write test to confirm
     self.keystore_location = os.path.expandvars(keystore_location)
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password

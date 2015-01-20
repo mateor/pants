@@ -6,6 +6,7 @@ python_test_suite(
   name = 'android',
   dependencies = [
     ':android_distribution',
+    ':key_resolver',
     'tests/python/pants_test/android/tasks',
   ]
 )
@@ -37,5 +38,16 @@ python_tests(
     'src/python/pants/backend/android:android_distribution',
     'src/python/pants/util:contextutil',
     'src/python/pants/util:dirutil',
+  ]
+)
+
+python_tests(
+  name = 'key_resolver',
+  sources = [
+    'test_key_resolver.py',
+  ],
+  dependencies = [
+    'src/python/pants/base:config',
+    'src/python/pants/util:contextutil',
   ]
 )
