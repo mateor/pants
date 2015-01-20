@@ -47,8 +47,8 @@ class Keystore(object):
   """Represents a keystore configuration."""
 
   def __init__(self,
-               keystore_name=None,
                build_type=None,
+               keystore_name=None,
                keystore_location=None,
                keystore_alias=None,
                keystore_password=None,
@@ -63,17 +63,21 @@ class Keystore(object):
     :param string key_password: The password for the key.
     """
 
-    self.keystore_name=keystore_name
-    self.build_type = self.validate_build_type(build_type)
-    # The os call is robust against None b/c it was validated in KeyResolver with get_required().
+    self._type = None
+    self._build_type = build_type
+
     # TODO (BEFORE REVIEW) write test to confirm
+    self.keystore_name=keystore_name
+    # The os call is robust against None b/c it was validated in KeyResolver with get_required().
     self.keystore_location = os.path.expandvars(keystore_location)
     self.keystore_alias = keystore_alias
     self.keystore_password = keystore_password
     self.key_password = key_password
 
-  def validate_build_type(self, build_type):
-    if build_type.lower() not in ('release', 'debug'):
-      raise ValueError(self, "The 'build_type' must be one of (debug, release)"
-                             " instead of: '{0}'.".format(build_type))
-    return build_type
+    @property
+    def build_type(self):
+      if self._type is None:
+        if self._build_type.lower() not in ('release', 'debug'):
+          raise ValueError(self, "The 'build_type' must be one of (debug, release)"
+                                 " instead of: '{0}'.".format(build_type))
+      return self._type

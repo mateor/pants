@@ -123,7 +123,7 @@ class SignApkTask(Task):
         # self.context.products.get('apk').add(target, self.workdir).append(target.app_name + "-unsigned.apk")
 
 
-
+    #TODO(BEFORE REVIEW) Test case to ensure we can overwrite the pants.ini android_keystore_config entry
 
   # def execute(self):
   #
