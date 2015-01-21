@@ -19,7 +19,7 @@ class TestKeystoreResolver(unittest.TestCase):
 
   @contextmanager
   def config_file(self,
-                  build_type='dekkdkdbug',
+                  build_type='debug',
                   keystore_location='%(homedir)s/.android/debug.keystore',
                   keystore_alias='androiddebugkey',
                   keystore_password='android',
@@ -42,10 +42,10 @@ class TestKeystoreResolver(unittest.TestCase):
   def test_resolve(self):
     with self.config_file() as config:
       self.assertEquals(os.path.isfile(config), True)
-      key = KeystoreResolver.resolve(config)
+      keystores = KeystoreResolver.resolve(config)
       #self.assertEquals(key, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
-      for k in key:
-        self.assertEquals(key[k].build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
+      for key_name in keystores:
+        self.assertEquals(keystores[key_name].build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
 
         # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.

@@ -57,7 +57,7 @@ class Keystore(object):
                **kwargs):
     """
     :param string name: Name of keystore. This is the [section] of the .ini config file.
-    :param string build_type: What type of the keystore. One of (debug, release).
+    :param string build_type: The build type of the keystore. One of (debug, release).
     :param string keystore_location: path/to/keystore.
     :param string keystore_alias: The alias of this keystore.
     :param string keystore_password: The password for the keystore.
@@ -66,6 +66,10 @@ class Keystore(object):
 
     self._type = None
     self._build_type = build_type
+
+    # TODO (BEFORE REVIEW) Lets rethink returning a dictionary keyed by the name string.
+    #     The keyname is already a field, is that really necessary? A list of Keystore objects would be preferably from
+    #     a readability/expectation standpoint.
 
     # TODO (BEFORE REVIEW) write test to confirm
     self.keystore_name=keystore_name
@@ -77,6 +81,7 @@ class Keystore(object):
 
   @property
   def build_type(self):
+    # The build_type doesn't get validated until this property is called.
     if self._type is None:
       if self._build_type.lower() not in ('release', 'debug'):
         raise ValueError(self, "The 'build_type' must be one of (debug, release)"
