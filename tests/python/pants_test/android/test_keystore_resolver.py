@@ -40,11 +40,12 @@ class TestKeystoreResolver(unittest.TestCase):
       yield path
 
   def test_resolve(self):
-    with self.config_file(build_type='blurb') as config:
-      self.assertEquals(os.path.isfile(config), True, msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
+    with self.config_file() as config:
+      self.assertEquals(os.path.isfile(config), True)
       key = KeystoreResolver.resolve(config)
+      #self.assertEquals(key, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
       for k in key:
-        self.assertEquals(k.build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
+        self.assertEquals(key[k].build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
 
         # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.
