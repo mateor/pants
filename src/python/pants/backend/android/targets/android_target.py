@@ -53,7 +53,7 @@ class AndroidTarget(JvmTarget):
                                             'at path {1}'.format(manifest, manifest_path))
     self.manifest = manifest_path
 
-    # This will be filled with Keystore objects by backend.android.credentials.key_resolver.
+    # This will be filled with Keystore objects by backend.android.credentials.keystore_resolver.
     self.keystores = []
 
     self.package = self.get_package_name()

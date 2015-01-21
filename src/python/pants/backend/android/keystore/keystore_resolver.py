@@ -27,7 +27,7 @@ class KeystoreResolver(object):
     keys = {}
 
     def create_key(key_name):
-
+      """Instantiate Keystore objects."""
       keystore = Keystore(keystore_name=key_name,
                           build_type=parser.get_required(key_name, 'build_type'),
                           keystore_location=parser.get_required(key_name, 'keystore_location'),

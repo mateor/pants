@@ -41,13 +41,29 @@ class TestKeystoreResolver(unittest.TestCase):
 
   def test_resolve(self):
     with self.config_file() as config:
-      self.assertEquals(os.path.isfile(config), True)
       keystores = KeystoreResolver.resolve(config)
-      #self.assertEquals(key, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
       for key_name in keystores:
         self.assertEquals(keystores[key_name].build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
 
-        # TESTS
+  def test_bad_build_type(self):
+    with self.config_file(build_type="bad-build-type") as config:
+      keystores = KeystoreResolver.resolve(config)
+      for key_name in keystores:
+        with self.assertRaises(ValueError):
+          keystores[key_name].build_type
+
+  def test_expand_path(self):
+    with self.config_file(keystore_location="~/dir") as config:
+      keystores = KeystoreResolver.resolve(config)
+
+  def test_empty_path(self):
+    with self.config_file(build_type="bad-build-type") as config:
+      keystores = KeystoreResolver.resolve(config)
+      for key_name in keystores:
+        with self.assertRaises(ValueError):
+          keystores[key_name].build_type
+
+    # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.
 
 # I need a contextmanager that can tak arguments for sections.

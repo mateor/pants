@@ -6,7 +6,7 @@ python_test_suite(
   name = 'android',
   dependencies = [
     ':android_distribution',
-    ':key_resolver',
+    ':keystore_resolver',
     'tests/python/pants_test/android/tasks',
   ]
 )

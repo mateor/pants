@@ -13,7 +13,6 @@ python_test_suite(
   dependencies = [
     ':dx_compile_integration',
     ':aapt_builder_integration',
-    ':jarsigner_integration',
   ],
 )
 

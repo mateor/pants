@@ -67,7 +67,7 @@ python_library(
   name = 'sign_apk',
   sources = ['sign_apk.py'],
   dependencies = [
-    'src/python/pants/backend/android:keystore',
+    'src/python/pants/backend/android:keystore_resolver',
     'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:android_task',
     'src/python/pants/backend/jvm/tasks:nailgun_task',
