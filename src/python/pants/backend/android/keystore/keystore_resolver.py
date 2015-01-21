@@ -74,10 +74,12 @@ class Keystore(object):
     self.keystore_password = keystore_password
     self.key_password = key_password
 
-    @property
-    def build_type(self):
-      if self._type is None:
-        if self._build_type.lower() not in ('release', 'debug'):
-          raise ValueError(self, "The 'build_type' must be one of (debug, release)"
-                                 " instead of: '{0}'.".format(build_type))
-      return self._type
+  @property
+  def build_type(self):
+    if self._type is None:
+      if self._build_type.lower() not in ('release', 'debug'):
+        raise ValueError(self, "The 'build_type' must be one of (debug, release)"
+                               " instead of: '{0}'.".format(self._build_type))
+      else:
+        self._type = self._build_type
+    return self._type

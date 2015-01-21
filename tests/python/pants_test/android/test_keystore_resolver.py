@@ -12,50 +12,41 @@ from contextlib import contextmanager
 import unittest2 as unittest
 
 from pants.backend.android.keystore.keystore_resolver import KeystoreResolver
-from pants.base.config import Config
 from pants.util.contextutil import temporary_file
 
 
 class TestKeystoreResolver(unittest.TestCase):
 
-
   @contextmanager
-  def config_file(self):
+  def config_file(self,
+                  build_type='dekkdkdbug',
+                  keystore_location='%(homedir)s/.android/debug.keystore',
+                  keystore_alias='androiddebugkey',
+                  keystore_password='android',
+                  key_password='android'):
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
         """
       [default-debug]
 
-      build_type: debug
-      keystore_location: %(homedir)s/.android/debug.keystore
-      keystore_alias: androiddebugkey
-      keystore_password: android
-      key_password: android
-        """))
+      build_type: {0}
+      keystore_location: {1}
+      keystore_alias: {2}
+      keystore_password: {3}
+      key_password: {4}
+        """).format(build_type, keystore_location, keystore_alias, keystore_password, key_password))
       path = fp.name
       fp.close()
       yield path
 
-  def setUp(self):
-    with self.good_config() as config:
-      with temporary_file() as pantsini:
-        pantsini.write(textwrap.dedent(
-          """
-        [android-keystore-location]
-        keystore_config_location: {0}
-          """.format(config)))
-        pantsini.close()
-        self.config = Config.load(configpaths=[pantsini.name])
-
-
   def test_resolve(self):
-    with self.config_file() as config:
-      self.assertEquals(os.path.isfile(config), True)
-      KeystoreResolver.resolve(config)
+    with self.config_file(build_type='blurb') as config:
+      self.assertEquals(os.path.isfile(config), True, msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
+      key = KeystoreResolver.resolve(config)
+      for k in key:
+        self.assertEquals(k.build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
 
-
-# TESTS
-#    That android config file overrrides pants.ini
+        # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.
 
 # I need a contextmanager that can tak arguments for sections.
