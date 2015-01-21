@@ -42,15 +42,15 @@ class TestKeystoreResolver(unittest.TestCase):
   def test_resolve(self):
     with self.config_file() as config:
       keystores = KeystoreResolver.resolve(config)
-      for key_name in keystores:
-        self.assertEquals(keystores[key_name].build_type, 'debug', msg="hsjgdshjfghdsgfhdsgfhghsdgfhdsg")
+      for key in keystores:
+        self.assertEquals(key.build_type, 'debug')
 
   def test_bad_build_type(self):
     with self.config_file(build_type="bad-build-type") as config:
       keystores = KeystoreResolver.resolve(config)
-      for key_name in keystores:
+      for key in keystores:
         with self.assertRaises(ValueError):
-          keystores[key_name].build_type
+          key.build_type
 
   def test_expand_path(self):
     with self.config_file(keystore_location="~/dir") as config:
@@ -59,9 +59,9 @@ class TestKeystoreResolver(unittest.TestCase):
   def test_empty_path(self):
     with self.config_file(build_type="bad-build-type") as config:
       keystores = KeystoreResolver.resolve(config)
-      for key_name in keystores:
+      for key in keystores:
         with self.assertRaises(ValueError):
-          keystores[key_name].build_type
+          key.build_type
 
     # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.

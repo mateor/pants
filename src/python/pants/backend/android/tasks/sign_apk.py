@@ -109,8 +109,8 @@ class SignApkTask(Task):
           unsigned_apk = get_apk(target)
           keystores = KeystoreResolver.resolve(self.config_file)
           for key in keystores:
-            safe_mkdir(self.sign_apk_out(target, key))
-            process = subprocess.Popen(self.render_args(target, unsigned_apk, keystores[key]))
+            safe_mkdir(self.sign_apk_out(target, key.keystore_name))
+            process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
             result = process.wait()
             if result != 0:
               raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))

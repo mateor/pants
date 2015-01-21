@@ -24,7 +24,7 @@ class KeystoreResolver(object):
       config.readfp(keystore_config)
     parser = SingleFileConfig(config_file, config)
     key_names = config.sections()
-    keys = {}
+    keys = []
 
     def create_key(key_name):
       """Instantiate Keystore objects."""
@@ -40,7 +40,7 @@ class KeystoreResolver(object):
       #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
 
     for name in key_names:
-      keys[name] = (create_key(name))
+      keys.append(create_key(name))
     return keys
 
 
