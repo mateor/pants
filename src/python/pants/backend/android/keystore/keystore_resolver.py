@@ -14,14 +14,22 @@ from pants.base.config import Config, SingleFileConfig
 class KeystoreResolver(object):
   """Read a keystore config.ini file and instantiate Keystore objects with the info."""
 
+  class Error(Exception):
+    """Indicates an invalid android distribution."""
+
+  _CONFIG_SECTION = 'android-keystore-location'
+
   @classmethod
   def resolve(cls, config_file):
     """Parse a target's keystore_config_file and return a list of Keystore objects."""
-    #TODO (BEFORE REVIEW) Check to be robust against no config file. (In SIgnApk)
-      # TODO(BEFORE REVIEW) write test to conifrm thism=.
+
     config = Config.create_parser()
-    with open(config_file, 'r') as keystore_config:
-      config.readfp(keystore_config)
+    try:
+      with open(config_file, 'r') as keystore_config:
+        config.readfp(keystore_config)
+    except IOError:
+      raise KeystoreResolver.Error("The \'--{0}\' option must point at a valid .ini file holding "
+                                   "keystore definitions.".format(cls._CONFIG_SECTION))
     parser = SingleFileConfig(config_file, config)
     key_names = config.sections()
     keys = []
@@ -36,7 +44,6 @@ class KeystoreResolver(object):
                           key_password=parser.get_required(key_name, 'key_password'))
       return keystore
 
-      #TODO (BEFORE REVIEW) Turn the KeyResolver into a factory, That is the proper design pattern for this.
       #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
 
     for name in key_names:
@@ -67,11 +74,6 @@ class Keystore(object):
     self._type = None
     self._build_type = build_type
 
-    # TODO (BEFORE REVIEW) Lets rethink returning a dictionary keyed by the name string.
-    #     The keyname is already a field, is that really necessary? A list of Keystore objects would be preferably from
-    #     a readability/expectation standpoint.
-
-    # TODO (BEFORE REVIEW) write test to confirm
     self.keystore_name=keystore_name
     # The os call is robust against None b/c it was validated in KeyResolver with get_required().
     self.keystore_location = os.path.expandvars(keystore_location)

@@ -54,13 +54,17 @@ class TestKeystoreResolver(unittest.TestCase):
 
   def test_expand_path(self):
     with self.config_file(keystore_location="~/dir") as config:
-      keystores = KeystoreResolver.resolve(config)
+      KeystoreResolver.resolve(config)
 
   def test_full_path(self):
+    #TODO (BEFORE REVIEW) if the get_required patch is merged, then use that.
+    #   else define a second bad config file for further tests.
     with self.config_file(keystore_location="") as config:
-      keystores = KeystoreResolver.resolve(config)
+      KeystoreResolver.resolve(config)
+
+  def test_no_config_file(self):
+    with self.assertRaises(KeystoreResolver.Error):
+        KeystoreResolver.resolve(os.path.join('no', 'config_file', 'here'))
 
     # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.
-
-# I need a contextmanager that can tak arguments for sections.

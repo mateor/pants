@@ -14,10 +14,12 @@ from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
 
-_CONFIG_SECTION = 'android-keystore-location'
 
 class SignApkTask(Task):
   """Sign Android packages with jarsigner tool."""
+
+  _CONFIG_SECTION = 'android-keystore-location'
+
   @classmethod
   def register_options(cls, register):
     super(SignApkTask, cls).register_options(register)
@@ -46,7 +48,10 @@ class SignApkTask(Task):
   @property
   def config_file(self):
     if self._config_file is None:
-      self._config_file = self.context.config.get(_CONFIG_SECTION, 'keystore_config_location')
+      self._config_file = self.context.config.get(self._CONFIG_SECTION, 'keystore_config_location')
+      if self._config_file is None:
+        raise TaskError(self, "To sign .apks the '{0}' option must declare the location of an .ini "
+                              "file holding keystore definitions.".format(self._CONFIG_SECTION))
     return self._config_file
 
   @property
@@ -92,11 +97,11 @@ class SignApkTask(Task):
   def execute(self):
     with self.context.new_workunit(name='sign_apk', labels=[WorkUnit.MULTITOOL]):
       targets = self.context.targets(self.is_signtarget)
-      with self.invalidated(targets) as invalidation_check:
-        invalid_targets = []
-        for vt in invalidation_check.invalid_vts:
-          invalid_targets.extend(vt.targets)
-        for target in invalid_targets:
+      #with self.invalidated(targets) as invalidation_check:
+       # invalid_targets = []
+        #for vt in invalidation_check.invalid_vts:
+         # invalid_targets.extend(vt.targets)
+      for target in targets: #invalid_targets:
 
           def get_apk(target):
             """Get a handle for the unsigned.apk product created by AaptBuilder."""
@@ -116,8 +121,10 @@ class SignApkTask(Task):
               raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
 
       # TODO(BEFORE REVIEW) DEFINE products
+      # TODO(BEFORE REVIEW) Update read me in keystore_config.ini
+      # TODO(BEFORE REVIEW) REmember invalidation framework
 
-
+      #TODO(BEFORE REVIEW) Set up a test for no config file declared (the failure in the config_file property.)
         # Here is where we can update products to spin out to new tasks (see zipalign)
         # EXAMPLE
         # self.context.products.get('apk').add(target, self.workdir).append(target.app_name + "-unsigned.apk")
