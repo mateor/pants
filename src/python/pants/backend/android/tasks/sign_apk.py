@@ -29,6 +29,7 @@ class SignApkTask(Task):
 
   #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
 
+  #TODO(BEFORE REVIEW) Test passing config from CLI and from ENV and from ini.
 
   @classmethod
   def is_signtarget(cls, target):

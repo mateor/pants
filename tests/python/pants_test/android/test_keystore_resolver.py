@@ -6,15 +6,15 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
+from contextlib import contextmanager
 import os
 import textwrap
-from contextlib import contextmanager
 import unittest2 as unittest
 
 from pants.backend.android.keystore.keystore_resolver import KeystoreResolver
 from pants.util.contextutil import temporary_file
 
-
+#TODO(BEFORE REVIEW) CHeck import ordering
 class TestKeystoreResolver(unittest.TestCase):
 
   @contextmanager
@@ -26,7 +26,7 @@ class TestKeystoreResolver(unittest.TestCase):
                   key_password='android'):
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
-        """
+      """
       [default-debug]
 
       build_type: {0}
@@ -34,7 +34,7 @@ class TestKeystoreResolver(unittest.TestCase):
       keystore_alias: {2}
       keystore_password: {3}
       key_password: {4}
-        """).format(build_type, keystore_location, keystore_alias, keystore_password, key_password))
+      """).format(build_type, keystore_location, keystore_alias, keystore_password, key_password))
       path = fp.name
       fp.close()
       yield path
