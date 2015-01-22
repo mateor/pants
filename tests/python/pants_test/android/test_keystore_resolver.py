@@ -56,12 +56,9 @@ class TestKeystoreResolver(unittest.TestCase):
     with self.config_file(keystore_location="~/dir") as config:
       keystores = KeystoreResolver.resolve(config)
 
-  def test_empty_path(self):
-    with self.config_file(build_type="bad-build-type") as config:
+  def test_full_path(self):
+    with self.config_file(keystore_location="") as config:
       keystores = KeystoreResolver.resolve(config)
-      for key in keystores:
-        with self.assertRaises(ValueError):
-          key.build_type
 
     # TESTS
 #    That the KeyResolver can raise the proper exceptions for bad data.
