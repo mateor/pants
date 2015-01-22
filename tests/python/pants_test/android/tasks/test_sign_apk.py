@@ -17,6 +17,7 @@ from pants.util.contextutil import temporary_dir
 from pants.backend.android.tasks.sign_apk import SignApkTask
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.base.build_file_aliases import BuildFileAliases
+from pants.base.config import Config
 from pants_test.tasks.test_base import TaskTest
 
 
@@ -41,14 +42,29 @@ class SignApkTest(TaskTest):
     [{0}]
 
     {1}: {2}
-    """).format(section, option, None)
+    """).format(section, option, location)
     return ini
 
   def test_sign_apk_smoke(self):
     with temporary_dir() as publish_dir:
-      task = self.prepare_task(config=self._get_config(location=None),
+      task = self.prepare_task(config=self._get_config(),
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
+      task.execute()
+
+  def test_config_file_set_from_pantsini(self):
+    with temporary_dir() as temp:
+      task = self.prepare_task(config=self._get_config(location=temp),
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
       task.execute()
       task.config_file
-      self.assertEquals(task.config_file, 3)
+      self.assertEquals(temp, task.config_file)
+
+  def test_no_config_file_defined(self):
+    with self.assertRaises(Config.ConfigError):
+      task = self.prepare_task(config=self._get_config(location=""),
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
+      task.execute()
+      task.config_file
