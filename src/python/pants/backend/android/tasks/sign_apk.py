@@ -49,10 +49,11 @@ class SignApkTask(Task):
   @property
   def config_file(self):
     if self._config_file is None:
-      self._config_file = self.context.config.get(self._CONFIG_SECTION, 'keystore_config_location')
+      self._config_file = self.context.config.get_required(self._CONFIG_SECTION, 'keystore_config_location')
       if self._config_file is None:
         raise TaskError(self, "To sign .apks the '{0}' option must declare the location of an .ini "
                               "file holding keystore definitions.".format(self._CONFIG_SECTION))
+
     return self._config_file
 
   @property

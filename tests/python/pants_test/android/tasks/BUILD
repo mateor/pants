@@ -42,6 +42,7 @@ python_tests(
     'test_sign_apk.py',
     ],
   dependencies=[
+    '3rdparty/python:mock',
     'src/python/pants/backend/android/tasks:all',
     'tests/python/pants_test/tasks:base'
     ],
