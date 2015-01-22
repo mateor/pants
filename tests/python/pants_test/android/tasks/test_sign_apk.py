@@ -68,3 +68,12 @@ class SignApkTest(TaskTest):
                                build_file_parser=self.build_file_parser)
       task.execute()
       task.config_file
+
+  def test_passing_config_on_cli(self):
+    with temporary_dir() as temp:
+      task = self.prepare_task(
+                               args=['--test-keystore-config-location={0}'.format(temp)],
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
+      task.execute()
+      task.config_file
