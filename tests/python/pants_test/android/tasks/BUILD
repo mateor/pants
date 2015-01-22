@@ -37,6 +37,17 @@ python_tests(
 )
 
 python_tests(
+  name='sign_apk',
+  sources=[
+    'test_sign_apk.py',
+    ],
+  dependencies=[
+    'src/python/pants/backend/android/tasks:all',
+    'tests/python/pants_test/tasks:base'
+    ],
+  )
+
+python_tests(
   name = 'dx_compile_integration',
   sources = [
     'test_dx_compile_integration.py',
