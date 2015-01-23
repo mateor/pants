@@ -71,9 +71,24 @@ class SignApkTest(TaskTest):
 
   def test_passing_config_on_cli(self):
     with temporary_dir() as temp:
-      task = self.prepare_task(
+      task = self.prepare_task(config=self._get_config(location=""),
                                args=['--test-keystore-config-location={0}'.format(temp)],
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
       task.execute()
       task.config_file
+
+
+  def test_passing_bad_config_on_cli(self):
+    with self.assertRaises(Config.ConfigError):
+      task = self.prepare_task(config=self._get_config(location=""),
+        args=['--test-keystore-config-location={0}'.format("")],
+        build_graph=self.build_graph,
+        build_file_parser=self.build_file_parser)
+      task.execute()
+      task.config_file
+      self.assertEquals(None, task.config_file)
+
+  #TODO (Test passing distributions (above max, no java, etc.)
+
+  # TODO(BEFORE REVIEW) The render_args stuff.

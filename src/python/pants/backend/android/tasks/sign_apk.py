@@ -48,8 +48,10 @@ class SignApkTask(Task):
 
   @property
   def config_file(self):
-    if self._config_file is None:
+    if self._config_file in (None, ""):
       self._config_file = self.context.config.get_required(self._CONFIG_SECTION, 'keystore_config_location')
+
+      #TODO(BEFORE REVIEW) maybe catch the Config error and bubble it up as a SignApkTask or TaskError.
       #This section is not necessary if the config patch gets merged.
      # if self._config_file is None:
       #  raise TaskError(self, "To sign .apks the '{0}' option must declare the location of an .ini "
