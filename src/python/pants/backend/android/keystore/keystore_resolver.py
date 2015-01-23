@@ -47,7 +47,10 @@ class KeystoreResolver(object):
       #TODO (BEFORE REVIEW) Fix name of TestAndroidDistributionTest
 
     for name in key_names:
-      keys.append(create_key(name))
+      try:
+        keys.append(create_key(name))
+      except Config.ConfigError as e:
+        raise KeystoreResolver.Error(e)
     return keys
 
 

@@ -52,7 +52,7 @@ class SignApkTest(TaskTest):
                                build_file_parser=self.build_file_parser)
       task.execute()
 
-  def test_config_file_set_from_pantsini(self):
+  def test_config_file_from_pantsini(self):
     with temporary_dir() as temp:
       task = self.prepare_task(config=self._get_config(location=temp),
                                build_graph=self.build_graph,

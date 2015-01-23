@@ -16,7 +16,11 @@ from pants.util.contextutil import temporary_file
 
 #TODO(BEFORE REVIEW) CHeck import ordering
 class TestKeystoreResolver(unittest.TestCase):
-
+  """
+  Test android.keystore.key_resolver class that creates Keystore objects from .ini config files.
+  """
+  # This class makes use of (TODO BEFORE REVIEW) [FILL IN COMMIT NUMBER) which treats passing required options
+  # empty strings get treated as None.
   @contextmanager
   def config_file(self,
                   build_type='debug',
@@ -52,19 +56,19 @@ class TestKeystoreResolver(unittest.TestCase):
         with self.assertRaises(ValueError):
           key.build_type
 
-  def test_expand_path(self):
+  def test_expanding_path(self):
     with self.config_file(keystore_location="~/dir") as config:
       KeystoreResolver.resolve(config)
 
   def test_full_path(self):
-    #TODO (BEFORE REVIEW) if the get_required patch is merged, then use that.
-    #   else define a second bad config file for further tests.
-    with self.config_file(keystore_location="") as config:
+    with self.config_file(keystore_location=temporary_file) as config:
       KeystoreResolver.resolve(config)
 
-  def test_no_config_file(self):
+  def test_bad_location_for_config_file(self):
     with self.assertRaises(KeystoreResolver.Error):
         KeystoreResolver.resolve(os.path.join('no', 'config_file', 'here'))
 
-    # TESTS
-#    That the KeyResolver can raise the proper exceptions for bad data.
+  def test_a_missing_field(self):
+    with self.assertRaises(KeystoreResolver.Error):
+      with self.config_file(keystore_alias="") as config:
+        KeystoreResolver.resolve(config)
