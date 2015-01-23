@@ -17,7 +17,7 @@ from pants.util.contextutil import temporary_dir
 from pants.backend.android.tasks.sign_apk import SignApkTask
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.base.build_file_aliases import BuildFileAliases
-from pants.base.config import Config
+from pants.base.exceptions import TaskError
 from pants_test.tasks.test_base import TaskTest
 
 
@@ -46,11 +46,23 @@ class SignApkTest(TaskTest):
     return ini
 
   def test_sign_apk_smoke(self):
-    with temporary_dir() as publish_dir:
-      task = self.prepare_task(config=self._get_config(),
+    task = self.prepare_task(config=self._get_config(),
+                             build_graph=self.build_graph,
+                             build_file_parser=self.build_file_parser)
+    task.execute()
+
+  def test_config_file(self):
+    task = self.prepare_task(config=self._get_config(),
+                             build_graph=self.build_graph,
+                             build_file_parser=self.build_file_parser)
+    task.config_file
+
+  def test_no_config_file_defined(self):
+    with self.assertRaises(TaskError):
+      task = self.prepare_task(config=self._get_config(location=""),
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
-      task.execute()
+      task.config_file
 
   def test_config_file_from_pantsini(self):
     with temporary_dir() as temp:
@@ -61,8 +73,8 @@ class SignApkTest(TaskTest):
       task.config_file
       self.assertEquals(temp, task.config_file)
 
-  def test_no_config_file_defined(self):
-    with self.assertRaises(Config.ConfigError):
+  def test_no_matching_section_in_pantsini(self):
+    with self.assertRaises(TaskError):
       task = self.prepare_task(config=self._get_config(location=""),
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
@@ -70,7 +82,7 @@ class SignApkTest(TaskTest):
 
   def test_passing_config_on_cli(self):
     with temporary_dir() as temp:
-      task = self.prepare_task(config=self._get_config(location=""),
+      task = self.prepare_task(config=self._get_config(section="bad-section-header"),
                                args=['--test-keystore-config-location={0}'.format(temp)],
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
@@ -78,14 +90,11 @@ class SignApkTest(TaskTest):
 
 
   def test_passing_bad_config_on_cli(self):
-    with self.assertRaises(Config.ConfigError):
-      task = self.prepare_task(config=self._get_config(location=""),
-        args=['--test-keystore-config-location={0}'.format("")],
-        build_graph=self.build_graph,
-        build_file_parser=self.build_file_parser)
-      task.execute()
+    with self.assertRaises(TaskError):
+      task = self.prepare_task(args=['--test-keystore-config-location={0}'.format("")],
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
       task.config_file
-      self.assertEquals(None, task.config_file)
 
   #TODO (Test passing distributions (above max, no java, etc.)
 
