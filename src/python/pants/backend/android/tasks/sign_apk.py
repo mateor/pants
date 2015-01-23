@@ -8,6 +8,7 @@ import subprocess
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.keystore.keystore_resolver import KeystoreResolver
 from pants.backend.core.tasks.task import Task
+from pants.base.config import Config
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
@@ -29,7 +30,7 @@ class SignApkTask(Task):
 
   #TODO(BEFORE REVIEW) need to hook into the .pants.d installation and setup the default config file
 
-  #TODO(BEFORE REVIEW) Test passing config from CLI and from ENV and from ini.
+  #TODO(BEFORE REVIEW) Test passing config from CLI and from ini.
 
   @classmethod
   def is_signtarget(cls, target):
@@ -49,14 +50,11 @@ class SignApkTask(Task):
   @property
   def config_file(self):
     if self._config_file in (None, ""):
-      self._config_file = self.context.config.get_required(self._CONFIG_SECTION, 'keystore_config_location')
-
-      #TODO(BEFORE REVIEW) maybe catch the Config error and bubble it up as a SignApkTask or TaskError.
-      #This section is not necessary if the config patch gets merged.
-     # if self._config_file is None:
-      #  raise TaskError(self, "To sign .apks the '{0}' option must declare the location of an .ini "
-       #                       "file holding keystore definitions.".format(self._CONFIG_SECTION))
-
+      try:
+        self._config_file = self.context.config.get_required(self._CONFIG_SECTION, 'keystore_config_location')
+      except Config.ConfigError:
+       raise TaskError(self, "To sign .apks an '{0}' option must declare the location of an "
+                             ".ini file holding keystore definitions.".format(self._CONFIG_SECTION))
     return self._config_file
 
   @property

@@ -66,7 +66,6 @@ class SignApkTest(TaskTest):
       task = self.prepare_task(config=self._get_config(location=""),
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
-      task.execute()
       task.config_file
 
   def test_passing_config_on_cli(self):
@@ -75,7 +74,6 @@ class SignApkTest(TaskTest):
                                args=['--test-keystore-config-location={0}'.format(temp)],
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
-      task.execute()
       task.config_file
 
 
