@@ -101,7 +101,6 @@ that.""",
     with self.assertRaises(Config.ConfigError):
       self.config.get_required('a', 'blank_section')
 
-
   def _check_defaults(self, accessor, default):
     self.assertEquals(None, accessor('c', 'fast'))
     self.assertEquals(None, accessor('c', 'preempt', None))

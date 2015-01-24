@@ -254,6 +254,7 @@ class JvmCompile(NailgunTaskBase, GroupMember):
 
   def prepare(self, round_manager):
     round_manager.require_data('compile_classpath')
+    round_manager.require_data('ivy_cache_dir')
 
     # Require codegen we care about
     # TODO(John Sirois): roll this up in Task - if the list of labels we care about for a target
@@ -262,6 +263,9 @@ class JvmCompile(NailgunTaskBase, GroupMember):
     # produce side
     round_manager.require_data('java')
     round_manager.require_data('scala')
+
+    # Allow the deferred_sources_mapping to take place first
+    round_manager.require_data('deferred_sources')
 
   def move(self, src, dst):
     if self._delete_scratch:
@@ -358,10 +362,11 @@ class JvmCompile(NailgunTaskBase, GroupMember):
 
     # Add any extra compile-time-only classpath elements.
     # TODO(benjy): Model compile-time vs. runtime classpaths more explicitly.
-    # TODO(stuhood): This mutates the compile_classpath... should clone?
-    for conf in self._confs:
-      for jar in self.extra_compile_time_classpath_elements():
-        compile_classpath.insert(0, (conf, jar))
+    def extra_compile_classpath_iter():
+      for conf in self._confs:
+        for jar in self.extra_compile_time_classpath_elements():
+           yield (conf, jar)
+    compile_classpath = OrderedSet(list(extra_compile_classpath_iter()) + list(compile_classpath))
 
     # Target -> sources (relative to buildroot), for just this chunk's targets.
     sources_by_target = self._sources_for_targets(relevant_targets)
@@ -382,7 +387,8 @@ class JvmCompile(NailgunTaskBase, GroupMember):
                           invalidate_dependents=True,
                           partition_size_hint=self._partition_size_hint,
                           locally_changed_targets=locally_changed_targets,
-                          fingerprint_strategy=self._jvm_fingerprint_strategy()) as invalidation_check:
+                          fingerprint_strategy=self._jvm_fingerprint_strategy(),
+                          topological_order=True) as invalidation_check:
       if invalidation_check.invalid_vts:
         # Find the invalid sources for this chunk.
         invalid_targets = [vt.target for vt in invalidation_check.invalid_vts]
@@ -451,7 +457,7 @@ class JvmCompile(NailgunTaskBase, GroupMember):
               actual_deps = self._analysis_parser.parse_deps_from_path(analysis_file,
                   lambda: self._compute_classpath_elements_by_class(cp_entries))
               with self.context.new_workunit(name='find-missing-dependencies'):
-                self._dep_analyzer.check(sources, actual_deps)
+                self._dep_analyzer.check(sources, actual_deps, self.ivy_cache_dir)
 
             # Kick off the background artifact cache write.
             if self.artifact_cache_writes_enabled():
@@ -772,6 +778,13 @@ class JvmCompile(NailgunTaskBase, GroupMember):
   @property
   def _analysis_parser(self):
     return self._analysis_tools.parser
+
+  @property
+  def ivy_cache_dir(self):
+    ret = self.context.products.get_data('ivy_cache_dir')
+    if ret is None:
+      raise TaskError('ivy_cache_dir product accessed before it was created.')
+    return ret
 
   def _sources_for_targets(self, targets):
     """Returns a map target->sources for the specified targets."""
