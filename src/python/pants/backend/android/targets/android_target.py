@@ -33,10 +33,6 @@ class AndroidTarget(JvmTarget):
     :param manifest: path/to/file of 'AndroidManifest.xml' (required name). Paths are relative
       to the BUILD file's directory.
       Set as 'debug' by default.
-    :param keystore_config_files: List of path/to/files for config files containing the definition
-      of debug and release keystores.
-    :param keystore_names: List of keystore names. Pants will build a signed apk for every keystore
-      in this list.
     """
     super(AndroidTarget, self).__init__(address=address, **kwargs)
 

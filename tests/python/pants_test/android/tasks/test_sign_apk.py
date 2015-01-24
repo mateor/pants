@@ -6,12 +6,8 @@
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
 
-from contextlib import contextmanager
-import os
 import textwrap
 
-
-from pants.util.contextutil import temporary_file
 from pants.util.contextutil import temporary_dir
 
 from pants.backend.android.tasks.sign_apk import SignApkTask
@@ -96,6 +92,5 @@ class SignApkTest(TaskTest):
                                build_file_parser=self.build_file_parser)
       task.config_file
 
-  #TODO (Test passing distributions (above max, no java, etc.)
 
   # TODO(BEFORE REVIEW) The render_args stuff.

@@ -14,6 +14,7 @@ from pants.base.workunit import WorkUnit
 from pants.java.distribution.distribution import Distribution
 from pants.util.dirutil import safe_mkdir
 
+from twitter.common import log
 
 
 class SignApkTask(Task):
@@ -64,7 +65,6 @@ class SignApkTask(Task):
       self._dist = Distribution.cached(minimum_version='1.6.0_00',
                                        maximum_version="1.7.0_99",
                                        jdk=True)
-    print(self._dist)
     return self._dist
 
 
@@ -98,6 +98,7 @@ class SignApkTask(Task):
                                              '.signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
+    log.debug('Executing: {0}'.format(args))
     return args
 
   def execute(self):
