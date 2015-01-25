@@ -8,7 +8,7 @@ from __future__ import (nested_scopes, generators, division, absolute_import, wi
 
 import textwrap
 
-from pants.util.contextutil import temporary_dir
+from pants.util.contextutil import temporary_dir, temporary_file
 
 from pants.backend.android.tasks.sign_apk import SignApkTask
 from pants.backend.android.targets.android_binary import AndroidBinary
@@ -40,6 +40,26 @@ class SignApkTest(TaskTest):
     {1}: {2}
     """).format(section, option, location)
     return ini
+
+
+  def android_binary(self, name, location="somewhere"):
+    with temporary_file() as fp:
+      fp.write(textwrap.dedent(
+        """<?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.pants.examples.hello" >
+            <uses-sdk
+                android:minSdkVersion="8"
+                android:targetSdkVersion="19" />
+        </manifest>
+        """))
+      path = fp.name
+      fp.close()
+      target = self.make_target(spec=':binary',
+                                target_type=AndroidBinary,
+                                manifest=path)
+      #target.app_name = 'marty'
+      return target
 
   def test_sign_apk_smoke(self):
     task = self.prepare_task(config=self._get_config(),
@@ -92,5 +112,7 @@ class SignApkTest(TaskTest):
                                build_file_parser=self.build_file_parser)
       task.config_file
 
+  def test_render_args(self):
+    target = self.android_binary('marty')
+    self.assertEquals(target.app_name, 'binary')
 
-  # TODO(BEFORE REVIEW) The render_args stuff.

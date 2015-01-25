@@ -61,7 +61,7 @@ class SignApkTask(Task):
   @property
   def distribution(self):
     if self._dist is None:
-      # No Java 8 for Android. I am considering max=1.7.0_50. See comment in render_args().
+      # No Java 8 for Android. I considered max=1.7.0_50. See comment in render_args().
       self._dist = Distribution.cached(minimum_version='1.6.0_00',
                                        maximum_version="1.7.0_99",
                                        jdk=True)

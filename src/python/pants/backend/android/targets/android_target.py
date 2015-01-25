@@ -32,7 +32,6 @@ class AndroidTarget(JvmTarget):
       Defaults to the latest full release.
     :param manifest: path/to/file of 'AndroidManifest.xml' (required name). Paths are relative
       to the BUILD file's directory.
-      Set as 'debug' by default.
     """
     super(AndroidTarget, self).__init__(address=address, **kwargs)
 
@@ -79,5 +78,8 @@ class AndroidTarget(JvmTarget):
   def get_app_name(self):
     """Return a string with the application name of the package, return None if not found."""
     tgt_manifest = parse(self.manifest).getElementsByTagName('activity')
-    package_name = tgt_manifest[0].getAttribute('android:name')
-    return package_name.split(".")[-1]
+    try:
+      package_name = tgt_manifest[0].getAttribute('android:name')
+      return package_name.split(".")[-1]
+    except:
+      return None
