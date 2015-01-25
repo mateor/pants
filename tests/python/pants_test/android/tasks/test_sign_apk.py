@@ -20,7 +20,23 @@ from pants_test.tasks.test_base import TaskTest
 class SignApkTest(TaskTest):
   """Test the package signing methods in pants.backend.android.tasks."""
 
-  _DEFAULT_KEYSTORE = '%(homedir)s/.pants.d/android/keystore_config.ini'
+  _DEFAULT_KEYSTORE = '%(homedir)s/.doesnt/matter/keystore_config.ini'
+
+  class FakeKeystore(object):
+    # Mock keystores so as to test the render_args method.
+    def __init__(self):
+      self.build_type = 'debug'
+      self.keystore_name='key_name'
+      self.keystore_location = '/path/to/key'
+      self.keystore_alias = 'key_alias'
+      self.keystore_password = 'keystore_password'
+      self.key_password = 'key_password'
+
+  class FakeDistribution(object):
+    # Mock JDK distribution so as to test the render_args method.
+    @classmethod
+    def binary(self, tool):
+      return 'path/to/{0}'.format(tool)
 
   @classmethod
   def task_type(cls):
@@ -42,7 +58,7 @@ class SignApkTest(TaskTest):
     return ini
 
 
-  def android_binary(self, name, location="somewhere"):
+  def android_binary(self):
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
@@ -55,10 +71,10 @@ class SignApkTest(TaskTest):
         """))
       path = fp.name
       fp.close()
+      # With no android:name field, the app name defaults to the target name.
       target = self.make_target(spec=':binary',
                                 target_type=AndroidBinary,
                                 manifest=path)
-      #target.app_name = 'marty'
       return target
 
   def test_sign_apk_smoke(self):
@@ -113,6 +129,22 @@ class SignApkTest(TaskTest):
       task.config_file
 
   def test_render_args(self):
-    target = self.android_binary('marty')
+    with temporary_dir() as temp:
+      task = self.prepare_task(config=self._get_config(section="bad-section-header"),
+                               args=['--test-keystore-config-location={0}'.format(temp)],
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
+    target = self.android_binary()
     self.assertEquals(target.app_name, 'binary')
+    fake_key = self.FakeKeystore()
+    task._dist = self.FakeDistribution()
+    expected_args = ['path/to/jarsigner',
+                      '-sigalg', 'SHA1withRSA', '-digestalg', 'SHA1',
+                      '-keystore', '/path/to/key',
+                      '-storepass', 'keystore_password',
+                      '-keypass', 'key_password',
+                      '-signedjar']
+    expected_args.extend(['{0}/binary.debug.signed.apk'.format(task.sign_apk_out(target, fake_key.keystore_name))])
+    expected_args.extend(['unsigned_apk_product', 'key_alias'])
+    self.assertEquals(expected_args, task.render_args(target, 'unsigned_apk_product', fake_key))
 
