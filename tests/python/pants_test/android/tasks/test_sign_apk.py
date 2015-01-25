@@ -22,6 +22,10 @@ class SignApkTest(TaskTest):
 
   _DEFAULT_KEYSTORE = '%(homedir)s/.doesnt/matter/keystore_config.ini'
 
+  @classmethod
+  def task_type(cls):
+    return SignApkTask
+
   class FakeKeystore(object):
     # Mock keystores so as to test the render_args method.
     def __init__(self):
@@ -38,10 +42,6 @@ class SignApkTest(TaskTest):
     def binary(self, tool):
       return 'path/to/{0}'.format(tool)
 
-  @classmethod
-  def task_type(cls):
-    return SignApkTask
-
   @property
   def alias_groups(self):
     return BuildFileAliases.create(targets={'android_binary': AndroidBinary})
@@ -50,28 +50,26 @@ class SignApkTest(TaskTest):
                   section=SignApkTask._CONFIG_SECTION,
                   option='keystore_config_location',
                   location=_DEFAULT_KEYSTORE):
-    ini = textwrap.dedent( """
+    ini = textwrap.dedent("""
     [{0}]
 
     {1}: {2}
     """).format(section, option, location)
     return ini
 
-
   def android_binary(self):
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
-        """<?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.pants.examples.hello" >
-            <uses-sdk
-                android:minSdkVersion="8"
-                android:targetSdkVersion="19" />
-        </manifest>
-        """))
+      """<?xml version="1.0" encoding="utf-8"?>
+      <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.pants.examples.hello" >
+          <uses-sdk
+              android:minSdkVersion="8"
+              android:targetSdkVersion="19" />
+      </manifest>
+      """))
       path = fp.name
       fp.close()
-      # With no android:name field, the app name defaults to the target name.
       target = self.make_target(spec=':binary',
                                 target_type=AndroidBinary,
                                 manifest=path)
@@ -129,13 +127,12 @@ class SignApkTest(TaskTest):
       task.config_file
 
   def test_render_args(self):
+    # This is pretty hacky. If you think it best, we can remove it.
     with temporary_dir() as temp:
-      task = self.prepare_task(config=self._get_config(section="bad-section-header"),
-                               args=['--test-keystore-config-location={0}'.format(temp)],
+      task = self.prepare_task(config=self._get_config(),
                                build_graph=self.build_graph,
                                build_file_parser=self.build_file_parser)
     target = self.android_binary()
-    self.assertEquals(target.app_name, 'binary')
     fake_key = self.FakeKeystore()
     task._dist = self.FakeDistribution()
     expected_args = ['path/to/jarsigner',
@@ -144,7 +141,8 @@ class SignApkTest(TaskTest):
                       '-storepass', 'keystore_password',
                       '-keypass', 'key_password',
                       '-signedjar']
-    expected_args.extend(['{0}/binary.debug.signed.apk'.format(temp)])
+    expected_args.extend(['{0}/{1}.{2}.signed.apk'.format(temp, target.app_name,
+                                                          fake_key.build_type)])
     expected_args.extend(['unsigned_apk_product', 'key_alias'])
     self.assertEquals(expected_args, task.render_args(target, fake_key, 'unsigned_apk_product', temp))
 

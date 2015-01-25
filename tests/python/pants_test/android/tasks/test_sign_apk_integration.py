@@ -12,7 +12,7 @@ from pants_test.android.android_integration_test import AndroidIntegrationTest
 from pants_test.tasks.test_base import is_exe
 
 
-class JarsignerIntegrationTest(AndroidIntegrationTest):
+class SignApkIntegrationTest(AndroidIntegrationTest):
   """Integration test for JarsignerTask.
 
   The Android SDK is modular, finding an SDK on the PATH is no guarantee that the tools you
@@ -31,8 +31,8 @@ class JarsignerIntegrationTest(AndroidIntegrationTest):
 
   tools = AndroidIntegrationTest.requirements(TOOLS) and JAVA
 
-  @pytest.mark.skipif('not JarsignerIntegrationTest.tools',
-                      reason='Jarsigner integration test requires the JDK, Android tools {0!r} '
+  @pytest.mark.skipif('not SignApkIntegrationTest.tools',
+                      reason='SignApk integration test requires the JDK, Android tools {0!r} '
                              'and ANDROID_HOME set in path.'.format(TOOLS))
   def test_jarsigner(self):
     self.jarsigner_test(AndroidIntegrationTest.TEST_TARGET)

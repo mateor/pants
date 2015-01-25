@@ -50,6 +50,7 @@ class SignApkTask(Task):
 
   @property
   def config_file(self):
+    # Checks for if the option is passed as accidentally as a flag or is left empty.
     if self._config_file in (None, ""):
       try:
         self._config_file = self.context.config.get_required(self._CONFIG_SECTION, 'keystore_config_location')
@@ -122,7 +123,6 @@ class SignApkTask(Task):
           for key in keystores:
             outdir = (self.sign_apk_out(target, key.keystore_name))
             safe_mkdir(outdir)
-            print("OUTDIR: ", outdir)
             process = subprocess.Popen(self.render_args(target, key, unsigned_apk, outdir))
             result = process.wait()
             if result != 0:
@@ -132,7 +132,6 @@ class SignApkTask(Task):
       # TODO(BEFORE REVIEW) Update read me in keystore_config.ini
       # TODO(BEFORE REVIEW) REmember invalidation framework
 
-      #TODO(BEFORE REVIEW) Set up a test for no config file declared (the failure in the config_file property.)
         # Here is where we can update products to spin out to new tasks (see zipalign)
         # EXAMPLE
         # self.context.products.get('apk').add(target, self.workdir).append(target.app_name + "-unsigned.apk")
@@ -191,7 +190,5 @@ class SignApkTask(Task):
   #                                 "[release, debug]".format(target))
 
   def sign_apk_out(self, target, key_name):
-    #TODO (BEFORE REVIEW) fix this outdir pipeline so that it is not recomputed twice.
-    # IF I cache this somewhere, then I can avoid passing target to render_args.
-    # It willl already be implicit in the 'for target in targets' loop.
+    """Compute the outdir for a target, one outdir per keystore."""
     return os.path.join(self._distdir, target.app_name, key_name)
