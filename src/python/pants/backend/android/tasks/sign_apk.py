@@ -71,7 +71,7 @@ class SignApkTask(Task):
   def prepare(self, round_manager):
     round_manager.require_data('apk')
 
-  def render_args(self, target, unsigned_apk, key):
+  def render_args(self, target, key, unsigned_apk, outdir):
     """Create arg list for the jarsigner process.
 
     :param AndroidBinary target: Target to be signed.
@@ -93,9 +93,8 @@ class SignApkTask(Task):
     args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', (os.path.join(self.sign_apk_out(target, key.keystore_name),
-                                             target.app_name + '.' + key.build_type +
-                                             '.signed.apk'))])
+    args.extend(['-signedjar', (os.path.join(outdir, target.app_name + '.' +
+                                             key.build_type + '.signed.apk'))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
     log.debug('Executing: {0}'.format(args))
@@ -121,8 +120,10 @@ class SignApkTask(Task):
           unsigned_apk = get_apk(target)
           keystores = KeystoreResolver.resolve(self.config_file)
           for key in keystores:
-            safe_mkdir(self.sign_apk_out(target, key.keystore_name))
-            process = subprocess.Popen(self.render_args(target, unsigned_apk, key))
+            outdir = (self.sign_apk_out(target, key.keystore_name))
+            safe_mkdir(outdir)
+            print("OUTDIR: ", outdir)
+            process = subprocess.Popen(self.render_args(target, key, unsigned_apk, outdir))
             result = process.wait()
             if result != 0:
               raise TaskError('Jarsigner tool exited non-zero ({code})'.format(code=result))
