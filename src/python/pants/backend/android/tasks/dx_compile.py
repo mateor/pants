@@ -26,7 +26,6 @@ class DxCompile(AndroidTask, NailgunTask):
 
   @staticmethod
   def is_dextarget(target):
-    """Return true if target has class files to be compiled into dex"""
     return isinstance(target, AndroidBinary)
 
   @classmethod
