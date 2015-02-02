@@ -85,3 +85,5 @@ class TestKeystoreResolver(unittest.TestCase):
     with self.assertRaises(KeystoreResolver.Error):
       with self.config_file(keystore_alias="") as config:
         KeystoreResolver.resolve(config)
+
+  #TODO (BEFORE REVIEW) Maybe check a release key and multiple keys.

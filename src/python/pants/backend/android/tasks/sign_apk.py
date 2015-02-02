@@ -89,9 +89,7 @@ class SignApkTask(Task):
     # is needed before passing a -tsa flag indiscriminately.
     # http://bugs.java.com/view_bug.do?bug_id=8023338
 
-    args = []
-    args.append(self.distribution.binary('jarsigner'))
-
+    args = [self.distribution.binary('jarsigner')]
     # These first two params are required flags for JDK 7+
     args.extend(['-sigalg', 'SHA1withRSA'])
     args.extend(['-digestalg', 'SHA1'])
