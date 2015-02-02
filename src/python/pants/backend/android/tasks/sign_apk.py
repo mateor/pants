@@ -107,55 +107,54 @@ class SignApkTask(Task):
 
   def execute(self):
     targets = self.context.targets(self.is_signtarget)
+    # Check for Android keystore config file (where the default keystore definition is kept).
+    config_file = os.path.join(self.context.config.getdefault('pants_bootstrapdir'),
+                               self._DEFAULT_KEYSTORE_CONFIG)
+    if not os.path.isfile(config_file):
+      try:
+        AndroidConfigUtil.setup_keystore_config(config_file)
+      except OSError as e:
+        raise TaskError('Failed to setup keystore config: {0}'.format(e))
+
     with self.invalidated(targets) as invalidation_check:
       invalid_targets = []
       for vt in invalidation_check.invalid_vts:
         invalid_targets.extend(vt.targets)
       for target in invalid_targets:
 
-        # Check for Android keystore config file (where the default keystore definition is kept).
-        config_file = os.path.join(self.context.config.getdefault('pants_bootstrapdir'),
-                                   self._DEFAULT_KEYSTORE_CONFIG)
-        if not os.path.isfile(config_file):
-          try:
-            AndroidConfigUtil.setup_keystore_config(config_file)
-          except OSError as e:
-            raise TaskError('Failed to setup keystore config: {0}'.format(e))
+        def get_products_path(target):
+          """Get path of target's unsigned apks as created by AaptBuilder."""
+          unsigned_apks = self.context.products.get('apk')
+          if unsigned_apks.get(target):
+            # This allows for multiple apks but we expect only one per target.
+            for tgts, products in unsigned_apks.get(target).items():
+              for prod in products:
+                yield os.path.join(tgts, prod)
 
-          def get_products_path(target):
-            """Get path of target's unsigned apks as created by AaptBuilder."""
-            unsigned_apks = self.context.products.get('apk')
-            if unsigned_apks.get(target):
-              # This allows for multiple apks but we expect only one per target.
-              for tgts, products in unsigned_apks.get(target).items():
-                for prod in products:
-                  yield os.path.join(tgts, prod)
-
-          packages = list(get_products_path(target))
-          for unsigned_apk in packages:
-            keystores = KeystoreResolver.resolve(self.config_file)
-            for key in keystores:
-              outdir = (self.sign_apk_out(target, key.build_type))
-              safe_mkdir(outdir)
-              args = self.render_args(target, key, unsigned_apk, outdir)
-              with self.context.new_workunit(name='sign_apk',
-                                             labels=[WorkUnit.MULTITOOL]) as workunit:
-                returncode = subprocess.call(args, stdout=workunit.output('stdout'),
-                                             stderr=workunit.output('stderr'))
-                if returncode:
-                  raise TaskError('The SignApk jarsigner process exited non-zero: {0}'
-                                  .format(returncode))
+        packages = list(get_products_path(target))
+        for unsigned_apk in packages:
+          keystores = KeystoreResolver.resolve(self.config_file)
+          for key in keystores:
+            outdir = self.sign_apk_out(target, key.build_type)
+            safe_mkdir(outdir)
+            args = self.render_args(target, key, unsigned_apk, outdir)
+            with self.context.new_workunit(name='sign_apk',
+                                           labels=[WorkUnit.MULTITOOL]) as workunit:
+              returncode = subprocess.call(args, stdout=workunit.output('stdout'),
+                                           stderr=workunit.output('stderr'))
+              if returncode:
+                raise TaskError('The SignApk jarsigner process exited non-zero: {0}'
+                                .format(returncode))
     for target in targets:
       release_path = self.sign_apk_out(target, 'release')
       debug_path = self.sign_apk_out(target, 'debug')
-      release_package = os.path.join(self.sign_apk_out(target, 'release'), release_path)
-      debug_package = os.path.join(self.sign_apk_out(target, 'debug'), debug_path)
+      package_name = '{0}.signed.apk'.format(target.app_name)
 
-      if release_package:
-        self.context.products.get('release_apk').add(target, release_path).append(release_package)
-      elif debug_path:
-        self.context.products.get('debug_apk').add(target, debug_path).append(debug_package)
+      if os.path.isfile(os.path.join(release_path, package_name)):
+        self.context.products.get('release_apk').add(target, release_path).append(package_name)
+      elif os.path.isfile(os.path.join(debug_path, package_name)):
+        self.context.products.get('debug_apk').add(target, debug_path).append(package_name)
 
   def sign_apk_out(self, target, build_type):
-    """Compute the outdir for a target, one outdir per keystore."""
-    return os.path.join(self.workdir, target.id, build_type)
+    """Compute the outdir for a target."""
+    return os.path.join(self.workdir, target.name, build_type)

@@ -31,6 +31,10 @@ class Zipalign(AndroidTask):
 
   def execute(self):
     print("WE are in ZIPalign!")
+    targets = self.context.targets(self.is_zipaligntarget)
+    for target in targets:
+      signed_apks = self.context.products.get('debug_apk')
+      print("Release builds: {0}".format(signed_apks))
 
 
     #TODO(BEFORE REVIEW: MOve the SignAPk products away from dist.) Zipalign is where we wil release.
