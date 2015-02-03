@@ -151,15 +151,15 @@ class SignApkTask(Task):
       release_apk = self.package_name(target, 'release')
       debug_apk = self.package_name(target, 'debug')
 
-      if os.path.isfile(os.path.join(release_path, release_apk )):
-        # If it is a release build, it just goes to the workdir as it still needs to get zipaligned.
+      if os.path.isfile(os.path.join(release_path, release_apk)):
+        # If it is a release build, it goes to the workdir as it still needs to get zipaligned.
         self.context.products.get('release_apk').add(target, release_path).append(release_apk)
       elif os.path.isfile(os.path.join(debug_path, debug_apk)):
-        # Debug builds are done, so they can go straight to dist.
+        # Debug builds have completed all needed tasks so they can go straight to dist.
         self.context.products.get('debug_apk').add(target, debug_path).append(debug_apk)
 
   def package_name(self, target, build_type):
-    """Compute package name using 'build_type', a string required to be one of (debug, release)."""
+    """Get package name with 'build_type', a string KeyResolver mandates is in (debug, release)."""
     return '{0}.{1}.signed.apk'.format(target.app_name, build_type)
 
   def sign_apk_out(self, target, build_type):
