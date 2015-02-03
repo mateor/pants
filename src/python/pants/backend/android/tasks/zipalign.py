@@ -13,6 +13,7 @@ from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
+from pants.util.dirutil import safe_mkdir
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class Zipalign(AndroidTask):
   def __init__(self, *args, **kwargs):
     super(Zipalign, self).__init__(*args, **kwargs)
     self._android_dist = self.android_sdk
+    self._distdir = self.get_options().pants_distdir
 
   def render_args(self, package, target):
     """Create arg list for the jarsigner process.
@@ -46,14 +48,17 @@ class Zipalign(AndroidTask):
     #   : '-f' is to force overwrite of existing outfile.
 
     args = [self.zipalign_binary(target)]
-    args.extend(['-f', package])
+    args.extend(['-f', '4', package, os.path.join(self.zipalign_out(target),
+                                             '{0}.signed.apk'.format(target.app_name))])
     logger.debug('Executing: {0}'.format(' '.join(args)))
     return args
+
+  # TODO (BEFORE REVIEW) Why isn't the failure coming up?
 
   def execute(self):
     targets = self.context.targets(self.is_zipaligntarget)
     for target in targets:
-      signed_apks = self.context.products.get('debug_apk')
+      signed_apks = self.context.products.get('release_apk')
       print("Release builds: {0}".format(signed_apks))
 
       # I reuse this function to get the path of a product from an earlier task.
@@ -74,15 +79,16 @@ class Zipalign(AndroidTask):
       packages = list(get_products_path(target))
       print("PACKAGES: {0}".format(packages))
       for package in packages:
+        safe_mkdir(self.zipalign_out(target))
         args = self.render_args(package, target)
         print( "ARGS: {0}".format(args))
         with self.context.new_workunit(name='zipalign',
                                        labels=[WorkUnit.MULTITOOL]) as workunit:
-          #returncode = subprocess.call(args, stdout=workunit.output('stdout'),
-       #                                stderr=workunit.output('stderr'))
-        #  if returncode:
-         #   raise TaskError('The zipalign process exited non-zero: {0}'
-        #                    .format(returncode))
+          returncode = subprocess.call(args, stdout=workunit.output('stdout'),
+                                       stderr=workunit.output('stderr'))
+          if returncode:
+            raise TaskError('The zipalign process exited non-zero: {0}'
+                            .format(returncode))
           pass
     #TODO(BEFORE REVIEW: MOve the SignAPk products away from dist.) Zipalign is where we wil release.
 
@@ -94,6 +100,6 @@ class Zipalign(AndroidTask):
     zipalign_binary = os.path.join('build-tools', target.build_tools_version, 'zipalign')
     return self._android_dist.register_android_tool(zipalign_binary)
 
-  def zipalign_out(self, target, build_type):
+  def zipalign_out(self, target):
     """Compute the outdir for a target."""
-    return os.path.join(self.workdir, target.name, build_type)
+    return os.path.join(self._distdir, target.name)
