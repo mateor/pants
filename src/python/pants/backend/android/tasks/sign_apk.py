@@ -133,6 +133,7 @@ class SignApkTask(Task):
         for unsigned_apk in packages:
           keystores = KeystoreResolver.resolve(self.config_file)
           for key in keystores:
+
             outdir = self.sign_apk_out(target, key.build_type)
             safe_mkdir(outdir)
             args = self.render_args(target, key, unsigned_apk, outdir)
