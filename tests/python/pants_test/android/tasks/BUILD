@@ -71,3 +71,18 @@ python_tests(
     'tests/python/pants_test/android:android_integration_test',
   ],
 )
+
+python_tests(
+  name = 'zipalign',
+  sources = [
+    'test_zipalign.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/targets:android',
+    'src/python/pants/backend/android/tasks:zipalign',
+    'src/python/pants/base:build_file_aliases',
+    'src/python/pants/base:exceptions',
+    'src/python/pants/util:contextutil',
+    'tests/python/pants_test/tasks:base'
+  ],
+)
