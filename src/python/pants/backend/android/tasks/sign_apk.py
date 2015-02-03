@@ -98,7 +98,7 @@ class SignApkTask(Task):
     args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', os.path.join(outdir, '{0}.{1}.signed.apk'.format(target.app_name, key.build_type))])
+    args.extend(['-signedjar', os.path.join(outdir, self.package_name(target, key.build_type))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
     logger.debug('Executing: {0}'.format(' '.join(args)))
@@ -148,20 +148,19 @@ class SignApkTask(Task):
     for target in targets:
       release_path = self.sign_apk_out(target, 'release')
       debug_path = self.sign_apk_out(target, 'debug')
-      debug_package = '{0}.debug.signed.apk'.format(target.app_name)
-      release_package = '{0}.release.signed.apk'.format(target.app_name)
+      release_apk = self.package_name(target, 'release')
+      debug_apk = self.package_name(target, 'debug')
 
-
-      print('RELEASE: ', os.path.join(release_path, release_package), " DEBUG: ", os.path.join(debug_path, debug_package))
-
-      if os.path.isfile(os.path.join(release_path, release_package)):
-        print('WE FOUND A RELEASE')
+      if os.path.isfile(os.path.join(release_path, release_apk )):
         # If it is a release build, it just goes to the workdir as it still needs to get zipaligned.
-        self.context.products.get('release_apk').add(target, release_path).append(release_package)
-      elif os.path.isfile(os.path.join(debug_path, debug_package)):
-        print("WE FOUND A DEBUG")
-        # Debug builds are done, so they can go straight to dist.   (This is a lot of gymnastics to avoid a copy in zipalign....)
-        self.context.products.get('debug_apk').add(target, debug_path).append(debug_package)
+        self.context.products.get('release_apk').add(target, release_path).append(release_apk)
+      elif os.path.isfile(os.path.join(debug_path, debug_apk)):
+        # Debug builds are done, so they can go straight to dist.
+        self.context.products.get('debug_apk').add(target, debug_path).append(debug_apk)
+
+  def package_name(self, target, build_type):
+    """Compute package name using 'build_type', a string required to be one of (debug, release)."""
+    return '{0}.{1}.signed.apk'.format(target.app_name, build_type)
 
   def sign_apk_out(self, target, build_type):
     """Compute the outdir for a target."""

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class Zipalign(AndroidTask):
-  """Task to run zipalign, which byte-orders signed apks."""
+  """Task to run zipalign, an archive alignment tool."""
 
   @classmethod
   def prepare(cls, options, round_manager):
@@ -46,7 +46,7 @@ class Zipalign(AndroidTask):
      """
     # Glossary of used zipalign flags:
     #   : '-f' is to force overwrite of existing outfile.
-
+    #   :  '4' is the mandated byte alignment orderings. If not 4, zipalign essentially does nothing.
     args = [self.zipalign_binary(target)]
     args.extend(['-f', '4', package, os.path.join(self.zipalign_out(target),
                                              '{0}.signed.apk'.format(target.app_name))])
@@ -68,11 +68,11 @@ class Zipalign(AndroidTask):
       # Or is there already something like this I missed?
 
       def get_products_path(target):
-        """Get path of target's signed apks as created by SIgnApk."""
-        unsigned_apks = self.context.products.get('release_apk')
-        if unsigned_apks.get(target):
+        """Get path of target's apks that are signed with release keystores with SignApk."""
+        apks = self.context.products.get('release_apk')
+        if apks.get(target):
           # This allows for multiple apks but we expect only one per target.
-          for tgts, products in unsigned_apks.get(target).items():
+          for tgts, products in apks.get(target).items():
             for prod in products:
               yield os.path.join(tgts, prod)
 
