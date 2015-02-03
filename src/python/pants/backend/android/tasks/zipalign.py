@@ -13,6 +13,7 @@ from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
+from pants.util.dirutil import safe_mkdir
 
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,9 @@ class Zipalign(AndroidTask):
   def __init__(self, *args, **kwargs):
     super(Zipalign, self).__init__(*args, **kwargs)
     self._android_dist = self.android_sdk
+    self._distdir = self.get_options().pants_distdir
 
-  def render_args(self, package, target):
+  def render_args(self, package, target, outdir):
     """Create arg list for the jarsigner process.
 
      :param AndroidBinary target: Target to be zipaligned.
@@ -46,15 +48,16 @@ class Zipalign(AndroidTask):
     #   : '-f' is to force overwrite of existing outfile.
 
     args = [self.zipalign_binary(target)]
-    args.extend(['-f', package])
+    args.extend(['-f', '-v', '4'])
+    args.extend([package, os.path.join(outdir, '{0}.signed.apk'.format(target.app_name))])
     logger.debug('Executing: {0}'.format(' '.join(args)))
     return args
 
   def execute(self):
     targets = self.context.targets(self.is_zipaligntarget)
     for target in targets:
-      signed_apks = self.context.products.get('debug_apk')
-      print("Release builds: {0}".format(signed_apks))
+      signed_apks = self.context.products.get('release_apk')
+      print("RELEASE builds: {0}".format(signed_apks))
 
       # I reuse this function to get the path of a product from an earlier task.
       # I see the jar pipeline does something similar.
@@ -74,7 +77,9 @@ class Zipalign(AndroidTask):
       packages = list(get_products_path(target))
       print("PACKAGES: {0}".format(packages))
       for package in packages:
-        args = self.render_args(package, target)
+        outdir = self.zipalign_out(target)
+        safe_mkdir(outdir)
+        args = self.render_args(package, target, outdir)
         print( "ARGS: {0}".format(args))
         with self.context.new_workunit(name='zipalign',
                                        labels=[WorkUnit.MULTITOOL]) as workunit:
@@ -94,6 +99,6 @@ class Zipalign(AndroidTask):
     zipalign_binary = os.path.join('build-tools', target.build_tools_version, 'zipalign')
     return self._android_dist.register_android_tool(zipalign_binary)
 
-  def zipalign_out(self, target, build_type):
+  def zipalign_out(self, target):
     """Compute the outdir for a target."""
-    return os.path.join(self.workdir, target.name, build_type)
+    return os.path.join(self._distdir, target.name, 'release')

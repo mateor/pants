@@ -52,6 +52,7 @@ class SignApkTask(Task):
   def __init__(self, *args, **kwargs):
     super(SignApkTask, self).__init__(*args, **kwargs)
     self._config_file = self.get_options().keystore_config_location
+    self._distdir = self.get_options().pants_distdir
     self._dist = None
 
   @property
@@ -97,7 +98,7 @@ class SignApkTask(Task):
     args.extend(['-keystore', key.keystore_location])
     args.extend(['-storepass', key.keystore_password])
     args.extend(['-keypass', key.key_password])
-    args.extend(['-signedjar', os.path.join(outdir, '{0}.signed.apk'.format(target.app_name))])
+    args.extend(['-signedjar', os.path.join(outdir, '{0}.{1}.signed.apk'.format(target.app_name, key.build_type))])
     args.append(unsigned_apk)
     args.append(key.keystore_alias)
     logger.debug('Executing: {0}'.format(' '.join(args)))
@@ -148,12 +149,19 @@ class SignApkTask(Task):
       release_path = self.sign_apk_out(target, 'release')
       debug_path = self.sign_apk_out(target, 'debug')
       package_name = '{0}.signed.apk'.format(target.app_name)
-
+      print("SIgnAPK Package Name: {0}".format(package_name))
       if os.path.isfile(os.path.join(release_path, package_name)):
         self.context.products.get('release_apk').add(target, release_path).append(package_name)
-      elif os.path.isfile(os.path.join(debug_path, package_name)):
+      if os.path.isfile(os.path.join(debug_path, package_name)):
         self.context.products.get('debug_apk').add(target, debug_path).append(package_name)
 
   def sign_apk_out(self, target, build_type):
-    """Compute the outdir for a target."""
-    return os.path.join(self.workdir, target.name, build_type)
+    """Compute the outdir for a target, depending on target and keystore buildtype."""
+    # TODO BEFORE REVIEW (docstring)
+    if build_type == 'debug':
+      outdir = os.path.join(self._distdir, target.name, build_type)
+    elif build_type == 'release':
+      outdir = os.path.join(self.workdir, target.name, build_type)
+    else:
+      raise TaskError("SignApk received an unexpected keystore build type: {0}".format(build_type))
+    return outdir
