@@ -4,6 +4,7 @@
 
 from __future__ import (nested_scopes, generators, division, absolute_import, with_statement,
                         print_function, unicode_literals)
+
 import os
 import zipfile
 
@@ -35,9 +36,10 @@ class TestZipalign(TaskTest):
           zipfile.write(os.path.join(root, file))
       return zipfile
 
-  def test_sign_apk_smoke(self):
+  def test_zipalign_smoke(self):
     task = self.prepare_task(build_graph=self.build_graph,
                              build_file_parser=self.build_file_parser)
     task.execute()
+
 
     print("ZIPFILE: ", (self.archive()))

@@ -12,6 +12,7 @@ from pants.backend.android.tasks.sign_apk import SignApkTask
 from pants.base.build_file_aliases import BuildFileAliases
 from pants.base.exceptions import TaskError
 from pants.util.contextutil import temporary_dir, temporary_file
+
 from pants_test.tasks.test_base import TaskTest
 
 
@@ -55,23 +56,7 @@ class SignApkTest(TaskTest):
     """).format(section, option, location)
     return ini
 
-  def android_binary(self):
-    with temporary_file() as fp:
-      fp.write(textwrap.dedent(
-      """<?xml version="1.0" encoding="utf-8"?>
-      <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.pants.examples.hello" >
-          <uses-sdk
-              android:minSdkVersion="8"
-              android:targetSdkVersion="19" />
-      </manifest>
-      """))
-      path = fp.name
-      fp.close()
-      target = self.make_target(spec=':binary',
-                                target_type=AndroidBinary,
-                                manifest=path)
-      return target
+
 
   def test_sign_apk_smoke(self):
     task = self.prepare_task(config=self._get_config(),
@@ -141,3 +126,5 @@ class SignApkTest(TaskTest):
     expected_args.extend(['unsigned_apk_product', 'key_alias'])
     self.assertEquals(expected_args, task.render_args(target, fake_key, 'unsigned_apk_product',
                                                       temp))
+
+# TODO (BEFORE REVIEW) Write tests for new SignApk functionality. (Check invalidation changes).

@@ -145,6 +145,9 @@ class SignApkTask(Task):
               if returncode:
                 raise TaskError('The SignApk jarsigner process exited non-zero: {0}'
                                 .format(returncode))
+
+    # Keystores and targets have no concept of each other and keys only exist in this execute scope.
+    # We have to look for the products themselves in order to plug into the invalidation framework.
     for target in targets:
       release_path = self.sign_apk_out(target, 'release')
       debug_path = self.sign_apk_out(target, 'debug')
@@ -152,7 +155,7 @@ class SignApkTask(Task):
       debug_apk = self.package_name(target, 'debug')
 
       if os.path.isfile(os.path.join(release_path, release_apk)):
-        # If it is a release build, it goes to the workdir as it still needs to get zipaligned.
+        # If it is a release build, it goes to the workdir for zipalign to operate upon.
         self.context.products.get('release_apk').add(target, release_path).append(release_apk)
       elif os.path.isfile(os.path.join(debug_path, debug_apk)):
         # Debug builds have completed all needed tasks so they can go straight to dist.
