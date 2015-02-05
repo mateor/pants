@@ -30,6 +30,19 @@ python_tests(
 )
 
 python_tests(
+  name = 'android_base',
+  sources = [
+    'test_android_base.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/targets:android',
+    'src/python/pants/util:contextutil',
+    'src/python/pants/util:dirutil',
+    'tests/python/pants_test/tasks:base'
+  ]
+)
+
+python_tests(
   name = 'android_config_util',
   sources = [
     'test_android_config_util.py',

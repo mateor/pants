@@ -13,10 +13,11 @@ from pants.base.build_file_aliases import BuildFileAliases
 from pants.base.exceptions import TaskError
 from pants.util.contextutil import temporary_dir, temporary_file
 
+from pants_test.android.test_android_base import TestAndroidBase
 from pants_test.tasks.test_base import TaskTest
 
 
-class SignApkTest(TaskTest):
+class SignApkTest(TestAndroidBase):
   """Test the package signing methods in pants.backend.android.tasks."""
 
   _DEFAULT_KEYSTORE = '%(homedir)s/.doesnt/matter/keystore_config.ini'
