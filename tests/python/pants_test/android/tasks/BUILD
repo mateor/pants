@@ -58,6 +58,7 @@ python_tests(
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/base:exceptions',
     'src/python/pants/util:contextutil',
+    'tests/python/pants_test/android:android_base'
     'tests/python/pants_test/tasks:base'
   ],
 )
@@ -83,6 +84,7 @@ python_tests(
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/base:exceptions',
     'src/python/pants/util:contextutil',
+    'tests/python/pants_test/android:android_base',
     'tests/python/pants_test/tasks:base'
   ],
 )

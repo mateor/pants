@@ -16,7 +16,7 @@ from pants.util.contextutil import environment_as, temporary_dir
 from pants_test.android.test_android_base import TestAndroidBase
 
 
-class TestAndroidDistribution(TestAndroidBase):
+class TestAndroidDistribution(unittest.TestCase, TestAndroidBase):
 
   def test_tool_registration(self):
     with self.distribution() as sdk:
