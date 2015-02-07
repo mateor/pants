@@ -11,11 +11,10 @@ import zipfile
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.zipalign import Zipalign
 from pants.base.build_file_aliases import BuildFileAliases
-from pants_test.tasks.test_base import TaskTest
-from pants.util.contextutil import temporary_dir, temporary_file
+from pants.util.contextutil import temporary_file
+from pants_test.android.test_android_base import TestAndroidBase
 
-
-class TestZipalign(TaskTest):
+class TestZipalign(TestAndroidBase):
   """Test class for the Zipalign task."""
 
   @classmethod
@@ -43,3 +42,11 @@ class TestZipalign(TaskTest):
 
 
     print("ZIPFILE: ", (self.archive()))
+
+  def test_render_args(self):
+    with self.distribution() as dist:
+      task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
+                               build_graph=self.build_graph,
+                               build_file_parser=self.build_file_parser)
+      target = self.android_binary()
+      self.assertEqual(task.zipalign_binary(target), os.path.join(dist, 'build-tools', target.build_tools_version, 'zipalign'))

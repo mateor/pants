@@ -46,7 +46,7 @@ class Zipalign(AndroidTask):
      """
     # Glossary of used zipalign flags:
     #   : '-f' is to force overwrite of existing outfile.
-    #   :  '4' is the mandated byte alignment ordering. If not 4, zipalign essentially does nothing.
+    #   :  '4' is the mandated byte alignment ordering. If not 4, zipalign doesn't do anything.
     #   :   Last two args are infile, outfile.
     args = [self.zipalign_binary(target)]
     args.extend(['-f', '4', ])
@@ -80,10 +80,7 @@ class Zipalign(AndroidTask):
                             .format(returncode))
 
   def zipalign_binary(self, target):
-    """Return the appropriate zipalign binary.
-
-    :param string target_sdk: The Android SDK version number of the target (e.g. '18').
-    """
+    """Return the appropriate zipalign binary."""
     zipalign_binary = os.path.join('build-tools', target.build_tools_version, 'zipalign')
     return self._android_dist.register_android_tool(zipalign_binary)
 

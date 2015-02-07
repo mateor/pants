@@ -14,11 +14,10 @@ from pants.base.exceptions import TaskError
 from pants.util.contextutil import temporary_dir, temporary_file
 
 from pants_test.android.test_android_base import TestAndroidBase
-from pants_test.tasks.test_base import TaskTest
 
 
 class SignApkTest(TestAndroidBase):
-  """Test the package signing methods in pants.backend.android.tasks."""
+  """Test the package signing methods in pants.backend.android.tasks.SignApk"""
 
   _DEFAULT_KEYSTORE = '%(homedir)s/.doesnt/matter/keystore_config.ini'
 
@@ -27,7 +26,7 @@ class SignApkTest(TestAndroidBase):
     return SignApkTask
 
   class FakeKeystore(object):
-    # Mock keystores so as to test the render_args method.
+    # Mock keystore to test the render_args method.
     def __init__(self):
       self.build_type = 'debug'
       self.keystore_name = 'key_name'
@@ -37,7 +36,7 @@ class SignApkTest(TestAndroidBase):
       self.key_password = 'key_password'
 
   class FakeDistribution(object):
-    # Mock JDK distribution so as to test the render_args method.
+    # Mock JDK distribution to test the render_args method.
     @classmethod
     def binary(self, tool):
       return 'path/to/{0}'.format(tool)
