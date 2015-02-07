@@ -11,6 +11,7 @@ python_library(
     ':aapt_task',
     ':dx_compile',
     ':sign_apk',
+    ':zipalign',
   ],
 )
 

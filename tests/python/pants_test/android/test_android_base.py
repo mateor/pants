@@ -11,30 +11,13 @@ import textwrap
 
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.util.contextutil import temporary_dir, temporary_file
-from pants.util.dirutil import chmod_plus_x, safe_open, touch
 from pants_test.tasks.test_base import TaskTest
 
-from twitter.common.collections import maybe_list
 
 
 class TestAndroidBase(TaskTest):
 
-  @contextmanager
-  # default for testing purposes being sdk 18 and 19, with latest build-tools 19.1.0
-  def distribution(self, installed_sdks=('18', '19'),
-                   installed_build_tools=('19.1.0', ),
-                   files='android.jar',
-                   executables='aapt'):
-    with temporary_dir() as sdk:
-      for sdks in installed_sdks:
-        touch(os.path.join(sdk, 'platforms', 'android-' + sdks, files))
-      for build in installed_build_tools:
-        for exe in maybe_list(executables or ()):
-          path = os.path.join(sdk, 'build-tools', build, exe)
-          with safe_open(path, 'w') as fp:
-            fp.write('')
-          chmod_plus_x(path)
-      yield sdk
+
 
   def android_binary(self):
     with temporary_file() as fp:
