@@ -33,3 +33,8 @@ python_library(
     'src/python/pants/base:config',
   ]
 )
+
+python_library(
+  name = 'manifest_parser',
+  sources =['manifest_parser.py'],
+)

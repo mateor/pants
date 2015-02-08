@@ -6,8 +6,8 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
-from xml.dom.minidom import parse
 
+from pants.backend.android.manifest_parser import ManifestParser
 from pants.backend.jvm.targets.jvm_target import JvmTarget
 from pants.base.exceptions import TargetDefinitionException
 
@@ -18,8 +18,7 @@ class AndroidTarget(JvmTarget):
   # Missing attributes from the AndroidManifest would eventually error in the compilation process.
   # But since the error would raise here in the target definition, we are catching the exception.
 
-  class BadManifestError(Exception):
-    """Indicates an invalid android manifest."""
+
 
   def __init__(self,
                address=None,
@@ -36,47 +35,50 @@ class AndroidTarget(JvmTarget):
     """
     super(AndroidTarget, self).__init__(address=address, **kwargs)
     self.add_labels('android')
-
+    self._manifest = manifest
     # TODO(pl): These attributes should live in the payload
     self.build_tools_version = build_tools_version
 
-    if manifest is None:
-      raise TargetDefinitionException(self, 'Android targets require a manifest attribute.')
-    manifest_path = os.path.join(address.spec_path, manifest)
-    if not os.path.isfile(manifest_path):
-      raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
-                                            'at path {1}'.format(manifest, manifest_path))
-    self.manifest = manifest_path
+    # TODO (BEFORE REVIEW) Fix this temporary hack
+    self.address = address
 
-    self.package = self.get_package_name()
-    self.target_sdk = self.get_target_sdk()
+    self._manifest = manifest
+    self._manifest_path = None
+
+    self._package = None
+    self._target_sdk = None
+
+    self._app_name = None
+
+  @property
+  def manifest(self):
+    if self._manifest_path is None:
+      if self._manifest is None:
+        raise TargetDefinitionException(self, 'Android targets require a manifest attribute.')
+      manifest = os.path.join(self.address.spec_path, self._manifest)
+      if not os.path.isfile(manifest):
+        raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
+                                              'at path {1}'.format(self._manifest, manifest))
+      self._manifest_path = manifest
+    return self._manifest_path
+
+  @property
+  def package(self):
+    if self._package is None:
+      self._package = ManifestParser.get_package_name(self)
+    return self._package
+
+  @property
+  def target_sdk(self):
+    if self._target_sdk is None:
+      self._target_sdk = ManifestParser.get_target_sdk(self)
+    return self._target_sdk
+
+  @property
+  def app_name(self):
     # If unable to parse application name, silently falls back to target name.
-    self.app_name = self.get_app_name() if self.get_app_name() else self.name
-
-  # TODO(mateor) Peel parsing into a ManifestParser class to ensure it's robust against bad input.
-  # Parsing as in Android Donut's testrunner:
-  # https://github.com/android/platform_development/blob/master/testrunner/android_manifest.py.
-  def get_package_name(self):
-    """Return the package name of the Android target."""
-    tgt_manifest = parse(self.manifest).getElementsByTagName('manifest')
-    if not tgt_manifest or not tgt_manifest[0].getAttribute('package'):
-      raise self.BadManifestError('There is no \'package\' attribute in manifest at: {0!r}'
-                                  .format(self.manifest))
-    return tgt_manifest[0].getAttribute('package')
-
-  def get_target_sdk(self):
-    """Return a string with the Android package's target SDK."""
-    tgt_manifest = parse(self.manifest).getElementsByTagName('uses-sdk')
-    if not tgt_manifest or not tgt_manifest[0].getAttribute('android:targetSdkVersion'):
-      raise self.BadManifestError('There is no \'targetSdkVersion\' attribute in manifest at: {0!r}'
-                                  .format(self.manifest))
-    return tgt_manifest[0].getAttribute('android:targetSdkVersion')
-
-  def get_app_name(self):
-    """Return a string with the application name of the package, return None if not found."""
-    tgt_manifest = parse(self.manifest).getElementsByTagName('activity')
-    try:
-      package_name = tgt_manifest[0].getAttribute('android:name')
-      return package_name.split(".")[-1]
-    except:
-      return None
+    if self._app_name is None:
+      self._app_name = ManifestParser.get_app_name(self)
+    if self._app_name is None:
+      self._app_name = self.name
+    return self._app_name
