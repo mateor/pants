@@ -64,20 +64,20 @@ class AndroidTarget(JvmTarget):
   @property
   def package_name(self):
     if self._package is None:
-      self._package = ManifestParser.get_package_name(self)
+      self._package = ManifestParser.get_package_name(self.manifest)
     return self._package
 
   @property
   def target_sdk(self):
     if self._target_sdk is None:
-      self._target_sdk = ManifestParser.get_target_sdk(self)
+      self._target_sdk = ManifestParser.get_target_sdk(self.manifest)
     return self._target_sdk
 
   @property
   def app_name(self):
     # If unable to parse application name, silently falls back to target name.
     if self._app_name is None:
-      self._app_name = ManifestParser.get_app_name(self)
+      self._app_name = ManifestParser.get_app_name(self.manifest)
     if self._app_name is None:
       self._app_name = self.name
     return self._app_name
