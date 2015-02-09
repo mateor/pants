@@ -56,6 +56,17 @@ python_tests(
 )
 
 python_tests(
+  name = 'android_manifest_parser',
+  sources = [
+    'test_android_manifest_parser.py',
+    ],
+  dependencies = [
+    'src/python/pants/backend/android:android_manifest_parser',
+    'src/python/pants/util:contextutil',
+    ]
+)
+
+python_tests(
   name = 'android_distribution',
   sources = [
     'test_android_distribution.py',
