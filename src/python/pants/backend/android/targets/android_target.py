@@ -48,14 +48,16 @@ class AndroidTarget(JvmTarget):
 
   @property
   def manifest(self):
-    # TODO (BEFORE REVIEW) find a sensible way to fallback to any AndroidManifest in the target home.
     if self._manifest_path is None:
       if self._manifest is None:
-        raise TargetDefinitionException(self, 'Android targets require a manifest attribute.')
+        # For both gradle and old-style ant layouts, AndroidManifest is conventionally at top-level.
+        # As the name is required by the tooling, I think assuming this as a fallback is natural.
+        self._manifest = 'AndroidManifest.xml'
       manifest = os.path.join(self.address.spec_path, self._manifest)
       if not os.path.isfile(manifest):
-        raise TargetDefinitionException(self, 'The given manifest {0} is not a file '
-                                              'at path {1}'.format(self._manifest, manifest))
+        raise TargetDefinitionException(self, 'There is no AndroidManifest.xml at path {0}. Please '
+                                              'declare a \'manifest\' field with its relative path.'
+                                              .format(manifest))
       self._manifest_path = manifest
     return self._manifest_path
 
