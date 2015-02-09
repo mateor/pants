@@ -15,10 +15,6 @@ from pants.base.exceptions import TargetDefinitionException
 class AndroidTarget(JvmTarget):
   """A base class for all Android targets."""
 
-  # Missing attributes from the AndroidManifest would eventually error in the compilation process.
-  # But since the error would raise here in the target definition, we are catching the exception.
-
-
 
   def __init__(self,
                address=None,
@@ -52,6 +48,7 @@ class AndroidTarget(JvmTarget):
 
   @property
   def manifest(self):
+    # TODO (BEFORE REVIEW) find a sensible way to fallback to any AndroidManifest in the target home.
     if self._manifest_path is None:
       if self._manifest is None:
         raise TargetDefinitionException(self, 'Android targets require a manifest attribute.')

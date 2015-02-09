@@ -13,7 +13,6 @@ class ManifestParser(object):
   class BadManifestError(Exception):
     """Indicates an invalid android manifest."""
 
-  # TODO(mateor) Peel parsing into a ManifestParser class to ensure it's robust against bad input.
   # Parsing as in Android Donut's testrunner:
   # https://github.com/android/platform_development/blob/master/testrunner/android_manifest.py.
   @classmethod
