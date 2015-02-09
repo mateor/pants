@@ -8,7 +8,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 from xml.dom.minidom import parse
 
 
-class ManifestParser(object):
+class AndroidManifestParser(object):
 
   class BadManifestError(Exception):
     """Indicates an invalid android manifest."""

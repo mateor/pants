@@ -35,6 +35,6 @@ python_library(
 )
 
 python_library(
-  name = 'manifest_parser',
-  sources =['manifest_parser.py'],
+  name = 'android_manifest_parser',
+  sources =['android_manifest_parser.py'],
 )
