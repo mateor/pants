@@ -62,7 +62,7 @@ class AndroidTarget(JvmTarget):
     return self._manifest_path
 
   @property
-  def package(self):
+  def package_name(self):
     if self._package is None:
       self._package = ManifestParser.get_package_name(self)
     return self._package
