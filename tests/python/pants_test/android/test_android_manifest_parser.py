@@ -19,12 +19,13 @@ class TestAndroidManifestParser(unittest.TestCase):
   """Test the AndroidManifestParser class."""
 
   @contextmanager
-  def android_manifest(self):
-    """Represent an android_binary target, providing a mock version of the required manifest."""
+  def android_manifest(self,
+                       manifest_element='manifest'):
+    """Represent an AndroidManifest.xml."""
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        <{manifest} xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.pants.examples.hello" >
             <uses-sdk
                 android:targetSdkVersion="19" />
@@ -33,11 +34,18 @@ class TestAndroidManifestParser(unittest.TestCase):
                     android:name="com.pants.examples.hello.HelloWorld" >
                 </activity>
             </application>
-        </manifest>"""))
+        </{manifest}>""".format(manifest = manifest_element)))
       fp.close()
       path = fp.name
       yield path
 
   def test_get_package_name(self):
       with self.android_manifest() as manifest:
-        self.assertEqual(AndroidManifestParser.get_package_name(manifest), 'com.pants.examples.hello')
+        self.assertEqual(AndroidManifestParser.get_package_name(manifest),
+                         'com.pants.examples.hello')
+
+  def test_missing_manifest_element(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(manifest_element='grape_soda') as manifest:
+        self.assertEqual(AndroidManifestParser.get_package_name(manifest),
+                         'com.pants.examples.hello')
