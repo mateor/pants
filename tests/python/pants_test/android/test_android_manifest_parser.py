@@ -22,25 +22,27 @@ class TestAndroidManifestParser(unittest.TestCase):
   def android_manifest(self,
                        manifest_element='manifest',
                        package_attribute='package',
+                       package_value='com.pants.examples.hello',
                        uses_sdk_element='uses-sdk',
                        android_attribute='android:targetSdkVersion',
-                       activity_element='activity'):
+                       activity_element='activity',
+                       android_name_attribute='android:name'):
     """Represent an AndroidManifest.xml."""
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
         <{manifest} xmlns:android="http://schemas.android.com/apk/res/android"
-            {package}="com.pants.examples.hello" >
+            {package}="{package_name}" >
             <{uses_sdk}
                 {android}="19" />
             <application >
                 <{activity}
-                    android:name="com.pants.examples.hello.HelloWorld" >
+                    {android_name}="com.pants.examples.hello.HelloWorld" >
                 </{activity}>
             </application>
-        </{manifest}>""".format(manifest = manifest_element, package = package_attribute,
+        </{manifest}>""".format(manifest = manifest_element, package = package_attribute, package_name = package_value,
                                 uses_sdk = uses_sdk_element, android = android_attribute,
-                                activity = activity_element)))
+                                activity = activity_element, android_name = android_name_attribute)))
       fp.close()
       path = fp.name
       yield path
@@ -58,9 +60,14 @@ class TestAndroidManifestParser(unittest.TestCase):
 
   def test_missing_package_attribute(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
-      with self.android_manifest(package_attribute='lemonade') as manifest:
+      with self.android_manifest(package_attribute='cola') as manifest:
         self.assertEqual(AndroidManifestParser.get_package_name(manifest),
                          'com.pants.examples.hello')
+
+  def test_missing_package_attribute(self):
+      # Should handle unexpected package names, the info gets checked in classes that consume it.
+      with self.android_manifest(package_value='cola') as manifest:
+        self.assertEqual(AndroidManifestParser.get_package_name(manifest), 'cola')
 
   def test_get_target_sdk(self):
     with self.android_manifest() as manifest:
@@ -73,19 +80,28 @@ class TestAndroidManifestParser(unittest.TestCase):
 
   def test_no_uses_sdk_element(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
-      with self.android_manifest(uses_sdk_element='bourbon') as manifest:
+      with self.android_manifest(uses_sdk_element='mentos') as manifest:
         self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
 
   def test_no_android_element(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
-      with self.android_manifest(android_attribute='bourbon') as manifest:
+      with self.android_manifest(android_attribute='pepto') as manifest:
         self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
 
   def test_no_target_sdk_value(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
-      with self.android_manifest(android_attribute='android:tonka-truck') as manifest:
+      with self.android_manifest(android_attribute='android:alka-seltzer') as manifest:
         self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
 
   def test_get_app_name(self):
     with self.android_manifest() as manifest:
       self.assertEqual(AndroidManifestParser.get_app_name(manifest), 'HelloWorld')
+
+  # The last tests show AndroidManifestParser.get_app_name() fails silently and returns None.
+  def test_no_activity_element(self):
+    with self.android_manifest(activity_element='root_beer') as manifest:
+      self.assertEqual(AndroidManifestParser.get_app_name(manifest), None)
+
+  def test_no_android_name_attribute(self):
+    with self.android_manifest(android_name_attribute='android:green') as manifest:
+      self.assertEqual(AndroidManifestParser.get_app_name(manifest), None)

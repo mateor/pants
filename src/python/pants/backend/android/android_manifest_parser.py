@@ -21,30 +21,34 @@ class AndroidManifestParser(object):
     """Return the package name of the Android target."""
     # If manifest tag or package tag is missing, aapt_gen errors and provides that info to stderr.
     # This error catching shouldn't ever hit so the existing checks should be fine.
-    tgt_manifest = parse(manifest).getElementsByTagName('manifest')
-    if not tgt_manifest or not tgt_manifest[0].getAttribute('package'):
+    manifest_element = parse(manifest).getElementsByTagName('manifest')
+    if not manifest_element or not manifest_element[0].getAttribute('package'):
       raise cls.BadManifestError('There is no \'package\' attribute in manifest at: {0}'
                                   .format(manifest))
-    return tgt_manifest[0].getAttribute('package')
+    return manifest_element[0].getAttribute('package')
 
   @classmethod
   def get_target_sdk(cls, manifest):
     """Return a string with the Android package's target SDK."""
     # If bad info is passed, the android_distribution class will raise an error
     # since it will not be able to find the associated tool.
-    tgt_manifest = parse(manifest).getElementsByTagName('uses-sdk')
-    if not tgt_manifest or not tgt_manifest[0].getAttribute('android:targetSdkVersion'):
+    sdk_element = parse(manifest).getElementsByTagName('uses-sdk')
+    if not sdk_element or not sdk_element[0].getAttribute('android:targetSdkVersion'):
       raise cls.BadManifestError('There is no \'targetSdkVersion\' attribute in manifest at: {0}'
                                   .format(manifest))
-    return tgt_manifest[0].getAttribute('android:targetSdkVersion')
+    return sdk_element[0].getAttribute('android:targetSdkVersion')
 
   @classmethod
   def get_app_name(cls, manifest):
-    """Return a string with the application name of the package, return None if not found."""
-    # This is used to provide a folder name in dist. Since it has a fallback value it should be ok.
-    tgt_manifest = parse(manifest).getElementsByTagName('activity')
+    """Return a string with the application name of the package or return None on failure."""
+    # This is used to provide a folder name in dist. Since it has a fallback value any
+    # failure returns None. The None case is handled by the consumer.
     try:
-      package_name = tgt_manifest[0].getAttribute('android:name')
-      return package_name.split(".")[-1]
+      activity_element = parse(manifest).getElementsByTagName('activity')
+      package_name = activity_element[0].getAttribute('android:name')
+      # The parser returns an empty string if it locates 'android' but cannot find 'name'.
+      if package_name not in (None, ''):
+        return package_name.split(".")[-1]
+      return None
     except:
       return None
