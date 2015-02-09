@@ -23,7 +23,7 @@ class AndroidManifestParser(object):
     # This error catching shouldn't ever hit so the existing checks should be fine.
     tgt_manifest = parse(manifest).getElementsByTagName('manifest')
     if not tgt_manifest or not tgt_manifest[0].getAttribute('package'):
-      raise cls.BadManifestError('There is no \'package\' attribute in manifest at: {0!r}'
+      raise cls.BadManifestError('There is no \'package\' attribute in manifest at: {0}'
                                   .format(manifest))
     return tgt_manifest[0].getAttribute('package')
 
@@ -34,7 +34,7 @@ class AndroidManifestParser(object):
     # since it will not be able to find the associated tool.
     tgt_manifest = parse(manifest).getElementsByTagName('uses-sdk')
     if not tgt_manifest or not tgt_manifest[0].getAttribute('android:targetSdkVersion'):
-      raise cls.BadManifestError('There is no \'targetSdkVersion\' attribute in manifest at: {0!r}'
+      raise cls.BadManifestError('There is no \'targetSdkVersion\' attribute in manifest at: {0}'
                                   .format(manifest))
     return tgt_manifest[0].getAttribute('android:targetSdkVersion')
 

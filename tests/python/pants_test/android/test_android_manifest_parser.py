@@ -20,21 +20,27 @@ class TestAndroidManifestParser(unittest.TestCase):
 
   @contextmanager
   def android_manifest(self,
-                       manifest_element='manifest'):
+                       manifest_element='manifest',
+                       package_attribute='package',
+                       uses_sdk_element='uses-sdk',
+                       android_attribute='android:targetSdkVersion',
+                       activity_element='activity'):
     """Represent an AndroidManifest.xml."""
     with temporary_file() as fp:
       fp.write(textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
         <{manifest} xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.pants.examples.hello" >
-            <uses-sdk
-                android:targetSdkVersion="19" />
+            {package}="com.pants.examples.hello" >
+            <{uses_sdk}
+                {android}="19" />
             <application >
-                <activity
+                <{activity}
                     android:name="com.pants.examples.hello.HelloWorld" >
-                </activity>
+                </{activity}>
             </application>
-        </{manifest}>""".format(manifest = manifest_element)))
+        </{manifest}>""".format(manifest = manifest_element, package = package_attribute,
+                                uses_sdk = uses_sdk_element, android = android_attribute,
+                                activity = activity_element)))
       fp.close()
       path = fp.name
       yield path
@@ -49,3 +55,37 @@ class TestAndroidManifestParser(unittest.TestCase):
       with self.android_manifest(manifest_element='grape_soda') as manifest:
         self.assertEqual(AndroidManifestParser.get_package_name(manifest),
                          'com.pants.examples.hello')
+
+  def test_missing_package_attribute(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(package_attribute='lemonade') as manifest:
+        self.assertEqual(AndroidManifestParser.get_package_name(manifest),
+                         'com.pants.examples.hello')
+
+  def test_get_target_sdk(self):
+    with self.android_manifest() as manifest:
+      self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
+
+  def test_no_uses_sdk_element(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(uses_sdk_element='bourbon') as manifest:
+        self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
+
+  def test_no_uses_sdk_element(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(uses_sdk_element='bourbon') as manifest:
+        self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
+
+  def test_no_android_element(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(android_attribute='bourbon') as manifest:
+        self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
+
+  def test_no_target_sdk_value(self):
+    with self.assertRaises(AndroidManifestParser.BadManifestError):
+      with self.android_manifest(android_attribute='android:tonka-truck') as manifest:
+        self.assertEqual(AndroidManifestParser.get_target_sdk(manifest), '19')
+
+  def test_get_app_name(self):
+    with self.android_manifest() as manifest:
+      self.assertEqual(AndroidManifestParser.get_app_name(manifest), 'HelloWorld')
