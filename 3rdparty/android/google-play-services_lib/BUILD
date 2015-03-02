@@ -3,11 +3,10 @@
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 android_binary(
-  name='map-quake',
-  sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
+  name='google-play-services-lib',
+  sources=rglobs('src/android/*java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android/google-play-services_lib:google-play-services',
     ':resources',
   ],
 )
@@ -16,14 +15,6 @@ android_resources(
   name='resources',
   manifest='AndroidManifest.xml',
   resource_dir='res'
-)
-
-jar_library(name='support',
-  jars = [
-    # wrong rev number --UPDATE
-    jar(org='android.support.v4.app', name='android-support', rev='4',
-        url='libs/android-support-v4.jar',),
-  ],
 )
 
 jar_library(name='google-play-services',
