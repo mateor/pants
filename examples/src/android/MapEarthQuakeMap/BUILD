@@ -18,7 +18,7 @@ android_resources(
   resource_dir='res'
 )
 
-jar_library(name='support',
+android_library(name='support',
   jars = [
     # wrong rev number --UPDATE
     jar(org='android.support.v4.app', name='android-support', rev='4',
@@ -26,7 +26,7 @@ jar_library(name='support',
   ],
 )
 
-jar_library(name='google-play-services',
+android_library(name='google-play-services',
   jars = [
     jar(org='com.google.android.gms', name='google-play-services', rev='4',
         url='libs/google-play-services.jar',),

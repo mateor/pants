@@ -11,6 +11,7 @@ import subprocess
 
 from twitter.common.collections import OrderedSet
 
+from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_task import AaptTask
 from pants.backend.codegen.tasks.code_gen import CodeGen
@@ -92,6 +93,16 @@ class AaptGen(AaptTask, CodeGen):
     for target in targets:
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: {0}'.format(lang))
+
+      library_deps = []
+
+      def gather_library_resources(target):
+        if isinstance(target, AndroidLibrary):
+          library_deps.append(os.path.join(get_buildroot(), target.resource_dir))
+
+      target.walk(gather_library_resources)
+      print("AAPT_GEN has found these resources: ", library_deps)
+
       args = self._render_args(target, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
         returncode = subprocess.call(args, stdout=workunit.output('stdout'),
