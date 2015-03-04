@@ -7,8 +7,9 @@ android_binary(
   sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android/google-play-services_lib:google-play-services',
+    '3rdparty/android/google-play-services_lib:google-play-services_lib',
     ':resources',
+    ':support',
   ],
 )
 
@@ -18,17 +19,10 @@ android_resources(
   resource_dir='res'
 )
 
-android_library(name='support',
+jar_library(name='support',
   jars = [
     # wrong rev number --UPDATE
     jar(org='android.support.v4.app', name='android-support', rev='4',
         url='libs/android-support-v4.jar',),
-  ],
-)
-
-android_library(name='google-play-services',
-  jars = [
-    jar(org='com.google.android.gms', name='google-play-services', rev='4',
-        url='libs/google-play-services.jar',),
   ],
 )

@@ -8,5 +8,5 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 from pants.backend.android.targets.android_target import AndroidTarget
 from pants.backend.jvm.targets.jar_library import JarLibrary
 
-class AndroidLibrary(AndroidTarget, JarLibrary):
+class AndroidLibrary(AndroidTarget):
   """Produces an Android binary."""

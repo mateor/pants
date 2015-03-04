@@ -97,7 +97,9 @@ class AaptGen(AaptTask, CodeGen):
       library_deps = []
 
       def gather_library_resources(target):
-        if isinstance(target, AndroidLibrary):
+        print("HERE WE TRY AND SEE")
+        if isinstance(target, AndroidResources):
+          print("PARTRIDGE AND A PEAR TREE")
           library_deps.append(os.path.join(get_buildroot(), target.resource_dir))
 
       target.walk(gather_library_resources)
