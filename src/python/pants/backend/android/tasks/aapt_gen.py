@@ -94,16 +94,24 @@ class AaptGen(AaptTask, CodeGen):
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: {0}'.format(lang))
 
-      library_deps = []
+      library_deps = self.context.dependents(on_predicate=self.is_gentarget,
+                                             from_predicate=lambda t: not self.is_gentarget(t))
 
-      def gather_library_resources(target):
-        print("HERE WE TRY AND SEE")
-        if isinstance(target, AndroidResources):
-          print("PARTRIDGE AND A PEAR TREE")
-          library_deps.append(os.path.join(get_buildroot(), target.resource_dir))
+      def get_products_path(target):
+        """Get path of target's unsigned apks as created by AaptBuilder."""
+        resource_deps = self.context.dependents(on_predicate=self.is_gentarget,
+                                       from_predicate=lambda t: not self.is_gentarget(t))
 
-      target.walk(gather_library_resources)
-      print("AAPT_GEN has found these resources: ", library_deps)
+        print("deps: ", resource_deps, "AND CLOSURE: ", target.closure())
+
+        if resource_deps:
+          print("We ghave pajckcahge")
+          for tgts, products in resource_deps.items():
+            for prod in products:
+              yield os.path.join(prod)
+
+      packages = list(get_products_path(target))
+      print("AAPT_GEN has found these resources: ", packages)
 
       args = self._render_args(target, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
