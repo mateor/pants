@@ -7,7 +7,7 @@ android_binary(
   sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android/google-play-services_lib:google-play-services_lib',
+    '3rdparty/android/google-play-services_lib:google-play-services',
     ':resources',
     ':support',
   ],
