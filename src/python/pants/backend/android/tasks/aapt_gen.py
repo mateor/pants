@@ -68,7 +68,7 @@ class AaptGen(AaptTask, CodeGen):
       address = SyntheticAddress(self.workdir, '{0}-jars'.format(sdk))
       self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
-  def _render_args(self, target, output_dir):
+  def _render_args(self, target, resource_dirs, output_dir):
     """Compute the args that will be passed to the aapt tool."""
     args = []
 
@@ -82,7 +82,9 @@ class AaptGen(AaptTask, CodeGen):
     args.extend([self.aapt_tool(target.build_tools_version)])
     args.extend(['package', '-m', '-J', output_dir])
     args.extend(['-M', target.manifest.path])
-    args.extend(['-S', target.resource_dir])
+    args.append('--auto-add-overlay')
+    for dir in resource_dirs:
+      args.extend(['-S', dir])
     args.extend(['-I', self.android_jar_tool(target.manifest.target_sdk)])
     args.extend(['--ignore-assets', self.ignored_assets])
     logger.debug('Executing: {0}'.format(' '.join(args)))
@@ -94,7 +96,7 @@ class AaptGen(AaptTask, CodeGen):
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: {0}'.format(lang))
 
-      gripper = []
+      resource_dirs = []
 
       def get_products_path(target):
         """Get path of target's unsigned apks as created by AaptBuilder."""
@@ -106,14 +108,13 @@ class AaptGen(AaptTask, CodeGen):
           for tgts, products in resource_deps.items():
             for prod in products:
               print("FIRST PROD: ", prod)
-              gripper.insert(0, os.path.join(get_buildroot(), prod.resource_dir))
+              resource_dirs.insert(0, os.path.join(get_buildroot(), prod.resource_dir))
               yield (os.path.join(get_buildroot(), prod.resource_dir))
 
       resources = tuple(get_products_path(target))
-      print("AAPT_GEN has found these resources: ", resources, "ALSOSOSOSOSOS: ", gripper)
+      print("AAPT_GEN has found these resources: ", resources, "ALSOSOSOSOSOS: ", resource_dirs)
 
-      print("CLOSURE: ", target.walk(self.is_gentarget(target)))
-      args = self._render_args(target, self.workdir)
+      args = self._render_args(target, resource_dirs, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
         returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                      stderr=workunit.output('stderr'))
