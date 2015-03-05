@@ -94,24 +94,21 @@ class AaptGen(AaptTask, CodeGen):
       if lang != 'java':
         raise TaskError('Unrecognized android gen lang: {0}'.format(lang))
 
-      library_deps = self.context.dependents(on_predicate=self.is_gentarget,
-                                             from_predicate=lambda t: not self.is_gentarget(t))
-
       def get_products_path(target):
         """Get path of target's unsigned apks as created by AaptBuilder."""
-        resource_deps = self.context.dependents(on_predicate=self.is_gentarget,
-                                       from_predicate=lambda t: not self.is_gentarget(t))
+        resource_deps = self.context.dependents(on_predicate=self.is_gentarget)
 
-        print("deps: ", resource_deps, "AND CLOSURE: ", target.closure())
+  # TODO (BEFORE REVIEW) Define a separate target and run android:: and see if this is still ok.
 
         if resource_deps:
-          print("We ghave pajckcahge")
           for tgts, products in resource_deps.items():
             for prod in products:
-              yield os.path.join(prod)
+              print("FIRST PROD: ", prod)
+              yield (os.path.join(get_buildroot(), prod.resource_dir))
 
-      packages = list(get_products_path(target))
-      print("AAPT_GEN has found these resources: ", packages)
+      resources = tuple(get_products_path(target))
+      print("AAPT_GEN has found these resources: ", resources, "OF TYPE: ", type(resources))
+
 
       args = self._render_args(target, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
