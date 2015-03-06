@@ -3,14 +3,15 @@
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 android_binary(
-  name='map-quake',
+  name='map-quaker',
   sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android/google-play-services_lib:google-play-services',
+    ':google-play-services-new',
     ':resources',
     ':support',
-  ],
+    'examples/src/android/google-play-services_lib:resources',
+    ],
 )
 
 android_resources(
@@ -23,6 +24,14 @@ jar_library(name='support',
   jars = [
     # wrong rev number --UPDATE
     jar(org='android.support.v4.app', name='android-support', rev='4',
-        url='libs/android-support-v4.jar',),
+        url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/android-support-v4.jar',),
   ],
 )
+
+jar_library(name='google-play-services-new',
+            jars = [
+              # wrong rev number --UPDATE
+              jar(org='com.google.android.gms', name='gms', rev='4',
+                  url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/google-play-services.jar',),
+              ],
+            )

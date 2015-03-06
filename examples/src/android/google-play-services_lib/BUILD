@@ -22,9 +22,6 @@ android_resources(
 jar_library(name='google-play-services',
   jars = [
     jar(org='com.google', name='android.gms', rev='44',
-        url='file:///Users/mateor/development/pants/3rdParty/android/google-play-services_lib/libs/google-play-services.jar',),
+        url='file:///Users/mateor/development/pants/examples/src/android/google-play-services_lib/libs/google-play-services.jar',),
     ],
-  dependencies = [
-    ':resources',
-  ],
 )
