@@ -93,6 +93,7 @@ class DxCompile(AndroidTask, NailgunTask):
 
           def add_to_dex(tgt):
             target_classes = classes_by_target.get(tgt)
+            print("Target: ", tgt, " CLASSES: ", target_classes)
             if target_classes:
 
               def add_classes(target_products):
@@ -102,11 +103,13 @@ class DxCompile(AndroidTask, NailgunTask):
 
               add_classes(target_classes)
 
-          target.walk(add_to_dex)
+          target.walk(add_to_dex, predicate=lambda t: isinstance(t, AndroidBinary))
+          print("DX COMPILE classes : ", classes)
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
           args = self._render_args(outdir, classes)
-          self._compile_dex(args, target.build_tools_version)
+          print("ARGS for DX : ", ' '.join(args))
+        self._compile_dex(args, target.build_tools_version)
       for target in targets:
         self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
 
