@@ -48,6 +48,7 @@ class AaptBuilder(AaptTask):
     #   : 'package' is the main aapt operation (see class docstring for more info).
     #   : '-f' to 'force' overwrites if the package already exists.
     #   : '-M' is the AndroidManifest.xml of the project.
+    #   : '--auto-add-overlay' automatically add resources that are only in overlays.
     #   : '-S' points to the resource_dir to "spider" down while collecting resources.
     #   : '-I' packages to add to base "include" set, here the android.jar of the target-sdk.
     #   : '--ignored-assets' patterns for the aapt to skip. This is the default w/ 'BUILD*' added.
@@ -56,8 +57,9 @@ class AaptBuilder(AaptTask):
     args.extend([self.aapt_tool(target.build_tools_version)])
     args.extend(['package', '-f'])
     args.extend(['-M', target.manifest.path])
-    args.extend(['-S'])
-    args.extend(resource_dir)
+    args.append('--auto-add-overlay')
+    for dir in resource_dir:
+      args.extend(['-S', dir])
     args.extend(['-I', self.android_jar_tool(target.manifest.target_sdk)])
     args.extend(['--ignore-assets', self.ignored_assets])
     args.extend(['-F', os.path.join(self.workdir,
