@@ -7,7 +7,7 @@ android_binary(
   sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    ':google-play-services-new',
+    ':gms',
     ':resources',
     ':support',
     'examples/src/android/google-play-services_lib:resources',
@@ -19,6 +19,17 @@ android_resources(
   manifest='AndroidManifest.xml',
   resource_dir='res'
 )
+
+android_library(name='gms',
+                sources=from_target(':play-services'),
+)
+
+unpacked_jars(name='play-services',
+              libraries=[':google-play-services-new'],
+              include_patterns=[
+                'com/google/**/*.java',
+                ],
+              )
 
 jar_library(name='support',
   jars = [
