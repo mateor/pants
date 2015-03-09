@@ -8,9 +8,10 @@ android_binary(
   manifest='AndroidManifest.xml',
   dependencies = [
     ':gms',
-    ':resources',
+    ':google-play-services-new',
     ':support',
     'examples/src/android/google-play-services_lib:resources',
+    ':resources'
     ],
 )
 
