@@ -16,6 +16,7 @@ IGNORED_ASSETS = ('!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:'
 
 class AaptTask(AndroidTask):
   """Base class for tasks performed by the Android aapt tool."""
+
   @classmethod
   def register_options(cls, register):
     super(AaptTask, cls).register_options(register)

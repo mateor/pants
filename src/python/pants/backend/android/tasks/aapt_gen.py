@@ -76,7 +76,7 @@ class AaptGen(AaptTask, CodeGen):
     #   : '-m' is to "make" a package directory under location '-J'.
     #   : '-J' Points to the output directory.
     #   : '-M' is the AndroidManifest.xml of the project.
-    #   : '-S' points to the resource_dir to "spider" down while collecting resources.
+    #   : '-S' points to the resource_dirs to "scan" when collecting resources.
     #   : '-I' packages to add to base "include" set, here it is the android.jar of the target-sdk.
     args.extend([self.aapt_tool(target.build_tools_version)])
     args.extend(['package', '-m', '-J', output_dir])

@@ -23,10 +23,22 @@ target(
 python_tests(
   name = 'aapt_builder_integration',
   sources = [
+    'tests/python/pants_test/android:android_base',
     'test_aapt_builder_integration.py',
   ],
   dependencies = [
     'tests/python/pants_test/android:android_integration_test',
+  ],
+)
+
+python_tests(
+  name = 'aapt_task',
+  sources = [
+    'test_aapt_task.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/tasks:all',
+    'tests/python/pants_test/android:android_base',
   ],
 )
 
@@ -37,6 +49,7 @@ python_tests(
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:all',
+    'tests/python/pants_test/android:android_base',
   ],
 )
 

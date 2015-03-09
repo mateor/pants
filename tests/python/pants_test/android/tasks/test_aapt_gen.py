@@ -6,33 +6,22 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
-import unittest
 
 from pants.backend.android.tasks.aapt_gen import AaptGen
+from pants_test.android.test_android_base import TestAndroidBase
 
+class TestAaptGen(TestAndroidBase):
+  """Test the methods in pants.backend.android.tasks.aapt_gen."""
 
-class AaptGenCalculateGenfilesTest(unittest.TestCase):
-  """Test the package translation methods in pants.backend.android.tasks.aapt_gen."""
+  @classmethod
+  def task_type(cls):
+    return AaptGen
 
-  def assert_files(self, package, expected_file):
-    self.assertEqual(AaptGen._calculate_genfile(package), expected_file)
+  def test_aapt_gen_smoke(self):
+    task = self.prepare_task(build_graph=self.build_graph,
+                             build_file_parser=self.build_file_parser)
+    task.execute()
 
   def test_calculate_genfile(self):
-    self.assert_files('com.pants.examples.hello',
-      os.path.join('com', 'pants', 'examples', 'hello', 'R.java'))
-
-    with self.assertRaises(AssertionError):
-      self.assert_files('com.pants.examples.hello',
-        os.path.join('bin', 'com', 'pants', 'examples', 'hello'))
-
-  def test_package_path(self):
-    self.assertEqual(os.path.join('com', 'pants', 'example', 'tests'),
-                     AaptGen.package_path('com.pants.example.tests'))
-
-    with self.assertRaises(AssertionError):
-      self.assertEqual(os.path.join('com', 'pants', 'example', 'tests'),
-                       AaptGen.package_path('com.pants-example.tests'))
-
-    with self.assertRaises(AssertionError):
-      self.assertEqual(os.path.join('com', 'pants', 'example', 'tests'),
-                       AaptGen.package_path('com.pants.example'))
+    self.assertEqual(AaptGen._calculate_genfile('com.pants.examples.hello'),
+                     os.path.join('com', 'pants', 'examples', 'hello', 'R.java'))

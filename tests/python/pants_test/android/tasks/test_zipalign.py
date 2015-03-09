@@ -23,7 +23,6 @@ class TestZipalign(TestAndroidBase):
                              build_file_parser=self.build_file_parser)
     task.execute()
 
-
   def test_zipalign_binary(self):
     with self.distribution() as dist:
       with self.android_binary() as android_binary:
