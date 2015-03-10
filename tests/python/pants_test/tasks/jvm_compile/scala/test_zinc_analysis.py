@@ -29,7 +29,7 @@ class ZincAnalysisTest(unittest.TestCase):
 
   def test_analysis_files(self):
     classes_dir = '/Users/kermit/src/acme.web/.pants.d/scalac/classes/'
-    parser = ZincAnalysisParser()
+    parser = ZincAnalysisParser(classes_dir)
 
     with temporary_dir() as tmpdir:
       # Extract analysis files from tarball.
