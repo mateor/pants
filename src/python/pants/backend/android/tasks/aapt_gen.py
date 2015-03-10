@@ -98,11 +98,12 @@ class AaptGen(AaptTask, CodeGen):
 
       resource_dirs = []
 
-      def get_products_path(target):
-        """Get path of target's unsigned apks as created by AaptBuilder."""
+      # TODO (BEFORE REVIEW) this obviously needs work.
+      def get_resource_dirs(target):
+        """Get path of all resource_dirs the target depends on."""
         resource_deps = self.context.dependents(on_predicate=self.is_gentarget)
 
-  # TODO (BEFORE REVIEW) Define a separate target and run android:: and see if this is still ok.
+        # TODO (BEFORE REVIEW) Define a separate target and run android:: and see if this is still ok.
 
         if resource_deps:
           for tgts, products in resource_deps.items():
@@ -111,8 +112,7 @@ class AaptGen(AaptTask, CodeGen):
               resource_dirs.insert(0, os.path.join(get_buildroot(), prod.resource_dir))
               yield (os.path.join(get_buildroot(), prod.resource_dir))
 
-      resources = tuple(get_products_path(target))
-      print("AAPT_GEN has found these resources: ", resources, "ALSOSOSOSOSOS: ", resource_dirs)
+      tuple(get_resource_dirs(target))
 
       args = self._render_args(target, resource_dirs, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
