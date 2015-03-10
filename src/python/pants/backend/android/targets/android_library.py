@@ -15,6 +15,7 @@ from pants.base.payload_field import PrimitiveField
 
 logger = logging.getLogger(__name__)
 
+# TODO (This is obviously a total stub. Needs to incorporate the android logic, not the proto logic.
 
 class AndroidLibrary(ImportJarsMixin, AndroidTarget):
   """Generates a stub Java library from protobuf IDL files."""
@@ -22,7 +23,7 @@ class AndroidLibrary(ImportJarsMixin, AndroidTarget):
   def __init__(self, payload=None, imports=None, **kwargs):
     """
     :param list imports: List of addresses of `jar_library <#jar_library>`_
-      targets which contain .proto definitions.
+      targets.
     """
     payload = payload or Payload()
     # TODO(Eric Ayers): The target needs to incorporate the settings of --gen-protoc-version
