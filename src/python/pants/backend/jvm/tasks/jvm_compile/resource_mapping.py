@@ -99,6 +99,3 @@ class ResourceMapping(object):
 
   def get(self, key, default=None):
     return self.mappings.get(key, default)
-
-  def __str__(self):
-    return "ResourceMapping(%s)" % str(self.mappings)
