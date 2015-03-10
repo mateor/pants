@@ -146,6 +146,7 @@ class UnpackJars(Task):
           found_files.append(relpath)
       rel_unpack_dir = os.path.relpath(unpack_dir, get_buildroot())
       unpacked_sources_product = self.context.products.get_data('unpacked_archives', lambda: {})
+      # TODO why is this like this? weird to use a list this way.
       unpacked_sources_product[unpacked_jars_target] = [found_files, rel_unpack_dir]
 
     # Returning the list of unpacked targets for testing purposes

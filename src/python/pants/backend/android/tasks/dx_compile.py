@@ -6,18 +6,14 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
-from hashlib import sha1
-
-from twitter.common.collections import OrderedSet
 
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.jvm.tasks.nailgun_task import NailgunTask
+from pants.base.build_environment import get_buildroot
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.util.dirutil import safe_mkdir
-from pants.fs.archive import ZIP
-from pants.base.build_environment import get_buildroot
 
 
 class DxCompile(AndroidTask, NailgunTask):
@@ -25,7 +21,7 @@ class DxCompile(AndroidTask, NailgunTask):
   Compile java classes into dex files, Dalvik executables.
   """
 
-  # name of output file. "Output name must end with one of: .dex .jar .zip .apk or be a directory."
+  # Name of output file. "Output name must end with one of: .dex .jar .zip .apk or be a directory."
   DEX_NAME = 'classes.dex'
 
   @staticmethod
@@ -49,7 +45,7 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
-    round_manager.require_data('unpacked_archives')
+    round_manager.require_data('deferred_sources')
 
   def __init__(self, *args, **kwargs):
     super(DxCompile, self).__init__(*args, **kwargs)
@@ -57,37 +53,6 @@ class DxCompile(AndroidTask, NailgunTask):
     self._forced_jvm_options = self.get_options().jvm_options
 
     self.setup_artifact_cache()
-
-  def _jars_to_directories(self, target):
-    """Extracts and maps jars to directories containing their contents.
-
-    :returns: a set of filepaths to directories containing the contents of jar.
-    """
-    files = set()
-    jarmap = self.context.products.get('ivy_imports')
-    print("JARMAP IS: ", jarmap)
-    classmap = self.context.products.get('unpacked_archives')
-    print("CLASSMAP IS: ", classmap)
-    for folder, names in jarmap.by_target[target].items():
-      for name in names:
-        files.add(self._extract_jar(os.path.join(folder, name)))
-    return files
-
-  def _extract_jar(self, jar_path):
-    """Extracts the jar to a subfolder of workdir/extracted and returns the path to it."""
-    with open(jar_path, 'rb') as f:
-      outdir = os.path.join(self.workdir, 'extracted', sha1(f.read()).hexdigest())
-    if not os.path.exists(outdir):
-      ZIP.extract(jar_path, outdir)
-      self.context.log.debug('Extracting jar at {jar_path}.'.format(jar_path=jar_path))
-    else:
-      self.context.log.debug('Jar already extracted at {jar_path}.'.format(jar_path=jar_path))
-    return outdir
-
-  def _dx_path_imports(self, dx_targets):
-    for target in dx_targets:
-      for path in self._jars_to_directories(target):
-        yield os.path.relpath(path, get_buildroot())
 
   def _render_args(self, outdir, classes):
     dex_file = os.path.join(outdir, self.DEX_NAME)
@@ -117,12 +82,8 @@ class DxCompile(AndroidTask, NailgunTask):
 
   def execute(self):
     with self.context.new_workunit(name='dx-compile', labels=[WorkUnit.MULTITOOL]):
-
       targets = self.context.targets(self.is_dextarget)
 
-      bases = OrderedSet()
-      bases.update(self._dx_path_imports(targets))
-      print("RANDOM ASS DX IMPORTS ARE: ", bases)
       with self.invalidated(targets) as invalidation_check:
         invalid_targets = []
         for vt in invalidation_check.invalid_vts:
@@ -131,26 +92,33 @@ class DxCompile(AndroidTask, NailgunTask):
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
           classes_by_target = self.context.products.get_data('classes_by_target')
+          unpacked_archives = self.context.products.get_data('unpacked_archives')
           classes = []
 
           def add_to_dex(tgt):
+            def add_classes(target_products):
+              for _, products in target_products.abs_paths():
+                for prod in products:
+                  classes.append(prod)
+
             target_classes = classes_by_target.get(tgt)
-            print("Target: ", tgt, " CLASSES: ", target_classes)
+            unpacked = unpacked_archives.get(tgt)
+
             if target_classes:
-
-              def add_classes(target_products):
-                for _, products in target_products.abs_paths():
-                  for prod in products:
-                    classes.append(prod)
-
               add_classes(target_classes)
 
+            # This is obviously not a long term implementation.
+            # How to get this from the DeferredSourcesMapper?
+            if unpacked:
+             for file in unpacked[0]:
+               dir = unpacked[1]
+               file_path = os.path.join(get_buildroot(), dir, file)
+               classes.append(file_path)
+
           target.walk(add_to_dex)
-          print("DX COMPILE classes : ", classes)
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
           args = self._render_args(outdir, classes)
-          print("ARGS for DX : ", ' '.join(args))
           # TODO (mateor) wrap this in a workunit and properly handle stdout/err.
           self._compile_dex(args, target.build_tools_version)
       for target in targets:
