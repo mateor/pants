@@ -21,19 +21,19 @@ android_resources(
 )
 
 android_library(name='gms',
-                sources=from_target(':play-services'),
-                dependencies=[
-                  ':play-services',
-                  'examples/src/android/google-play-services_lib:resources',
-                  ]
+  sources=from_target(':play-services'),
+  dependencies=[
+    ':play-services',
+    'examples/src/android/google-play-services_lib:resources',
+  ]
 )
 
 unpacked_jars(name='play-services',
-              libraries=[':google-play-services-new'],
-              include_patterns=[
-                'com/google/**/*.class',
-                ],
-              )
+  libraries=[':google-play-services-new'],
+  include_patterns=[
+    'com/google/**/*.class',
+  ],
+)
 
 jar_library(name='support',
   jars = [
@@ -44,8 +44,8 @@ jar_library(name='support',
 )
 
 jar_library(name='google-play-services-new',
-            jars = [
-              jar(org='com.google.android', name='gms', rev='6.5.87000',
-                  url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/google-play-services.jar',),
-              ],
-            )
+  jars = [
+    jar(org='com.google.android', name='gms', rev='6.5.87000',
+        url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/google-play-services.jar',),
+  ],
+)
