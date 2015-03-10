@@ -18,6 +18,9 @@ class ParseError(TaskError):
 class AnalysisParser(object):
   """Parse a file containing representation of an analysis for some JVM language."""
 
+  def __init__(self, classes_dir):
+    self.classes_dir = classes_dir  # The output dir for classes in this analysis.
+
   @property
   def empty_test_header(self):
     """The header of a section that will be nonempty iff the analysis is nonempty.
@@ -47,22 +50,22 @@ class AnalysisParser(object):
     """Parse an analysis instance from an open file."""
     raise NotImplementedError()
 
-  def parse_products_from_path(self, infile_path, classes_dir):
+  def parse_products_from_path(self, infile_path):
     """An efficient parser of just the src->class mappings.
 
     Returns a map of src -> list of classfiles. All paths are absolute.
     """
     with open(infile_path, 'r') as infile:
-      return self.parse_products(infile, classes_dir)
+      return self.parse_products(infile)
 
-  def parse_products(self, infile, classes_dir):
+  def parse_products(self, infile):
     """An efficient parser of just the src->class mappings.
 
     Returns a map of src -> list of classfiles. All paths are absolute.
     """
     raise NotImplementedError()
 
-  def parse_deps_from_path(self, infile_path, classpath_indexer, classes_dir):
+  def parse_deps_from_path(self, infile_path, classpath_indexer):
     """An efficient parser of just the src->dep mappings.
 
     classpath_indexer - a no-arg method that an implementation may call if it needs a mapping
@@ -70,9 +73,9 @@ class AnalysisParser(object):
                         We use this indirection to avoid unnecessary precomputation.
     """
     with open(infile_path, 'r') as infile:
-      return self.parse_deps(infile, classpath_indexer, classes_dir)
+      return self.parse_deps(infile, classpath_indexer)
 
-  def parse_deps(self, infile, classpath_indexer, classes_dir):
+  def parse_deps(self, infile, classpath_indexer):
     """An efficient parser of just the binary, source and external deps sections.
 
     classpath_indexer - a no-arg method that an implementation may call if it needs a mapping
