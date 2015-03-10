@@ -6,11 +6,10 @@ android_binary(
   name='map-quaker',
   sources=rglobs('src/course/examples/maps/earthquakemap/*java'),
   manifest='AndroidManifest.xml',
-  dependencies = [
+  dependencies=[
     ':gms',
     ':google-play-services-new',
     ':support',
-    'examples/src/android/google-play-services_lib:resources',
     ':resources'
     ],
 )
@@ -23,12 +22,16 @@ android_resources(
 
 android_library(name='gms',
                 sources=from_target(':play-services'),
+                dependencies=[
+                  ':play-services',
+                  'examples/src/android/google-play-services_lib:resources',
+                  ]
 )
 
 unpacked_jars(name='play-services',
               libraries=[':google-play-services-new'],
               include_patterns=[
-                'com/google/**/*.java',
+                'com/google/**/*.class',
                 ],
               )
 
@@ -42,8 +45,7 @@ jar_library(name='support',
 
 jar_library(name='google-play-services-new',
             jars = [
-              # wrong rev number --UPDATE
-              jar(org='com.google.android.gms', name='gms', rev='4',
+              jar(org='com.google.android', name='gms', rev='6.5.87000',
                   url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/google-play-services.jar',),
               ],
             )

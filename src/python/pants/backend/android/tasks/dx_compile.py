@@ -6,6 +6,9 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+from hashlib import sha1
+
+from twitter.common.collections import OrderedSet
 
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
@@ -13,6 +16,8 @@ from pants.backend.jvm.tasks.nailgun_task import NailgunTask
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.util.dirutil import safe_mkdir
+from pants.fs.archive import ZIP
+from pants.base.build_environment import get_buildroot
 
 
 class DxCompile(AndroidTask, NailgunTask):
@@ -44,6 +49,7 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
+    round_manager.require_data('unpacked_archives')
 
   def __init__(self, *args, **kwargs):
     super(DxCompile, self).__init__(*args, **kwargs)
@@ -51,6 +57,37 @@ class DxCompile(AndroidTask, NailgunTask):
     self._forced_jvm_options = self.get_options().jvm_options
 
     self.setup_artifact_cache()
+
+  def _jars_to_directories(self, target):
+    """Extracts and maps jars to directories containing their contents.
+
+    :returns: a set of filepaths to directories containing the contents of jar.
+    """
+    files = set()
+    jarmap = self.context.products.get('ivy_imports')
+    print("JARMAP IS: ", jarmap)
+    classmap = self.context.products.get('unpacked_archives')
+    print("CLASSMAP IS: ", classmap)
+    for folder, names in jarmap.by_target[target].items():
+      for name in names:
+        files.add(self._extract_jar(os.path.join(folder, name)))
+    return files
+
+  def _extract_jar(self, jar_path):
+    """Extracts the jar to a subfolder of workdir/extracted and returns the path to it."""
+    with open(jar_path, 'rb') as f:
+      outdir = os.path.join(self.workdir, 'extracted', sha1(f.read()).hexdigest())
+    if not os.path.exists(outdir):
+      ZIP.extract(jar_path, outdir)
+      self.context.log.debug('Extracting jar at {jar_path}.'.format(jar_path=jar_path))
+    else:
+      self.context.log.debug('Jar already extracted at {jar_path}.'.format(jar_path=jar_path))
+    return outdir
+
+  def _dx_path_imports(self, dx_targets):
+    for target in dx_targets:
+      for path in self._jars_to_directories(target):
+        yield os.path.relpath(path, get_buildroot())
 
   def _render_args(self, outdir, classes):
     dex_file = os.path.join(outdir, self.DEX_NAME)
@@ -80,7 +117,12 @@ class DxCompile(AndroidTask, NailgunTask):
 
   def execute(self):
     with self.context.new_workunit(name='dx-compile', labels=[WorkUnit.MULTITOOL]):
+
       targets = self.context.targets(self.is_dextarget)
+
+      bases = OrderedSet()
+      bases.update(self._dx_path_imports(targets))
+      print("RANDOM ASS DX IMPORTS ARE: ", bases)
       with self.invalidated(targets) as invalidation_check:
         invalid_targets = []
         for vt in invalidation_check.invalid_vts:
