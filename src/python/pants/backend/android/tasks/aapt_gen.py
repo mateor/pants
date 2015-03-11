@@ -11,7 +11,6 @@ import subprocess
 
 from twitter.common.collections import OrderedSet
 
-from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_task import AaptTask
 from pants.backend.codegen.tasks.code_gen import CodeGen
