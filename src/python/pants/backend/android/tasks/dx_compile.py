@@ -102,18 +102,19 @@ class DxCompile(AndroidTask, NailgunTask):
                   classes.append(prod)
 
             target_classes = classes_by_target.get(tgt)
-            unpacked = unpacked_archives.get(tgt)
 
             if target_classes:
               add_classes(target_classes)
 
             # This is obviously not a long term implementation.
             # How to get this from the DeferredSourcesMapper?
-            if unpacked:
-             for file in unpacked[0]:
-               dir = unpacked[1]
-               file_path = os.path.join(get_buildroot(), dir, file)
-               classes.append(file_path)
+            if unpacked_archives:
+              unpacked = unpacked_archives.get(tgt)
+              if unpacked:
+               for file in unpacked[0]:
+                 dir = unpacked[1]
+                 file_path = os.path.join(get_buildroot(), dir, file)
+                 classes.append(file_path)
 
           target.walk(add_to_dex)
           if not classes:
