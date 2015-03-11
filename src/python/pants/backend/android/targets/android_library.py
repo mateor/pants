@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # TODO (This is obviously a total stub. Needs to incorporate the android logic, not the proto logic.
 
 class AndroidLibrary(ImportJarsMixin, AndroidTarget):
-  """Generates a stub Java library from protobuf IDL files."""
+  """Android library target as a jar."""
 
   def __init__(self, payload=None, imports=None, **kwargs):
     """
