@@ -67,6 +67,18 @@ class AaptGen(AaptTask, CodeGen):
       address = SyntheticAddress(self.workdir, '{0}-jars'.format(sdk))
       self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
+  def _jars_to_directories(self, target):
+    """Extracts and maps jars to directories containing their contents.
+
+    :returns: a set of filepaths to directories containing the contents of jar.
+    """
+    files = set()
+    jarmap = self.context.products.get('ivy_imports')
+    for folder, names in jarmap.by_target[target].items():
+      for name in names:
+        files.add(self._extract_jar(os.path.join(folder, name)))
+    return files
+
   def _render_args(self, target, resource_dirs, output_dir):
     """Compute the args that will be passed to the aapt tool."""
     args = []
@@ -98,7 +110,7 @@ class AaptGen(AaptTask, CodeGen):
       resource_dirs = []
 
       # TODO (BEFORE REVIEW) this obviously needs work.
-      def get_resource_dirs(target):
+      def get_resource_dirs():
         """Get path of all resource_dirs the target depends on."""
         resource_deps = self.context.dependents(on_predicate=self.is_gentarget)
 
@@ -107,11 +119,10 @@ class AaptGen(AaptTask, CodeGen):
         if resource_deps:
           for tgts, products in resource_deps.items():
             for prod in products:
-              print("FIRST PROD: ", prod)
               resource_dirs.insert(0, os.path.join(get_buildroot(), prod.resource_dir))
               yield (os.path.join(get_buildroot(), prod.resource_dir))
 
-      tuple(get_resource_dirs(target))
+      tuple(get_resource_dirs())
 
       args = self._render_args(target, resource_dirs, self.workdir)
       with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:

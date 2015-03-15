@@ -45,6 +45,7 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
+    round_manager.require_data('ivy_imports')
     round_manager.require_data('deferred_sources')
 
   def __init__(self, *args, **kwargs):
