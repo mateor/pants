@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+from hashlib import sha1
 
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
@@ -14,6 +15,7 @@ from pants.base.build_environment import get_buildroot
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.util.dirutil import safe_mkdir
+from pants.fs.archive import ZIP
 
 
 class DxCompile(AndroidTask, NailgunTask):
@@ -90,6 +92,7 @@ class DxCompile(AndroidTask, NailgunTask):
         for vt in invalidation_check.invalid_vts:
           invalid_targets.extend(vt.targets)
         for target in invalid_targets:
+
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
           classes_by_target = self.context.products.get_data('classes_by_target')
@@ -112,6 +115,8 @@ class DxCompile(AndroidTask, NailgunTask):
             if unpacked_archives:
               unpacked = unpacked_archives.get(tgt)
               if unpacked:
+                # this could be done as a comprehension but I really doubt this is the proper way 
+                # grab these handles.
                for file in unpacked[0]:
                  dir = unpacked[1]
                  file_path = os.path.join(get_buildroot(), dir, file)
