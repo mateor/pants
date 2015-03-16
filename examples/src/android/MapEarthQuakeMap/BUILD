@@ -19,31 +19,10 @@ android_resources(
   resource_dir='res'
 )
 
-android_library(name='gms',
-  sources=from_target(':play-services'),
-  dependencies=[
-    ':play-services',
-  ]
-)
-
-unpacked_jars(name='play-services',
-  libraries=[':google-play-services-new'],
-  include_patterns=[
-    'com/google/**/*.class',
-  ],
-)
-
 jar_library(name='support',
   jars = [
     # wrong rev number --UPDATE
     jar(org='android.support.v4.app', name='android-support', rev='4',
         url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/android-support-v4.jar',),
-  ],
-)
-
-jar_library(name='google-play-services-new',
-  jars = [
-    jar(org='com.google.android', name='gms', rev='6.5.87000',
-        url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/google-play-services.jar',),
   ],
 )
