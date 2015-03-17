@@ -10,12 +10,9 @@ import os
 from pants.backend.android.tasks.aapt_gen import AaptTask
 from pants_test.android.test_android_base import TestAndroidBase
 
+
 class TestAaptTask(TestAndroidBase):
   """Test the AaptTask base class."""
-
-  @classmethod
-  def task_type(cls):
-    return AaptTask
 
 
   def test_package_path(self):
@@ -23,10 +20,7 @@ class TestAaptTask(TestAndroidBase):
                      AaptTask.package_path('com.pants.example.tests'))
 
   def test_package_path(self):
-    self.assertEqual('com',
-                     AaptTask.package_path('com'))
-
-  # Test aapt and android_tools with and w/o forced sdks.
+    self.assertEqual('com', AaptTask.package_path('com'))
 
   def test_aapt_tool(self):
     with self.distribution() as dist:
