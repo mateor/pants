@@ -18,23 +18,6 @@ class TestAaptGen(TestAndroidBase):
   def task_type(cls):
     return AaptGen
 
-  def render_args_test(self, target_sdk=None, ignored=None, build_tools_version=None):
-    with self.distribution() as dist:
-      ignored = '!picasa.ini:!*~:BUILD*'
-      with self.android_test_resources() as android_resources:
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
-                                       '--test-ignored-assets={0}'.format(ignored)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
-        target = android_resources
-        expected_args = [task.aapt_tool(target.build_tools_version),
-                         'package', '-m', '-J', task.workdir,
-                         '-M', target.manifest.path,
-                         '-S', target.resource_dir,
-                         '-I', task.android_jar_tool(target.manifest.target_sdk),
-                         '--ignore-assets', ignored]
-      return expected_args
-
   def test_aapt_gen_smoke(self):
     task = self.prepare_task(build_graph=self.build_graph,
                              build_file_parser=self.build_file_parser)
@@ -80,7 +63,7 @@ class TestAaptGen(TestAndroidBase):
                          '-S', target.resource_dir,
                          '-I', task.android_jar_tool(target.manifest.target_sdk),
                          '--ignore-assets', task.ignored_assets]
-        self.assertEquals(expected_args, task._render_args(target, task.workdir))
+        self.assertEqual(expected_args, task._render_args(target, task.workdir))
 
   def test_render_args_force_ignored_assets(self):
     with self.distribution() as dist:
@@ -97,4 +80,38 @@ class TestAaptGen(TestAndroidBase):
                          '-S', target.resource_dir,
                          '-I', task.android_jar_tool(target.manifest.target_sdk),
                          '--ignore-assets', ignored]
-        self.assertEquals(expected_args, task._render_args(target, task.workdir))
+        self.assertEqual(expected_args, task._render_args(target, task.workdir))
+
+  def test_render_args_force_sdk(self):
+    with self.distribution() as dist:
+      with self.android_test_resources() as android_resources:
+        sdk = '19'
+        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
+                                       '--test-target-sdk={0}'.format(sdk)],
+                                 build_graph=self.build_graph,
+                                 build_file_parser=self.build_file_parser)
+        target = android_resources
+        expected_args = [task.aapt_tool(target.build_tools_version),
+                         'package', '-m', '-J', task.workdir,
+                         '-M', target.manifest.path,
+                         '-S', target.resource_dir,
+                         '-I', task.android_jar_tool('19'),
+                         '--ignore-assets', task.ignored_assets]
+        self.assertEqual(expected_args, task._render_args(target, task.workdir))
+
+  def test_render_args_force_build_tools(self):
+    with self.distribution() as dist:
+      with self.android_test_resources() as android_resources:
+        build_tools = '20.0.0'
+        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
+                                       '--test-build-tools-version={0}'.format(build_tools)],
+                                 build_graph=self.build_graph,
+                                 build_file_parser=self.build_file_parser)
+        target = android_resources
+        expected_args = [task.aapt_tool(build_tools),
+                         'package', '-m', '-J', task.workdir,
+                         '-M', target.manifest.path,
+                         '-S', target.resource_dir,
+                         '-I', task.android_jar_tool(target.manifest.target_sdk),
+                         '--ignore-assets', task.ignored_assets]
+        self.assertEqual(expected_args, task._render_args(target, task.workdir))

@@ -62,7 +62,7 @@ class TestAndroidBase(TaskTest):
   @contextmanager
   def distribution(self,
                    installed_sdks=('18', '19'),
-                   installed_build_tools=('19.1.0',),
+                   installed_build_tools=('19.1.0', '20.0.0'),
                    files=('android.jar',),
                    executables=('aapt', 'zipalign')):
     """Mock Android SDK Distribution.

@@ -99,7 +99,7 @@ class AaptGen(AaptTask, CodeGen):
         if returncode:
           raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
 
-  def createtarget(self, lang, gentarget, dependees):
+  def createtarget(self, gentarget, dependees):
     spec_path = os.path.join(os.path.relpath(self.workdir, get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)
