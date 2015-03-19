@@ -4,6 +4,7 @@
 target(
   name='tasks',
   dependencies=[
+    ':aapt_task',
     ':aapt_gen',
     ':sign_apk',
     ':zipalign',

@@ -115,3 +115,15 @@ class TestAaptGen(TestAndroidBase):
                          '-I', task.android_jar_tool(target.manifest.target_sdk),
                          '--ignore-assets', task.ignored_assets]
         self.assertEqual(expected_args, task._render_args(target, task.workdir))
+
+  def test_createtarget(self):
+    with self.distribution() as dist:
+      with self.android_binary() as android_binary:
+        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
+                                 build_graph=self.build_graph,
+                                 build_file_parser=self.build_file_parser)
+        targets = [android_binary]
+        task.prepare_gen(targets)
+        created_target = task.createtarget(android_binary, [])
+        self.assertEqual(created_target.derived_from, android_binary)
+        self.assertEqual(created_target.is_synthetic, True)
