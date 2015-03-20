@@ -24,10 +24,10 @@ target(
 python_tests(
   name = 'aapt_builder_integration',
   sources = [
-    'tests/python/pants_test/android:android_base',
     'test_aapt_builder_integration.py',
   ],
   dependencies = [
+    'tests/python/pants_test/android:android_base',
     'tests/python/pants_test/android:android_integration_test',
   ],
 )

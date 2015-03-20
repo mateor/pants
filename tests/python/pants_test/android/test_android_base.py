@@ -34,14 +34,14 @@ class TestAndroidBase(TaskTest):
       return manifest
 
   @contextmanager
-  def android_test_resources(self):
+  def android_resources(self):
     """Represent an android_binary target, providing a mock version of the required manifest."""
     with temporary_dir() as temp:
       with temporary_file() as fp:
         fp.write(self.android_manifest())
-        path = fp.name
         fp.close()
-        target = self.make_target(spec=':binary',
+        path = fp.name
+        target = self.make_target(spec=':resources',
                                   target_type=AndroidResources,
                                   manifest=path,
                                   resource_dir=temp)
@@ -52,8 +52,8 @@ class TestAndroidBase(TaskTest):
     """Represent an android_binary target, providing a mock version of the required manifest."""
     with temporary_file() as fp:
       fp.write(self.android_manifest())
-      path = fp.name
       fp.close()
+      path = fp.name
       target = self.make_target(spec=':binary',
                                 target_type=AndroidBinary,
                                 manifest=path)

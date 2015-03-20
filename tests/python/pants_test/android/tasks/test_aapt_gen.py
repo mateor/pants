@@ -52,7 +52,7 @@ class TestAaptGen(TestAndroidBase):
 
   def test_render_args(self):
     with self.distribution() as dist:
-      with self.android_test_resources() as android_resources:
+      with self.android_resources() as android_resources:
         task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
                                  build_graph=self.build_graph,
                                  build_file_parser=self.build_file_parser)
@@ -67,7 +67,7 @@ class TestAaptGen(TestAndroidBase):
 
   def test_render_args_force_ignored_assets(self):
     with self.distribution() as dist:
-      with self.android_test_resources() as android_resources:
+      with self.android_resources() as android_resources:
         ignored = '!picasa.ini:!*~:BUILD*'
         task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
                                        '--test-ignored-assets={0}'.format(ignored)],
@@ -84,7 +84,7 @@ class TestAaptGen(TestAndroidBase):
 
   def test_render_args_force_sdk(self):
     with self.distribution() as dist:
-      with self.android_test_resources() as android_resources:
+      with self.android_resources() as android_resources:
         sdk = '19'
         task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
                                        '--test-target-sdk={0}'.format(sdk)],
@@ -101,7 +101,7 @@ class TestAaptGen(TestAndroidBase):
 
   def test_render_args_force_build_tools(self):
     with self.distribution() as dist:
-      with self.android_test_resources() as android_resources:
+      with self.android_resources() as android_resources:
         build_tools = '20.0.0'
         task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
                                        '--test-build-tools-version={0}'.format(build_tools)],
@@ -124,6 +124,6 @@ class TestAaptGen(TestAndroidBase):
                                  build_file_parser=self.build_file_parser)
         targets = [android_binary]
         task.prepare_gen(targets)
-        created_target = task.createtarget(android_binary, [])
+        created_target = task.createtarget('java', android_binary, [])
         self.assertEqual(created_target.derived_from, android_binary)
         self.assertEqual(created_target.is_synthetic, True)
