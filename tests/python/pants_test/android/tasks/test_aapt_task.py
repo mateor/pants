@@ -18,9 +18,9 @@ class TestAaptTask(TestAndroidBase):
   def task_type(cls):
     return AaptTask
 
-  # We are just testing the base class classmethods. Any methods that need a task instance
+  # This just tests the AaptTask classmethods. Any methods that need a task instance
   # are exercised in tests for AaptTask subclasses.
-  def test_package_translation(self):
+  def test_package_path_translation(self):
     self.assertEqual(os.path.join('com', 'pants', 'example', 'tests'),
                      AaptTask.package_path('com.pants.example.tests'))
 

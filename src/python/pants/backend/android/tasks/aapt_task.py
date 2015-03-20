@@ -11,6 +11,7 @@ from pants.backend.android.tasks.android_task import AndroidTask
 
 
 # These are hardcoded into aapt but we added 'BUILD*'. Changes clobber, so we need entire string.
+# TODO(mateor) add a test to prove this is working.
 IGNORED_ASSETS = ('!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:'
                   '!thumbs.db:!picasa.ini:!*~:BUILD*')
 
@@ -29,7 +30,7 @@ class AaptTask(AndroidTask):
 
   @classmethod
   def package_path(cls, package):
-    """Return the package name translated into a path"""
+    """Return the package name translated into a path."""
     return package.replace('.', os.sep)
 
   def __init__(self, *args, **kwargs):
