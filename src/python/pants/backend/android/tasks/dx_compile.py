@@ -44,7 +44,7 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
-    round_manager.require_data('deferred_sources')
+    round_manager.require_data('unpacked_archives')
 
   def __init__(self, *args, **kwargs):
     super(DxCompile, self).__init__(*args, **kwargs)
@@ -106,19 +106,11 @@ class DxCompile(AndroidTask, NailgunTask):
             if target_classes:
               add_classes(target_classes)
 
-            # This is probably not a long term implementation.
             if unpacked_archives:
               unpacked = unpacked_archives.get(tgt)
               if unpacked:
-                # this would be better done as a comprehension but just passing the containing
-                #  dir works. The question is if Pants would prefer passing the files themselves.
-
-                #  for file in unpacked[0]:
-                #    dir = unpacked[1]
-                #    file_path = os.path.join(get_buildroot(), dir, file)
-                # classes.append(file_path)
-
-                # This works, just passing the address of the dir holding the unpacked classes.
+                # The unpacked_archives are passed as a list of [found_files, rel_unpack_dir].
+                # For Android's purposes, just passing the containing dir is fine.
                 classes.append(unpacked[1])
 
           target.walk(gather_classes)
