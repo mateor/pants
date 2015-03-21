@@ -8,8 +8,8 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 import logging
 
 from pants.backend.android.targets.android_target import AndroidTarget
-from pants.backend.jvm.targets.import_jars_mixin import ImportJarsMixin
 from pants.backend.jvm.targets.exportable_jvm_library import ExportableJvmLibrary
+from pants.backend.jvm.targets.import_jars_mixin import ImportJarsMixin
 from pants.base.payload import Payload
 from pants.base.payload_field import PrimitiveField
 

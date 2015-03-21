@@ -6,16 +6,13 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
-from hashlib import sha1
 
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.jvm.tasks.nailgun_task import NailgunTask
-from pants.base.build_environment import get_buildroot
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.util.dirutil import safe_mkdir
-from pants.fs.archive import ZIP
 
 
 class DxCompile(AndroidTask, NailgunTask):
@@ -47,7 +44,6 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
-    round_manager.require_data('ivy_imports')
     round_manager.require_data('deferred_sources')
 
   def __init__(self, *args, **kwargs):
@@ -99,7 +95,7 @@ class DxCompile(AndroidTask, NailgunTask):
           unpacked_archives = self.context.products.get_data('unpacked_archives')
           classes = []
 
-          def add_to_dex(tgt):
+          def gather_classes(tgt):
             def add_classes(target_products):
               for _, products in target_products.abs_paths():
                 for prod in products:
@@ -110,19 +106,22 @@ class DxCompile(AndroidTask, NailgunTask):
             if target_classes:
               add_classes(target_classes)
 
-            # This is obviously not a long term implementation.
-            # How to get this from the DeferredSourcesMapper?
+            # This is probably not a long term implementation.
             if unpacked_archives:
               unpacked = unpacked_archives.get(tgt)
               if unpacked:
-                # this could be done as a comprehension but I really doubt this is the proper way 
-                # grab these handles.
-               for file in unpacked[0]:
-                 dir = unpacked[1]
-                 file_path = os.path.join(get_buildroot(), dir, file)
-                 classes.append(file_path)
+                # this would be better done as a comprehension but just passing the containing
+                #  dir works. The question is if Pants would prefer passing the files themselves.
 
-          target.walk(add_to_dex)
+                #  for file in unpacked[0]:
+                #    dir = unpacked[1]
+                #    file_path = os.path.join(get_buildroot(), dir, file)
+                # classes.append(file_path)
+
+                # This works, just passing the address of the dir holding the unpacked classes.
+                classes.append(unpacked[1])
+
+          target.walk(gather_classes)
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
           args = self._render_args(outdir, classes)
