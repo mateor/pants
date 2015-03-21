@@ -4,8 +4,9 @@
 target(
   name='tasks',
   dependencies=[
-    ':aapt_task',
+    ':aapt_builder',
     ':aapt_gen',
+    ':aapt_task',
     ':sign_apk',
     ':zipalign',
   ],
@@ -27,18 +28,18 @@ python_tests(
     'test_aapt_builder_integration.py',
   ],
   dependencies = [
-    'tests/python/pants_test/android:android_base',
     'tests/python/pants_test/android:android_integration_test',
   ],
 )
 
 python_tests(
-  name = 'aapt_task',
+  name = 'aapt_builder',
   sources = [
-    'test_aapt_task.py',
+    'test_aapt_builder.py',
   ],
   dependencies = [
-    'src/python/pants/backend/android/tasks:all',
+    'src/python/pants/backend/android/tasks:aapt_builder',
+    'src/python/pants/util:contextutil',
     'tests/python/pants_test/android:android_base',
   ],
 )
@@ -47,6 +48,17 @@ python_tests(
   name = 'aapt_gen',
   sources = [
     'test_aapt_gen.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/tasks:all',
+    'tests/python/pants_test/android:android_base',
+  ],
+)
+
+python_tests(
+  name = 'aapt_task',
+  sources = [
+    'test_aapt_task.py',
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:all',

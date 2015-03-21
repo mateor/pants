@@ -41,15 +41,15 @@ class AaptBuilder(AaptTask):
     super(AaptBuilder, cls).prepare(options, round_manager)
     round_manager.require_data('dex')
 
-  def render_args(self, target, resource_dir, inputs):
+  def _render_args(self, target, resource_dir, inputs):
     args = []
 
     # Glossary of used aapt flags. Aapt handles a ton of action, this will continue to expand.
     #   : 'package' is the main aapt operation (see class docstring for more info).
     #   : '-f' to 'force' overwrites if the package already exists.
     #   : '-M' is the AndroidManifest.xml of the project.
-    #   : '-S' points to the resource_dir to "spider" down while collecting resources.
-    #   : '-I' packages to add to base "include" set, here the android.jar of the target-sdk.
+    #   : '-S' points to the resource_dir to 'scan' while collecting resources.
+    #   : '-I' packages to add to base 'include' set, here the android.jar of the target-sdk.
     #   : '--ignored-assets' patterns for the aapt to skip. This is the default w/ 'BUILD*' added.
     #   : '-F' The name and location of the .apk file to output.
     #   : additional positional arguments are treated as input directories to gather files from.
@@ -88,7 +88,7 @@ class AaptBuilder(AaptTask):
             gen_out.append(os.path.join(get_buildroot(), target.resource_dir))
 
         target.walk(gather_resources)
-        args = self.render_args(target, gen_out, input_dirs)
+        args = self._render_args(target, gen_out, input_dirs)
         with self.context.new_workunit(name='apk-bundle', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))
