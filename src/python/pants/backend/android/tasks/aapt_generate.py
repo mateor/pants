@@ -8,6 +8,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 import logging
 import os
 import subprocess
+from collections import defaultdict
 
 from twitter.common.collections import OrderedSet
 
@@ -42,6 +43,11 @@ class AaptGenerate(AaptTask):
     """Return True if target has class files to be compiled into dex."""
     return isinstance(target, AndroidBinary)
 
+  @staticmethod
+  def is_gentarget(target):
+    """Return True if target has class files to be compiled into dex."""
+    return isinstance(target, AndroidResources)
+
   @classmethod
   def product_types(cls):
     return ['java']
@@ -49,6 +55,7 @@ class AaptGenerate(AaptTask):
   def __init__(self, *args, **kwargs):
     super(AaptGenerate, self).__init__(*args, **kwargs)
     self._jar_library_by_sdk = {}
+    self.sdks = {}
 
   def prepare_gen(self, targets):
     # prepare exactly N android jar targets where N is the number of SDKs in-play
@@ -95,18 +102,21 @@ class AaptGenerate(AaptTask):
     #   for target in invalid_targets:
     for target in targets:
       sdk = target.target_sdk
+      self.sdks[target] = sdk
+
       outdir = self.aapt_out(target)
 
-      sdks = {}
-      sdks[target] = target.target_sdk
+      deps = [target]
+      #sdks[target] = target.target_sdk
       def get_aapt_targets(tgt):
         if isinstance(tgt, AndroidLibrary):
           print("The get_aapt_target: ", tgt)
-          sdks[tgt] = sdk
+          self.sdks[tgt] = sdk
+          deps.append(tgt)
 
       target.walk(get_aapt_targets)
 
-      for targ in sdks:
+      for targ in deps:
         print("WE ARE AAPOTING: ", targ)
         resource_dirs = []
 
@@ -114,17 +124,28 @@ class AaptGenerate(AaptTask):
           """Get path of all resource_dirs that are depended on by the target."""
           if isinstance(tgt, AndroidResources):
             print("We are resourcing: ", tgt)
+            self.sdks[tgt] = sdk
             resource_dirs.append(os.path.join(get_buildroot(), tgt.resource_dir))
 
         target.walk(get_resource_dirs)
 
 
-        args = self._render_args(targ, sdks[targ], resource_dirs, outdir)
+        args = self._render_args(targ, self.sdks[targ], resource_dirs, outdir)
         with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))
           if returncode:
             raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
+      gentargets_by_dependee = self.context.dependents(
+        on_predicate=self.is_aapt_target,
+        from_predicate=lambda t: not self.is_aapt_target(t)
+        )
+      dependees_by_gentarget = defaultdict(set)
+      for dependee, tgts in gentargets_by_dependee.items():
+        for gentarget in tgts:
+          dependees_by_gentarget[gentarget].add(dependee)
+      for t in gentargets_by_dependee:
+        self.createtarget(targ, dependees_by_gentarget.get(targ, []))
 
     for target in targets:
       #self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
@@ -132,10 +153,12 @@ class AaptGenerate(AaptTask):
 
 
   def createtarget(self, gentarget, dependees):
+    print("SDKS: ", self.sdks)
+    print("GENTARGET: ", gentarget)
     spec_path = os.path.join(os.path.relpath(self.aapt_out(gentarget), get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)
-    deps = OrderedSet([self._jar_library_by_sdk[gentarget.target_sdk]])
+    deps = OrderedSet([self._jar_library_by_sdk[self.sdks[gentarget]]])
     tgt = self.context.add_new_target(address,
                                       JavaLibrary,
                                       derived_from=gentarget,
@@ -146,6 +169,6 @@ class AaptGenerate(AaptTask):
     return tgt
 
   def aapt_out(self, target):
-    outdir = os.path.join(self.workdir, target.target_sdk)
+    outdir = os.path.join(self.workdir, self.sdks[target])
     safe_mkdir(outdir)
     return outdir
