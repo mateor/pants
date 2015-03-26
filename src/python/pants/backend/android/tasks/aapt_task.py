@@ -7,6 +7,8 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 
+from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.targets.android_target import AndroidTarget
 from pants.backend.android.tasks.android_task import AndroidTask
 
 
@@ -36,6 +38,10 @@ class AaptTask(AndroidTask):
     self._forced_build_tools_version = self.get_options().build_tools_version
     self.ignored_assets = self.get_options().ignored_assets
     self._forced_target_sdk = self.get_options().target_sdk
+    self._sdks = {}
+
+  def is_android(self, target):
+    return isinstance(target, AndroidTarget)
 
   def aapt_tool(self, build_tools_version):
     """Return the appropriate aapt tool.

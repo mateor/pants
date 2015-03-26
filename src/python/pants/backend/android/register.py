@@ -10,6 +10,7 @@ from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_builder import AaptBuilder
 from pants.backend.android.tasks.aapt_gen import AaptGen
+from pants.backend.android.tasks.aapt_generate import AaptGenerate
 from pants.backend.android.tasks.dx_compile import DxCompile
 from pants.backend.android.tasks.sign_apk import SignApkTask
 from pants.backend.android.tasks.zipalign import Zipalign
@@ -27,7 +28,7 @@ def build_file_aliases():
   )
 
 def register_goals():
-  task(name='aapt', action=AaptGen).install('gen')
+  task(name='aapt', action=AaptGenerate).install('gen')
   task(name='dex', action=DxCompile).install('binary')
   task(name='apk', action=AaptBuilder).install()
   task(name='sign', action=SignApkTask).install()
