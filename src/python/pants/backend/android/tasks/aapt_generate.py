@@ -12,7 +12,9 @@ import subprocess
 from twitter.common.collections import OrderedSet
 
 from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
+from pants.backend.android.targets.android_target import AndroidTarget
 from pants.backend.android.tasks.aapt_task import AaptTask
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
@@ -57,7 +59,7 @@ class AaptGenerate(AaptTask):
       address = SyntheticAddress(self.workdir, '{0}-jars'.format(sdk))
       self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
-  def _render_args(self, target, resource_dirs, output_dir):
+  def _render_args(self, target, used_sdk, resource_dirs, output_dir):
     """Compute the args that will be passed to the aapt tool."""
     args = []
 
@@ -75,7 +77,7 @@ class AaptGenerate(AaptTask):
     while resource_dirs:
       # Priority for resources is left->right, so reverse the order it was collected (DFS preorder).
       args.extend(['-S', resource_dirs.pop()])
-    args.extend(['-I', self.android_jar_tool(target.target_sdk)])
+    args.extend(['-I', self.android_jar_tool(used_sdk)])
     args.extend(['--ignore-assets', self.ignored_assets])
     logger.debug('Executing: {0}'.format(' '.join(args)))
     return args
@@ -86,47 +88,50 @@ class AaptGenerate(AaptTask):
     print("WE RUN THIS")
     targets = self.context.targets(self.is_aapt_target)
     self.prepare_gen(targets)
-    with self.invalidated(targets) as invalidation_check:
-      invalid_targets = []
-      for vt in invalidation_check.invalid_vts:
-        invalid_targets.extend(vt.targets)
-      for target in invalid_targets:
-        sdk = target.target_sdk
-        outdir = self.aapt_out(target)
+    # with self.invalidated(targets) as invalidation_check:
+    #   invalid_targets = []
+    #   for vt in invalidation_check.invalid_vts:
+    #     invalid_targets.extend(vt.targets)
+    #   for target in invalid_targets:
+    for target in targets:
+      sdk = target.target_sdk
+      outdir = self.aapt_out(target)
 
+      sdks = {}
+      sdks[target] = target.target_sdk
+      def get_aapt_targets(tgt):
+        if isinstance(tgt, AndroidLibrary):
+          print("The get_aapt_target: ", tgt)
+          sdks[tgt] = sdk
 
+      target.walk(get_aapt_targets)
 
-
-
+      for targ in sdks:
+        print("WE ARE AAPOTING: ", targ)
         resource_dirs = []
 
         def get_resource_dirs(tgt):
           """Get path of all resource_dirs that are depended on by the target."""
           if isinstance(tgt, AndroidResources):
+            print("We are resourcing: ", tgt)
             resource_dirs.append(os.path.join(get_buildroot(), tgt.resource_dir))
 
         target.walk(get_resource_dirs)
-        
 
-        args = self._render_args(target, resource_dirs, outdir)
+
+        args = self._render_args(targ, sdks[targ], resource_dirs, outdir)
         with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))
           if returncode:
             raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
+
     for target in targets:
       #self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
       pass
 
-  def dx_jar_tool(self, build_tools_version):
-    """Return the appropriate dx.jar.
 
-    :param string build_tools_version: The Android build-tools version number (e.g. '19.1.0').
-    """
-    dx_jar = os.path.join('build-tools', build_tools_version, 'lib', 'dx.jar')
-    return self.android_sdk.register_android_tool(dx_jar)
-
-  def createtarget(self, lang, gentarget, dependees):
+  def createtarget(self, gentarget, dependees):
     spec_path = os.path.join(os.path.relpath(self.aapt_out(gentarget), get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)
