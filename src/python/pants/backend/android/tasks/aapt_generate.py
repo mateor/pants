@@ -147,9 +147,13 @@ class AaptGenerate(AaptTask):
       for t in gentargets_by_dependee:
         self.createtarget(targ, dependees_by_gentarget.get(targ, []))
 
-    for target in targets:
-      #self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
-      pass
+      for target in deps:
+        spec_path = os.path.join(os.path.join(get_buildroot(), self.aapt_out(target)))
+        aapt_gen_file = self._calculate_genfile(target.manifest.package_name)
+        new_file = os.path.join(spec_path, aapt_gen_file)
+        print("THE NEW FILE IS: ", new_file)
+        self.context.products.get('java').add(target, new_file)
+        print("JAVA IS: ", self.context.products.get('java'))
 
 
   def createtarget(self, gentarget, dependees):
