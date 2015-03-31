@@ -7,15 +7,12 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 
-from pants.backend.android.simple_codegen import SimpleCodegen
+from pants.backend.core.tasks.task import Task
 from pants.base.address import SyntheticAddress
 from pants.base.build_environment import get_buildroot
 
 
-form pants.backend.android.targets.android_binary import AndroidBinary
-
-
-class AaptGenTask(SimpleCodegen):
+class SimpleCodegenTask(Task):
   @classmethod
   def get_fingerprint_strategy(cls):
     return None
@@ -23,10 +20,6 @@ class AaptGenTask(SimpleCodegen):
   @property
   def synthetic_target_extra_dependencies(self):
     return []
-
-  def codegen_targets(self):
-    """Return True if target has class files to be compiled into dex."""
-    return isinstance(self, AndroidBinary)
 
   def execute(self):
     targets = self.codegen_targets()
