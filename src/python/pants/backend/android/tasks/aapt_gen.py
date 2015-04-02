@@ -43,7 +43,6 @@ class AaptGen(AaptTask, CodeGen):
   https://android.googlesource.com/platform/frameworks/base/+/master/tools/aapt/Command.cpp
   """
 
-
   @classmethod
   def _calculate_genfile(cls, package):
     return os.path.join(cls.package_path(package), 'R.java')
