@@ -63,7 +63,7 @@ class AaptGenerate(AaptTask):
     for sdk in sdks:
       jar_url = 'file://{0}'.format(self.android_jar_tool(sdk))
       jar = JarDependency(org='com.google', name='android', rev=sdk, url=jar_url)
-      address = SyntheticAddress(self.workdir, '{0}-jars'.format(sdk))
+      address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
       self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
   def _render_args(self, target, used_sdk, resource_dirs, output_dir):
@@ -136,16 +136,8 @@ class AaptGenerate(AaptTask):
                                        stderr=workunit.output('stderr'))
           if returncode:
             raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
-      gentargets_by_dependee = self.context.dependents(
-        on_predicate=self.is_aapt_target,
-        from_predicate=lambda t: not self.is_aapt_target(t)
-        )
-      dependees_by_gentarget = defaultdict(set)
-      for dependee, tgts in gentargets_by_dependee.items():
-        for gentarget in tgts:
-          dependees_by_gentarget[gentarget].add(dependee)
-      for t in gentargets_by_dependee:
-        self.createtarget(targ, dependees_by_gentarget.get(targ, []))
+
+        self.createtarget(targ)
 
       for target in deps:
         spec_path = os.path.join(os.path.join(get_buildroot(), self.aapt_out(target)))
@@ -156,7 +148,7 @@ class AaptGenerate(AaptTask):
         print("JAVA IS: ", self.context.products.get('java'))
 
 
-  def createtarget(self, gentarget, dependees):
+  def createtarget(self, gentarget):
     print("SDKS: ", self.sdks)
     print("GENTARGET: ", gentarget)
     spec_path = os.path.join(os.path.relpath(self.aapt_out(gentarget), get_buildroot()))
@@ -168,9 +160,10 @@ class AaptGenerate(AaptTask):
                                       derived_from=gentarget,
                                       sources=[aapt_gen_file],
                                       dependencies=deps)
-    for dependee in dependees:
-      dependee.inject_dependency(tgt.address)
-    return tgt
+    print("DEPS: ", deps)
+    print("aapt_gen_file: ", aapt_gen_file)
+    gentarget.inject_dependency(tgt.address)
+
 
   def aapt_out(self, target):
     outdir = os.path.join(self.workdir, self.sdks[target])
