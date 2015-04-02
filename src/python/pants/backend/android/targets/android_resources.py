@@ -17,13 +17,12 @@ class AndroidResources(AndroidTarget):
   def __init__(self,
                resource_dir=None,
                **kwargs):
-    #TODO(mateor) change resource_dir from string into list
+    #TODO(BEFORE REVIEW) change resource_dir from string into list
     """
     :param string resource_dir: path/to/directory containing Android resource files,
      often named 'res'.
     """
     super(AndroidResources, self).__init__(**kwargs)
-    self._target_sdk = None
     address = kwargs['address']
     try:
       self.resource_dir = os.path.join(address.spec_path, resource_dir)
@@ -31,10 +30,3 @@ class AndroidResources(AndroidTarget):
       raise TargetDefinitionException(self, 'An android_resources target must specify a '
                                             '\'resource_dir\' that contains the target\'s '
                                             'resource files.')
-  @property
-  def target_sdk(self):
-    """Return the SDK version to use when compiling this target."""
-    # This is an optional attribute for AndroidLibrary but required for AndroidBinary.
-    if self._target_sdk is None:
-      self._target_sdk = self.manifest.target_sdk
-    return self._target_sdk

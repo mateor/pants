@@ -37,6 +37,7 @@ class AndroidTarget(JvmTarget):
 
     self._manifest_path = manifest
     self._manifest = None
+    # TODO(BEFORE REVIEW) fix target.app_name. This is not true often enough to be approriate.
     self._app_name = None
 
   @property
