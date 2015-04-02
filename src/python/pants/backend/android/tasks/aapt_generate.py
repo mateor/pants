@@ -9,8 +9,6 @@ import logging
 import os
 import subprocess
 
-from twitter.common.collections import OrderedSet
-
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
@@ -29,7 +27,15 @@ logger = logging.getLogger(__name__)
 
 class AaptGenerate(AaptTask):
   """
-  Compile java classes into dex files, Dalvik executables.
+  Handle the processing of resources for Android targets with the
+  Android Asset Packaging Tool (aapt).
+
+  The aapt tool supports 6 major commands: [dump, list, add, remove, crunch, package]
+  For right now, pants is only supporting 'package'. More to come as we support Release builds
+  (crunch, at minimum).
+
+  Commands and flags for aapt can be seen here:
+  https://android.googlesource.com/platform/frameworks/base/+/master/tools/aapt/Command.cpp
   """
 
   @classmethod
@@ -58,7 +64,7 @@ class AaptGenerate(AaptTask):
       address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
       self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
-  def _render_args(self, target, used_sdk, resource_dirs, output_dir):
+  def _render_args(self, target, sdk, resource_dirs, output_dir):
     """Compute the args that will be passed to the aapt tool."""
 
     # Glossary of used aapt flags. Aapt handles a ton of action, this will continue to expand.
@@ -66,8 +72,8 @@ class AaptGenerate(AaptTask):
     #   : '-m' is to "make" a package directory under location '-J'.
     #   : '-J' Points to the output directory.
     #   : '-M' is the AndroidManifest.xml of the project.
-    #   : '-S' points to the resource_dir to "spider" down while collecting resources.
-    #   : '-I' packages to add to base "include" set, here it is the android.jar of the target-sdk.
+    #   : '-S' points to the list of resource_dir to 'scan' while collecting resources.
+    #   : '-I' packages to add to base 'include' set, here it is the android.jar of the target-sdk.
     args = [self.aapt_tool(target.build_tools_version)]
     args.extend(['package', '-m', '-J', output_dir])
     args.extend(['-M', target.manifest.path])
@@ -75,11 +81,10 @@ class AaptGenerate(AaptTask):
     while resource_dirs:
       # Priority for resources is left->right, so reverse the order it was collected (DFS preorder).
       args.extend(['-S', resource_dirs.pop()])
-    args.extend(['-I', self.android_jar_tool(used_sdk)])
+    args.extend(['-I', self.android_jar_tool(sdk)])
     args.extend(['--ignore-assets', self.ignored_assets])
     logger.debug('Executing: {0}'.format(' '.join(args)))
     return args
-
 
   def execute(self):
     targets = self.context.targets(self.is_aapt_target)
@@ -88,24 +93,34 @@ class AaptGenerate(AaptTask):
       sdk = target.target_sdk
       outdir = self.aapt_out(sdk)
 
-      deps = [target]
-      def get_aapt_targets(tgt):
+      # Gather all deps of the target that might own AndroidResource dependencies.
+      gentargets = [target]
+      def gather_gen_targets(tgt):
+        """An AndroidLibrary R.java is created against the SDK of each AndroidBinary dependee."""
         if isinstance(tgt, AndroidLibrary):
-          deps.append(tgt)
+          gentargets.append(tgt)
+      target.walk(gather_gen_targets)
 
-      target.walk(get_aapt_targets)
-
-      with self.invalidated(deps) as invalidation_check:
+      # Some of these dependent libraries might have transitive deps with their own resources.
+      # They are needed to process their dependee resources, so gather them and then process.
+      with self.invalidated(gentargets) as invalidation_check:
         invalid_targets = []
         for vt in invalidation_check.invalid_vts:
           invalid_targets.extend(vt.targets)
         for targ in invalid_targets:
           resource_dirs = []
-
           def get_resource_dirs(tgt):
-            """Get path of all resource_dirs that are depended on by the target."""
+            """Get full path of all resource_dirs that are depended on by the walked target.
+
+            AndroidLibraries can depend on other android libraries.
+            """
             if isinstance(tgt, AndroidResources):
               resource_dirs.append(os.path.join(get_buildroot(), tgt.resource_dir))
+
+          # TODO(mateor) update the android targets so that resource_dirs belong to the dependent
+          # target. Right now they exist as separate entities but that actually adds to user
+          # complexity.
+          # As a bonus, this would give an easy way to reduce to just one call of target.walk().
 
           target.walk(get_resource_dirs)
 
@@ -115,15 +130,14 @@ class AaptGenerate(AaptTask):
                                          stderr=workunit.output('stderr'))
             if returncode:
               raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
-      for targ in deps:
+      for targ in gentargets:
         self.createtarget(targ, sdk)
-
 
   def createtarget(self, gentarget, sdk):
     spec_path = os.path.join(os.path.relpath(self.aapt_out(sdk), get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)
-    deps = OrderedSet([self._jar_library_by_sdk[sdk]])
+    deps = [self._jar_library_by_sdk[sdk]]
     tgt = self.context.add_new_target(address,
                                       JavaLibrary,
                                       derived_from=gentarget,

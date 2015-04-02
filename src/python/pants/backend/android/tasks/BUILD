@@ -41,7 +41,6 @@ python_library(
   name = 'aapt_gen',
   sources = ['aapt_gen.py'],
   dependencies = [
-    '3rdparty/python/twitter/commons:twitter.common.collections',
     'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:aapt_task',
     'src/python/pants/backend/codegen/tasks:code_gen',
