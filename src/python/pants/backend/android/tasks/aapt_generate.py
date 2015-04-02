@@ -87,22 +87,24 @@ class AaptGenerate(AaptTask):
     return args
 
   def execute(self):
+    # Every android_binary and each of their android_library dependencies must have their resources
+    # processed into R.Java files. The libraries are processed using the SDK version of the dependee
+    # android_binary. The number of R.java files produced from each library is <= # of sdks in play.
     targets = self.context.targets(self.is_aapt_target)
     self.create_sdk_jar_deps(targets)
     for target in targets:
       sdk = target.target_sdk
       outdir = self.aapt_out(sdk)
 
-      # Gather all deps of the target that might own AndroidResource dependencies.
       gentargets = [target]
       def gather_gen_targets(tgt):
-        """An AndroidLibrary R.java is created against the SDK of each AndroidBinary dependee."""
+        """Gather all targets that might have an AndroidResources dependency."""
         if isinstance(tgt, AndroidLibrary):
           gentargets.append(tgt)
       target.walk(gather_gen_targets)
 
-      # Some of these dependent libraries might have transitive deps with their own resources.
-      # They are needed to process their dependee resources, so gather them and then process.
+      # Some of the dependent libraries might have transitive deps, with their own resources.
+      # All dependent resources are needed for processing.
       with self.invalidated(gentargets) as invalidation_check:
         invalid_targets = []
         for vt in invalidation_check.invalid_vts:
@@ -110,17 +112,12 @@ class AaptGenerate(AaptTask):
         for targ in invalid_targets:
           resource_dirs = []
           def get_resource_dirs(tgt):
-            """Get full path of all resource_dirs that are depended on by the walked target.
-
-            AndroidLibraries can depend on other android libraries.
-            """
+            """Get full path of any resource_dirs."""
             if isinstance(tgt, AndroidResources):
               resource_dirs.append(os.path.join(get_buildroot(), tgt.resource_dir))
 
           # TODO(mateor) update the android targets so that resource_dirs belong to the dependent
-          # target. Right now they exist as separate entities but that actually adds to user
-          # complexity.
-          # As a bonus, this would give an easy way to reduce to just one call of target.walk().
+          # target. This would give an easy way to reduce to just one call of target.walk().
 
           target.walk(get_resource_dirs)
 
