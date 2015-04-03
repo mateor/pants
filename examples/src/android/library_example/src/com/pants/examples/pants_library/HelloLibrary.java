@@ -2,14 +2,15 @@
 // Copyright 2015 Pants project contributors (see CONTRIBUTORS.md).
 // Licensed under the Apache License, Version 2.0 (see LICENSE).
 
-package com.pants.examples.helloLibrary;
+package com.pants.examples.hello_library;
 
+import android.app.Activity;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.widget.TextView;
 
-public class HelloLibrary extends Fragment {
+public class HelloLibrary extends Activity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -21,7 +22,7 @@ public class HelloLibrary extends Fragment {
     textView.setText(text);
 
     // Toy demonstration of using an android_library comprised of a jar and associated resources.
-    String greeting = getResources().getString(R.string.library_greeting)
+    String greeting = getResources().getString(R.string.library_greeting);
     textView.setText(greeting);
 
     setContentView(textView);
