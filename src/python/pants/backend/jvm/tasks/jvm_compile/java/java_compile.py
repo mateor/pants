@@ -96,7 +96,7 @@ class JavaCompile(JvmCompile):
   # Make the java target language version part of the cache key hash,
   # this ensures we invalidate if someone builds against a different version.
   def _language_platform_version_info(self):
-    return (self.get_options().target,) if self.get_options().target else ()
+    return [self.get_options().target] if self.get_options().target else []
 
   def compile(self, args, classpath, sources, classes_output_dir, upstream_analysis, analysis_file):
     relative_classpath = relativize_paths(classpath, self._buildroot)
@@ -106,8 +106,12 @@ class JavaCompile(JvmCompile):
       '-d', classes_output_dir,
       '-pdb', analysis_file,
       '-pdb-text-format',
-      '-depfile', self._depfile
       ]
+    # TODO: This file should always exist for modern jmake installs; this check should
+    # be removed via a Task-level identity bump after:
+    # https://github.com/pantsbuild/pants/issues/1351
+    if os.path.exists(self._depfile):
+      args.extend(['-depfile', self._depfile])
 
     compiler_classpath = self.tool_classpath('java-compiler')
     args.extend([

@@ -16,29 +16,7 @@ python_library(
     description='A bottom-up build tool.',
     namespace_packages=['pants'],
   ).with_binaries(
-    # TODO(John Sirois): Switch back when target cycles have been sorted out.
-    # pants='src/python/pants/bin:pants',
-    pants=':_pants_transitional_publishable_binary_',
-  )
-)
-
-python_library(
-  name='test_infra',
-  dependencies=[
-    'tests/python/pants_test:base_test',
-    'tests/python/pants_test:int-test',
-    'tests/python/pants_test/jvm:jar_task_test_base',
-    'tests/python/pants_test/jvm:nailgun_task_test_base',
-    'tests/python/pants_test/jvm:jvm_tool_task_test_base',
-    'tests/python/pants_test/engine:engine_test_base',
-  ],
-  provides=pants_setup_py(
-    name='pantsbuild.pants.testinfra',
-    description='Test support for writing pants plugins.',
-    namespace_packages=['pants_test'],
-    additional_classifiers=[
-      'Topic :: Software Development :: Testing',
-    ]
+    pants='src/python/pants/bin:pants',
   )
 )
 

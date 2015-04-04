@@ -28,7 +28,6 @@ python_library(
     ':python_setup',
     ':resolver',
     ':sdist_builder',
-    ':test_builder',
     ':thrift_builder',
   ]
 )
@@ -56,7 +55,6 @@ python_library(
   sources = ['antlr_builder.py'],
   dependencies = [
     ':code_generator',
-    '3rdparty/python:antlr-3.1.3',
     'src/python/pants/base:build_environment',
     'src/python/pants/base:exceptions',
     'src/python/pants/ivy',
@@ -137,26 +135,6 @@ python_library(
   dependencies = [
     '3rdparty/python:pex',
   ]
-)
-
-python_library(
-  name = 'test_builder',
-  sources = ['test_builder.py'],
-  dependencies = [
-    ':python_chroot',
-    # NOTE(pl): We must pull in coverage by hand even though it isn't imported.
-    # pytest-cov otherwise pulls in a newer version of coverage that doesn't
-    # work in all environments, notably some OSX installs.
-    '3rdparty/python:coverage',
-    '3rdparty/python:pex',
-    '3rdparty/python:pytest',
-    '3rdparty/python:pytest-cov',
-    '3rdparty/python:six',
-    'src/python/pants/backend/python/targets:python',
-    'src/python/pants/base:target',
-    'src/python/pants/util:contextutil',
-    'src/python/pants/util:dirutil',
-  ],
 )
 
 python_library(

@@ -21,7 +21,7 @@ from pants.base.exceptions import TaskError
 from pants.base.target import Target
 from pants.base.worker_pool import Work
 from pants.option.options import Options
-from pants.util.contextutil import open_zip64, temporary_dir
+from pants.util.contextutil import open_zip, temporary_dir
 from pants.util.dirutil import safe_mkdir, safe_rmtree, safe_walk
 
 
@@ -140,6 +140,10 @@ class JvmCompileGlobalStrategy(JvmCompileStrategy):
     safe_mkdir(self._target_sources_dir)
     safe_mkdir(self._analysis_dir)
     safe_mkdir(self._classes_dir)
+
+    # Look for invalid analysis files.
+    for f in (self._invalid_analysis_file, self._analysis_file):
+      self.validate_analysis(f)
 
   def prepare_compile(self, cache_manager, all_targets, relevant_targets):
     super(JvmCompileGlobalStrategy, self).prepare_compile(cache_manager, all_targets, relevant_targets)
@@ -545,7 +549,7 @@ class JvmCompileGlobalStrategy(JvmCompileStrategy):
       for cp_entry in self._find_all_bootstrap_jars() + classpath_entries:
         # Per the classloading spec, a 'jar' in this context can also be a .zip file.
         if os.path.isfile(cp_entry) and ((cp_entry.endswith('.jar') or cp_entry.endswith('.zip'))):
-          with open_zip64(cp_entry, 'r') as jar:
+          with open_zip(cp_entry, 'r') as jar:
             for cls in jar.namelist():
               # First jar with a given class wins, just like when classloading.
               if cls.endswith(b'.class') and not cls in self._upstream_class_to_path:

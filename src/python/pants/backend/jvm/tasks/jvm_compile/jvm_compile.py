@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import itertools
 import sys
+from abc import abstractmethod
 from collections import defaultdict
 
 from pants.backend.core.tasks.group_task import GroupMember
@@ -44,13 +45,22 @@ class JvmCompile(NailgunTaskBase, GroupMember):
     register('--confs', type=Options.list, default=['default'],
              help='Compile for these Ivy confs.')
 
+    # TODO: Stale analysis should be automatically ignored via Task identities:
+    # https://github.com/pantsbuild/pants/issues/1351
+    register('--clear-invalid-analysis', default=False, action='store_true',
+             advanced=True,
+             help='When set, any invalid/incompatible analysis files will be deleted '
+                  'automatically.  When unset, an error is raised instead.')
+
     register('--warnings', default=True, action='store_true',
              help='Compile with all configured warnings enabled.')
 
     register('--warning-args', action='append', default=list(cls.get_warning_args_default()),
+             advanced=True,
              help='Extra compiler args to use when warnings are enabled.')
 
     register('--no-warning-args', action='append', default=list(cls.get_no_warning_args_default()),
+             advanced=True,
              help='Extra compiler args to use when warnings are disabled.')
 
     register('--strategy', choices=['global', 'isolated'], default='global',
@@ -191,17 +201,18 @@ class JvmCompile(NailgunTaskBase, GroupMember):
     return JvmFingerprintStrategy(self._platform_version_info())
 
   def _platform_version_info(self):
-    return (self._strategy.name(),) + self._language_platform_version_info()
+    return [self._strategy.name()] + self._language_platform_version_info()
 
+  @abstractmethod
   def _language_platform_version_info(self):
     """
     Provides extra platform information such as java version that will be used
     in the fingerprinter. This in turn ensures different platform versions create different
     cache artifacts.
 
-    Subclasses can override this and return a list of version info.
+    Subclasses must override this and return a list of version info.
     """
-    return ()
+    pass
 
   def pre_execute(self):
     # Only create these working dirs during execution phase, otherwise, they

@@ -33,7 +33,7 @@ python_tests(
     'src/python/pants/backend/jvm/tasks:ivy_imports',
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/util:contextutil',
-    'tests/python/pants_test/tasks:base'
+    'tests/python/pants_test:task_test_base'
   ]
 )
 
@@ -45,7 +45,7 @@ python_tests(
     'src/python/pants/backend/jvm/tasks:junit_run',
     'src/python/pants/goal:products',
     'src/python/pants/ivy',
-    'src/python/pants/java:distribution',
+    'src/python/pants/java/distribution:distribution',
     'src/python/pants/java:executor',
     'tests/python/pants_test/jvm:jvm_tool_task_test_base',
   ]
@@ -83,6 +83,6 @@ python_tests(
     'src/python/pants/backend/jvm/tasks:unpack_jars',
     'src/python/pants/base:target',
     'tests/python/pants_test:base_test',
-    'tests/python/pants_test/tasks:base'
-    ]
+    'tests/python/pants_test:task_test_base',
+  ]
 )
