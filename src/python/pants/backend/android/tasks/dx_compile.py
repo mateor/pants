@@ -117,7 +117,7 @@ class DxCompile(AndroidTask, NailgunTask):
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
           args = self._render_args(outdir, classes)
-          # TODO (mateor) wrap this in a workunit and properly handle stdout/err.
+          # TODO (mateor) Why isn't workunit in util.execute_runner properly handling stderr/out?
           self._compile_dex(args, target.build_tools_version)
       for target in targets:
         self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)

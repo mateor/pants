@@ -87,9 +87,9 @@ class AaptGenerate(AaptTask):
     return args
 
   def execute(self):
-    # Every android_binary and each of their android_library dependencies must have their resources
-    # processed into R.Java files. The libraries are processed using the SDK version of the dependee
-    # android_binary. The number of R.java files produced from each library is <= # of sdks in play.
+    # Every android_binary and each android_library dependency must have its resources processed
+    # into R.Java files. The libraries are processed using the SDK version of the dependee binary.
+    # The number of R.java files produced from each library is <= |sdks| in play.
     targets = self.context.targets(self.is_aapt_target)
     self.create_sdk_jar_deps(targets)
     for target in targets:
