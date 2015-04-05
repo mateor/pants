@@ -19,8 +19,7 @@ class TestAaptGen(TestAndroidBase):
     return AaptGen
 
   def test_aapt_gen_smoke(self):
-    task = self.prepare_task(build_graph=self.build_graph,
-                             build_file_parser=self.build_file_parser)
+    task = self.create_task(self.context())
     task.execute()
 
   def test_calculate_genfile(self):
@@ -30,9 +29,8 @@ class TestAaptGen(TestAndroidBase):
   def test_aapt_tool(self):
     with distribution() as dist:
       with self.android_binary() as android_binary:
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
         target = android_binary
         self.assertEqual(task.aapt_tool(target.build_tools_version),
                          os.path.join(dist, 'build-tools', target.build_tools_version, 'aapt'))
@@ -40,9 +38,8 @@ class TestAaptGen(TestAndroidBase):
   def test_android_tool(self):
     with distribution() as dist:
       with self.android_binary() as android_binary:
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
         target = android_binary
         # Android jar is copied under the buildroot to comply with classpath rules.
         jar_folder = os.path.join(task.workdir, 'platforms',
@@ -53,9 +50,8 @@ class TestAaptGen(TestAndroidBase):
   def test_render_args(self):
     with distribution() as dist:
       with self.android_resources() as android_resources:
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
         target = android_resources
         expected_args = [task.aapt_tool(target.build_tools_version),
                          'package', '-m', '-J', task.workdir,
@@ -69,10 +65,8 @@ class TestAaptGen(TestAndroidBase):
     with distribution() as dist:
       with self.android_resources() as android_resources:
         ignored = '!picasa.ini:!*~:BUILD*'
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
-                                       '--test-ignored-assets={0}'.format(ignored)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
         target = android_resources
         expected_args = [task.aapt_tool(target.build_tools_version),
                          'package', '-m', '-J', task.workdir,
@@ -86,10 +80,8 @@ class TestAaptGen(TestAndroidBase):
     with distribution() as dist:
       with self.android_resources() as android_resources:
         sdk = '19'
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
-                                       '--test-target-sdk={0}'.format(sdk)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist, target_sdk=sdk)
+        task = self.create_task(self.context())
         target = android_resources
         expected_args = [task.aapt_tool(target.build_tools_version),
                          'package', '-m', '-J', task.workdir,
@@ -103,10 +95,8 @@ class TestAaptGen(TestAndroidBase):
     with distribution() as dist:
       with self.android_resources() as android_resources:
         build_tools = '20.0.0'
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist),
-                                       '--test-build-tools-version={0}'.format(build_tools)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist, build_tools_version=build_tools)
+        task = self.create_task(self.context())
         target = android_resources
         expected_args = [task.aapt_tool(build_tools),
                          'package', '-m', '-J', task.workdir,
@@ -119,11 +109,10 @@ class TestAaptGen(TestAndroidBase):
   def test_createtarget(self):
     with distribution() as dist:
       with self.android_binary() as android_binary:
-        task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
-                                 build_graph=self.build_graph,
-                                 build_file_parser=self.build_file_parser)
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
         targets = [android_binary]
-        task.prepare_gen(targets)
-        created_target = task.createtarget('java', android_binary, [])
+        task.create_sdk_jar_deps(targets)
+        created_target = task.createtarget(android_binary, '19')
         self.assertEqual(created_target.derived_from, android_binary)
         self.assertEqual(created_target.is_synthetic, True)

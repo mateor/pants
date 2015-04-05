@@ -119,7 +119,9 @@ class AaptGen(AaptTask):
                                        stderr=workunit.output('stderr'))
           if returncode:
             raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
-        self.createtarget(targ, sdk)
+
+        new_target = self.createtarget(targ, sdk)
+        targ.inject_dependency(new_target.address)
 
   def createtarget(self, gentarget, sdk):
     spec_path = os.path.join(os.path.relpath(self.aapt_out(sdk), get_buildroot()))
@@ -131,8 +133,7 @@ class AaptGen(AaptTask):
                                       derived_from=gentarget,
                                       sources=[aapt_gen_file],
                                       dependencies=deps)
-    gentarget.inject_dependency(tgt.address)
-
+    return tgt
 
   def aapt_out(self, sdk):
     outdir = os.path.join(self.workdir, sdk)
