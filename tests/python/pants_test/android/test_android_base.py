@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from twitter.common.collections import maybe_list
 
 from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.targets.android_resources import AndroidResources
 from pants.util.contextutil import temporary_dir, temporary_file
 from pants.util.dirutil import chmod_plus_x, touch
 from pants_test.task_test_base import TaskTestBase
@@ -20,11 +21,8 @@ from pants_test.task_test_base import TaskTestBase
 class TestAndroidBase(TaskTestBase):
   """Base class for Android tests that provides some mock structures useful for testing."""
 
-  @contextmanager
-  def android_binary(self):
-    """Represent an android_binary target, providing a mock version of the required manifest."""
-    with temporary_file() as fp:
-      fp.write(textwrap.dedent(
+  def android_manifest(self):
+      manifest = textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.pants.examples.hello" >
@@ -32,14 +30,34 @@ class TestAndroidBase(TaskTestBase):
                 android:minSdkVersion="8"
                 android:targetSdkVersion="19" />
         </manifest>
-        """))
-      path = fp.name
+        """)
+      return manifest
+
+  @contextmanager
+  def android_resources(self):
+    """Represent an android_binary target, providing a mock version of the required manifest."""
+    with temporary_dir() as temp:
+      with temporary_file() as fp:
+        fp.write(self.android_manifest())
+        fp.close()
+        path = fp.name
+        target = self.make_target(spec=':resources',
+                                  target_type=AndroidResources,
+                                  manifest=path,
+                                  resource_dir=temp)
+        yield target
+
+  @contextmanager
+  def android_binary(self):
+    """Represent an android_binary target, providing a mock version of the required manifest."""
+    with temporary_file() as fp:
+      fp.write(self.android_manifest())
       fp.close()
+      path = fp.name
       target = self.make_target(spec=':binary',
                                 target_type=AndroidBinary,
                                 manifest=path)
       yield target
-
 
 @contextmanager
 def distribution(installed_sdks=('18', '19'),
