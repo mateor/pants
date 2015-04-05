@@ -88,7 +88,7 @@ class SignApkTest(TestAndroidBase):
                          '-storepass', 'keystore_password',
                          '-keypass', 'key_password',
                          '-signedjar']
-        expected_args.extend(['{0}/{1}.{2}.signed.apk'.format(temp, target.app_name,
+        expected_args.extend(['{0}/{1}.{2}.signed.apk'.format(temp, target.manifest.package_name,
                                                               fake_key.build_type)])
         expected_args.extend(['unsigned_apk_product', 'key_alias'])
         self.assertEquals(expected_args, task._render_args(target, fake_key, 'unsigned_apk_product',

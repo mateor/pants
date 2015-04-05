@@ -31,17 +31,14 @@ class AndroidManifestParser(object):
     except XmlParser.XmlError as e:
       raise cls.BadManifestError("AndroidManifest.xml parsing error: {}".format(e))
     target_sdk = manifest.get_optional_attribute('uses-sdk', 'android:targetSdkVersion')
-    app_name = manifest.get_optional_attribute('activity', 'android:name')
 
-    return AndroidManifest(manifest.xml_path, target_sdk, package_name, app_name=app_name)
+    return AndroidManifest(manifest.xml_path, target_sdk, package_name)
 
 
 class AndroidManifest(object):
   """Object to represent an Android manifest."""
 
-  def __init__(self, path, target_sdk, package_name, app_name=None):
+  def __init__(self, path, target_sdk, package_name):
     self.path = path
     self.target_sdk = target_sdk
     self.package_name = package_name
-    # Can be None, so tasks should use target.app_name which checks this but has a backup value.
-    self.app_name = app_name

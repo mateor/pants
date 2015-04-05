@@ -103,10 +103,10 @@ class AaptGenerate(AaptTask):
           gentargets.append(tgt)
       target.walk(gather_gen_targets)
 
-      # Some of the dependent libraries might have transitive deps, with their own resources.
-      # All dependent resources are needed for processing.
-
+      # A target's resources, as well as the resources of its transitive deps, are needed.
       for targ in gentargets:
+        # TODO(mateo) hook in invalidation. Adding it here doesn't work because the invalidation
+        # framework can't differentiate between one library compiled by multiple sdks.
         resource_dirs = []
 
         for dep in targ.closure():

@@ -74,41 +74,8 @@ class TestAndroidManifestParser(TestXmlBase):
       manifest = AndroidManifestParser.parse_manifest(xml)
       self.assertEqual(manifest.target_sdk, None)
 
-  # Test AndroidManifest.app_name.
-  def test_application_name(self):
-    with self.xml_file() as xml:
-      manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.app_name, 'com.pants.examples.hello.HelloWorld')
-
-  # These next tests show AndroidManifest.app_name fails silently and returns None.
-  def test_no_activity_element(self):
-    with self.xml_file(activity_element='root_beer') as xml:
-      manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.app_name, None)
-
-  def test_no_android_name_attribute(self):
-    with self.xml_file(android_name_attribute='android:grape') as xml:
-      manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.app_name, None)
-
-  def test_no_attribute_tag_match(self):
-    # With attribute:value, the attribute must be declared. We declare unrelated on ln 3 of the xml.
-    with self.xml_file(android_name_attribute='unrelated:match') as xml:
-      manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.app_name, None)
-
   # Test AndroidManifest().
   def test_android_manifest(self):
     with self.xml_file() as xml:
-      test = AndroidManifest(xml, '19', 'com.foo.bar', app_name='com.foo.bar.HelloBar')
-      self.assertEqual(test.path, xml)
-
-  def test_app_name_none(self):
-    with self.xml_file() as xml:
-      test = AndroidManifest(xml, '19', 'com.foo.bar', app_name=None)
-      self.assertEqual(test.path, xml)
-
-  def test_no_app_name(self):
-    with self.xml_file() as xml:
       test = AndroidManifest(xml, '19', 'com.foo.bar')
-      self.assertEqual(test.target_sdk, '19')
+      self.assertEqual(test.path, xml)
