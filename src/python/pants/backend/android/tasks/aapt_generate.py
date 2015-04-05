@@ -105,29 +105,20 @@ class AaptGenerate(AaptTask):
 
       # Some of the dependent libraries might have transitive deps, with their own resources.
       # All dependent resources are needed for processing.
-      with self.invalidated(gentargets) as invalidation_check:
-        invalid_targets = []
-        for vt in invalidation_check.invalid_vts:
-          invalid_targets.extend(vt.targets)
-        for targ in invalid_targets:
-          resource_dirs = []
-          def get_resource_dirs(tgt):
-            """Get full path of any resource_dirs."""
-            if isinstance(tgt, AndroidResources):
-              resource_dirs.append(os.path.join(get_buildroot(), tgt.resource_dir))
 
-          # TODO(mateor) update the android targets so that resource_dirs belong to the dependent
-          # target. This would give an easy way to reduce to just one call of target.walk().
-
-          target.walk(get_resource_dirs)
-
-          args = self._render_args(targ, sdk, resource_dirs, outdir)
-          with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
-            returncode = subprocess.call(args, stdout=workunit.output('stdout'),
-                                         stderr=workunit.output('stderr'))
-            if returncode:
-              raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
       for targ in gentargets:
+        resource_dirs = []
+
+        for dep in targ.closure():
+          if isinstance(dep, AndroidResources):
+            resource_dirs.append(dep.resource_dir)
+
+        args = self._render_args(targ, sdk, resource_dirs, outdir)
+        with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
+          returncode = subprocess.call(args, stdout=workunit.output('stdout'),
+                                       stderr=workunit.output('stderr'))
+          if returncode:
+            raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
         self.createtarget(targ, sdk)
 
   def createtarget(self, gentarget, sdk):
