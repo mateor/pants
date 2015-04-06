@@ -30,6 +30,6 @@ unpacked_jars(name='play-services',
 unpacked_jars(name='support-unpacked',
   libraries=['3rdparty/android:android-support-v4'],
   include_patterns=[
-    'android/**/*.java',
+    'android/**/*.class',
   ],
 )
