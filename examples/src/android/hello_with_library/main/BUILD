@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
+# Copyright 2015 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 android_binary(
@@ -7,7 +7,7 @@ android_binary(
   sources=rglobs('src/*.java'),
   manifest='AndroidManifest.xml',
   dependencies = [
-    'examples/src/android/android_library:support_library',
+    'examples/src/android/example_library',
     ':resources',
     ':support-unpacked',
   ],
