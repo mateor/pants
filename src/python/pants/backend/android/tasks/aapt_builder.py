@@ -89,7 +89,7 @@ class AaptBuilder(AaptTask):
         def gather_resources(target):
           """Gather the 'resource_dir's of the target's AndroidResources dependencies."""
           if isinstance(target, AndroidResources):
-            gen_out.append(os.path.join(get_buildroot(), target.resource_dir))
+            gen_out.append(target.resource_dir)
         target.walk(gather_resources)
 
         args = self._render_args(target, gen_out, input_dirs)

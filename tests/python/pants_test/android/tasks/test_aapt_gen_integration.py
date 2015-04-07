@@ -38,7 +38,7 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
     pants_run = self.run_pants(['gen', target])
     self.assert_success(pants_run)
 
-  def skip_test_aapt_gen(self):
+  def test_aapt_gen(self):
     self.aapt_gen_test(AndroidIntegrationTest.TEST_TARGET)
 
   def test_android_library_dep(self):
@@ -54,7 +54,7 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
       self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
       self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
 
-      # Scraping debug statements.
+      # Scrape debug statements.
       def find_aapt_blocks(lines):
         for line in lines:
           if re.search(r'Executing: .*?\baapt', line):
