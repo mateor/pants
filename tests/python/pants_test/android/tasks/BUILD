@@ -62,6 +62,7 @@ python_tests(
     'test_aapt_gen_integration.py',
   ],
   dependencies = [
+    'src/python/pants/util:contextutil',
     'tests/python/pants_test/android:android_integration_test',
   ],
 )

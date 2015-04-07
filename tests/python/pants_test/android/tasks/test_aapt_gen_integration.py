@@ -6,9 +6,11 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+import re
 
 import pytest
 
+from pants.util.contextutil import temporary_dir
 from pants_test.android.android_integration_test import AndroidIntegrationTest
 
 
@@ -31,9 +33,46 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
   @pytest.mark.skipif('not AaptGenIntegrationTest.tools',
                       reason='Android integration test requires tools {0!r} '
                              'and ANDROID_HOME set in path.'.format(TOOLS))
-  def test_aapt_gen(self):
-    self.aapt_gen_test(AndroidIntegrationTest.TEST_TARGET)
 
   def aapt_gen_test(self, target):
-    pants_run = self.run_pants(['dex', target])
+    pants_run = self.run_pants(['gen', target])
     self.assert_success(pants_run)
+
+  def skip_test_aapt_gen(self):
+    self.aapt_gen_test(AndroidIntegrationTest.TEST_TARGET)
+
+  def test_android_library_dep(self):
+    # Doing the work under a tempdir gives us a handle for the workdir and guarantees a compile.
+    with temporary_dir(root_dir=self.workdir_root()) as workdir:
+      pants_run = self.run_pants_with_workdir([
+         'gen',
+        'examples/src/android/hello_with_library/main:hello_with_library', '--level=debug', '--no-colors'],
+        workdir)
+      self.assert_success(pants_run)
+      # Ensure that the R.java is produced for the binary and the library dependency.
+      lib_file = 'gen/aapt/19/org/pantsbuild/example/pants_library/R.java'
+      apk_file = 'gen/aapt/19/org/pantsbuild/example_library/hello_with_library/R.java'
+      self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
+      self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
+
+    def find_aapt_blocks(lines):
+      for line in lines:
+        if re.search(r'Executing: .*?\baapt', line):
+          yield line
+
+    # Scraping debug statements for protoc compilation.
+    all_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
+    self.assertEquals(len(all_blocks), 2,
+                      'Expected there to be exactly one protoc compilation group! (Were {count}.)\n{out}'
+                      .format(count=len(all_blocks), out=pants_run.stderr_data))
+    for line in all_blocks:
+      print("ALL CLOCKS LINE: ", (line))
+      first = re.search(r'hello_with_library.*?\b', line)
+      if first:
+        print("FIRST: ", line)
+        resource_dirs = re.findall(r'-S.*?', line)
+        print("RESOURCE_DIRS: ", resource_dirs)
+
+        self.assertEquals(len(resource_dirs), 2,
+                          'Expected there to be exactly one protoc compilation group! (Were {count})\n'
+                          .format(count=resource_dirs))
