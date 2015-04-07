@@ -26,7 +26,7 @@ class TestAndroidBase(TaskTestBase):
       manifest = textwrap.dedent(
         """<?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.pants.examples.hello" >
+            package="org.pantsbuild.example.hello" >
             <uses-sdk
                 android:minSdkVersion="8"
                 android:targetSdkVersion="19" />

@@ -27,19 +27,19 @@ class TestAndroidManifestParser(TestXmlBase):
   def test_package_name(self):
     with self.xml_file() as xml:
       manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.package_name, 'com.pants.examples.hello')
+      self.assertEqual(manifest.package_name, 'org.pantsbuild.example.hello')
 
   def test_missing_manifest_element(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
       with self.xml_file(manifest_element='some_other_element') as xml:
         manifest = AndroidManifestParser.parse_manifest(xml)
-        self.assertEqual(manifest.package_name, 'com.pants.examples.hello')
+        self.assertEqual(manifest.package_name, 'org.pantsbuild.example.hello')
 
   def test_missing_package_attribute(self):
     with self.assertRaises(AndroidManifestParser.BadManifestError):
       with self.xml_file(package_attribute='bad_value') as xml:
         manifest = AndroidManifestParser.parse_manifest(xml)
-        self.assertEqual(manifest.package_name, 'com.pants.examples.hello')
+        self.assertEqual(manifest.package_name, 'org.pantsbuild.example.hello')
 
   def test_weird_package_name(self):
     # Should accept unexpected package names, the info gets verified in classes that consume it.
@@ -67,7 +67,7 @@ class TestAndroidManifestParser(TestXmlBase):
   def test_no_android_part(self):
     with self.xml_file(android_attribute='unrelated:targetSdkVersion') as xml:
       manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.target_sdk, None)
+      self.assertEqual(manifest.app_name, 'org.pantsbuild.example.hello.HelloWorld')
 
   def test_missing_whole_targetsdk(self):
     with self.xml_file(android_attribute='unrelated:cola') as xml:
