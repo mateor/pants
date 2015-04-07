@@ -92,7 +92,7 @@ class AaptBuilder(AaptTask):
             gen_out.append(os.path.join(get_buildroot(), target.resource_dir))
         target.walk(gather_resources)
 
-        args = self.render_args(target, gen_out, input_dirs)
+        args = self._render_args(target, gen_out, input_dirs)
         with self.context.new_workunit(name='apk-bundle', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))

@@ -61,7 +61,7 @@ class SignApkTest(TestAndroidBase):
       key = self.FakeKeystore()
       target = android_binary
       self.assertEquals(SignApkTask.signed_package_name(target, key.build_type),
-                        'binary.debug.signed.apk')
+                        'com.pants.examples.hello.debug.signed.apk')
 
   def test_setup_default_config(self):
     with temporary_dir() as temp:

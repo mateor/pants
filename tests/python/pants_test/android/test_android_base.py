@@ -35,42 +35,45 @@ class TestAndroidBase(TaskTestBase):
       return manifest
 
   @contextmanager
-  def android_binary(self, dependencies=None):
+  def android_binary(self, name=None, dependencies=None):
     """Represent an android_binary target."""
     with temporary_file() as fp:
-      deps = dependencies if dependencies else []
       fp.write(self.android_manifest())
       fp.close()
       path = fp.name
-      target = self.make_target(spec=':binary',
+      name = name if name else 'binary'
+      deps = dependencies if dependencies else []
+      target = self.make_target(spec=':{}'.format(name),
                                 target_type=AndroidBinary,
                                 manifest=path,
                                 dependencies=deps)
       yield target
 
   @contextmanager
-  def android_resources(self):
+  def android_resources(self, name=None):
     """Represent an android_resources target."""
     with temporary_dir() as temp:
       with temporary_file() as fp:
         fp.write(self.android_manifest())
         fp.close()
         path = fp.name
-        target = self.make_target(spec=':resources',
+        name = name if name else 'resources'
+        target = self.make_target(spec=':{}'.format(name),
                                   target_type=AndroidResources,
                                   manifest=path,
                                   resource_dir=temp)
         yield target
 
   @contextmanager
-  def android_library(self, dependencies=None):
+  def android_library(self, name=None, dependencies=None):
     """Represent an android_library target."""
     with temporary_file() as fp:
-      deps = dependencies if dependencies else []
       fp.write(self.android_manifest())
       fp.close()
       path = fp.name
-      target = self.make_target(spec=':library',
+      deps = dependencies if dependencies else []
+      name = name if name else 'library'
+      target = self.make_target(spec=':{}'.format(name),
                                 target_type=AndroidLibrary,
                                 manifest=path,
                                 dependencies=deps)
