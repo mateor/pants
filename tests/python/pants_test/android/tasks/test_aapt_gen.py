@@ -53,16 +53,20 @@ class TestAaptGen(TestAndroidBase):
   def test_render_args(self):
     with distribution() as dist:
       with self.android_resources() as android_resources:
-        self.set_options(sdk_path=dist)
-        task = self.create_task(self.context())
-        target = android_resources
-        expected_args = [task.aapt_tool(target.build_tools_version),
-                         'package', '-m', '-J', task.workdir,
-                         '-M', target.manifest.path,
-                         '-S', target.resource_dir,
-                         '-I', task.android_jar_tool(target.manifest.target_sdk),
-                         '--ignore-assets', task.ignored_assets]
-        self.assertEqual(expected_args, task._render_args(target, task.workdir))
+        with self.android_binary(dependencies=[android_resources]) as binary:
+          self.set_options(sdk_path=dist)
+          task = self.create_task(self.context())
+          target = binary
+          expected_args = [task.aapt_tool(target.build_tools_version),
+                           'package', '-m', '-J', task.workdir,
+                           '-M', target.manifest.path,
+                           '--auto-add-overlay',
+                           '-S', android_resources.resource_dir,
+                           '-I', task.android_jar_tool(target.manifest.target_sdk),
+                           '--ignore-assets', task.ignored_assets]
+          self.assertEqual(expected_args, task._render_args(target, target.target_sdk,
+                                                            [android_resources.resource_dir],
+                                                            task.workdir))
 
   def test_render_args_force_ignored_assets(self):
     with distribution() as dist:
