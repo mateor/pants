@@ -67,7 +67,7 @@ class TestAndroidManifestParser(TestXmlBase):
   def test_no_android_part(self):
     with self.xml_file(android_attribute='unrelated:targetSdkVersion') as xml:
       manifest = AndroidManifestParser.parse_manifest(xml)
-      self.assertEqual(manifest.app_name, 'org.pantsbuild.example.hello.HelloWorld')
+      self.assertEqual(manifest.package_name, 'org.pantsbuild.example.hello')
 
   def test_missing_whole_targetsdk(self):
     with self.xml_file(android_attribute='unrelated:cola') as xml:
