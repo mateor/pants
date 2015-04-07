@@ -94,7 +94,7 @@ class AaptGen(AaptTask):
 
   def execute(self):
     # Every android_binary and each android_library dependency must have its resources processed
-    # into R.Java files. The libraries are processed using the SDK version of the dependee binary.
+    # into separate R.java files.
     # The number of R.java files produced from each library is <= |sdks in play|.
     targets = self.context.targets(self.is_aapt_target)
     self.create_sdk_jar_deps(targets)
@@ -109,18 +109,20 @@ class AaptGen(AaptTask):
           gentargets.append(tgt)
       target.walk(gather_gentargets)
 
-      # TODO(mateo) add invalidation framework. Adding it here doesn't work because the
+      # TODO(mateo) add invalidation framework. Adding it here doesn't work right now because the
       # framework can't differentiate between one library that has to be compiled by multiple sdks.
-      # I have some ideas that I can try with the BUILD file rework that should come next.
+      # We can try some things with the BUILD file rework that'd be up next in a perfect world.
       for targ in gentargets:
         resource_dirs = []
 
+        # If a library does not specify a target_sdk, use the sdk of its dependee binary.
+        used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
         for dep in targ.closure():
           # A target's resources, as well as the resources of its transitive deps, are needed.
           if isinstance(dep, AndroidResources):
             resource_dirs.append(dep.resource_dir)
 
-        args = self._render_args(targ, sdk, resource_dirs, outdir)
+        args = self._render_args(targ, used_sdk, resource_dirs, outdir)
         with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))
