@@ -31,8 +31,7 @@ class AaptGen(AaptTask):
   Android Asset Packaging Tool (aapt).
 
   The aapt tool supports 6 major commands: [dump, list, add, remove, crunch, package]
-  For right now, pants is only supporting 'package'. More to come as we support Release builds
-  (crunch, at minimum).
+  For right now, pants supports 'package'.
 
   Commands and flags for aapt can be seen here:
   https://android.googlesource.com/platform/frameworks/base/+/master/tools/aapt/Command.cpp
@@ -40,16 +39,14 @@ class AaptGen(AaptTask):
 
   @classmethod
   def _calculate_genfile(cls, package):
+    """Name of the file produced by aapt."""
+    # The aapt tool determines this information by parsing the manifest of the target.
     return os.path.join(cls.package_path(package), 'R.java')
 
   @staticmethod
   def is_aapt_target(target):
-    """Return True if target has class files to be compiled into dex."""
+    """Return True for AndroidBinary targets."""
     return isinstance(target, AndroidBinary)
-
-  @classmethod
-  def product_types(cls):
-    return ['java']
 
   def __init__(self, *args, **kwargs):
     super(AaptGen, self).__init__(*args, **kwargs)
@@ -73,13 +70,14 @@ class AaptGen(AaptTask):
     :param string output_dir: Output location for the directories and R.java created by aapt.
     """
 
-    # Glossary of used aapt flags. Aapt handles a ton of action, this will continue to expand.
+    # Glossary of used aapt flags.
     #   : 'package' is the main aapt operation (see class docstring for more info).
     #   : '-m' is to "make" a package directory under location '-J'.
     #   : '-J' Points to the output directory.
     #   : '-M' is the AndroidManifest.xml of the project.
-    #   : '--auto-add-overlay' facilitates the merging of resources from different targets.
-    #   : '-S' points to each resource_dir to 'scan' while collecting resources.
+    #   : '--auto-add-overlay' automatically add resources that are only in overlays.
+    #   : '-S' points to each dir in resource_dirs, aapt 'scans' them in order while
+    #            collecting resources (resource priority is left -> right).
     #   : '-I' packages to add to base 'include' set, here it is the android.jar of the target sdk.
     #   : '--ignore-assets' the aapt tool will disregard any files matching that pattern.
     args = [self.aapt_tool(target.build_tools_version)]
@@ -105,14 +103,15 @@ class AaptGen(AaptTask):
       outdir = self.aapt_out(sdk)
 
       gentargets = [target]
-      def gather_gen_targets(tgt):
+      def gather_gentargets(tgt):
         """Gather targets that have an AndroidResources dependency."""
         if isinstance(tgt, AndroidLibrary):
           gentargets.append(tgt)
-      target.walk(gather_gen_targets)
+      target.walk(gather_gentargets)
 
-      # TODO(mateo) hook in invalidation. Adding it here doesn't work because the invalidation
-      # framework can't differentiate between one library compiled by multiple sdks.
+      # TODO(mateo) add invalidation framework. Adding it here doesn't work because the
+      # framework can't differentiate between one library that has to be compiled by multiple sdks.
+      # I have some ideas that I can try with the BUILD file rework that should come next.
       for targ in gentargets:
         resource_dirs = []
 

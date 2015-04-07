@@ -43,7 +43,7 @@ class AaptBuilder(AaptTask):
     round_manager.require_data('dex')
 
   def _render_args(self, target, resource_dirs, inputs):
-    # Glossary of used aapt flags. Aapt handles a ton of action, this will continue to expand.
+    # Glossary of used aapt flags.
     #   : 'package' is the main aapt operation (see class docstring for more info).
     #   : '-f' to 'force' overwrites if the package already exists.
     #   : '-M' is the AndroidManifest.xml of the project.
