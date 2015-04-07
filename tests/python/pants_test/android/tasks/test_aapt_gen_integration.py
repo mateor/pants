@@ -42,7 +42,7 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
     self.aapt_gen_test(AndroidIntegrationTest.TEST_TARGET)
 
   def test_android_library_dep(self):
-    # Doing the work under a tempdir gives us a handle for the workdir and guarantees a compile.
+    # Doing the work under a tempdir gives us a handle for the workdir and guarantees a clean build.
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
       spec = 'examples/src/android/hello_with_library/main:hello_with_library'
       pants_run = self.run_pants_with_workdir(['gen', '-ldebug', spec], workdir)
@@ -54,21 +54,24 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
       self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
       self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
 
+      # Scraping debug statements.
       def find_aapt_blocks(lines):
         for line in lines:
           if re.search(r'Executing: .*?\baapt', line):
             yield line
 
-      # Scraping debug statements.
       all_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
       self.assertEquals(len(all_blocks), 2,
                         'Expected two invocations of the aapt tool! (Were {count})\n{out}'
                         .format(count=len(all_blocks), out=pants_run.stderr_data))
+
+      # Check to make sure the resources are being passed in correct order (apk->libs).
       for line in all_blocks:
         apk = re.search(r'hello_with_library.*?\b', line)
         if apk:
-          resource_dirs = re.findall(r'-S.*?', line)
-          print("RESOUREC DIRS: ", resource_dirs)
+          resource_dirs = re.findall("-S ([^\s]+)", line)
+          self.assertEqual(resource_dirs[0], 'examples/src/android/hello_with_library/main/res')
+          self.assertEqual(resource_dirs[1], 'examples/src/android/example_library/res')
           self.assertEquals(len(resource_dirs), 2,
                             'Expected two resource dirs to be included when calling aapt on '
                             'hello_with_library apk. (Were {count})\n'.format(count=resource_dirs))
