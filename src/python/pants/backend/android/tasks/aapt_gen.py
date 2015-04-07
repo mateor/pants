@@ -98,18 +98,18 @@ class AaptGen(AaptTask):
 
       gentargets = [target]
       def gather_gen_targets(tgt):
-        """Gather all targets that might have an AndroidResources dependency."""
+        """Gather targets that have an AndroidResources dependency."""
         if isinstance(tgt, AndroidLibrary):
           gentargets.append(tgt)
       target.walk(gather_gen_targets)
 
-      # A target's resources, as well as the resources of its transitive deps, are needed.
+      # TODO(mateo) hook in invalidation. Adding it here doesn't work because the invalidation
+      # framework can't differentiate between one library compiled by multiple sdks.
       for targ in gentargets:
-        # TODO(mateo) hook in invalidation. Adding it here doesn't work because the invalidation
-        # framework can't differentiate between one library compiled by multiple sdks.
         resource_dirs = []
 
         for dep in targ.closure():
+          # A target's resources, as well as the resources of its transitive deps, are needed.
           if isinstance(dep, AndroidResources):
             resource_dirs.append(dep.resource_dir)
 

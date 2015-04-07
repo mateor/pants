@@ -68,50 +68,52 @@ class TestAaptGen(TestAndroidBase):
                                                             [android_resources.resource_dir],
                                                             task.workdir))
 
-  def test_render_args_force_ignored_assets(self):
-    with distribution() as dist:
-      with self.android_resources() as android_resources:
-        ignored = '!picasa.ini:!*~:BUILD*'
-        self.set_options(sdk_path=dist)
-        task = self.create_task(self.context())
-        target = android_resources
-        expected_args = [task.aapt_tool(target.build_tools_version),
-                         'package', '-m', '-J', task.workdir,
-                         '-M', target.manifest.path,
-                         '-S', target.resource_dir,
-                         '-I', task.android_jar_tool(target.manifest.target_sdk),
-                         '--ignore-assets', ignored]
-        self.assertEqual(expected_args, task._render_args(target, task.workdir))
 
-  def test_render_args_force_sdk(self):
+  def test_render_args_with_android_library(self):
     with distribution() as dist:
-      with self.android_resources() as android_resources:
-        sdk = '19'
-        self.set_options(sdk_path=dist, target_sdk=sdk)
-        task = self.create_task(self.context())
-        target = android_resources
-        expected_args = [task.aapt_tool(target.build_tools_version),
-                         'package', '-m', '-J', task.workdir,
-                         '-M', target.manifest.path,
-                         '-S', target.resource_dir,
-                         '-I', task.android_jar_tool('19'),
-                         '--ignore-assets', task.ignored_assets]
-        self.assertEqual(expected_args, task._render_args(target, task.workdir))
+      with self.android_resources() as resources:
+        with self.android_library(dependencies=[resources]) as library:
+          with self.android_binary(dependencies=[resources, library]) as binary:
+            self.set_options(sdk_path=dist)
+            task = self.create_task(self.context())
+            targets = [binary, library]
+            # Show that all dependent lib and resources are processed with the binary's target sdk
+            # and that the resource dirs are scanned in proper order.
+            for target in targets:
+              expected_args = [task.aapt_tool(target.build_tools_version),
+                               'package', '-m', '-J', task.workdir,
+                               '-M', target.manifest.path,
+                               '--auto-add-overlay',
+                               '-S', resources.resource_dir,
+                               '-S', resources.resource_dir,
+                               '-I', task.android_jar_tool(binary.manifest.target_sdk),
+                               '--ignore-assets', task.ignored_assets]
+              self.assertEqual(expected_args,
+                               task._render_args(target, binary.target_sdk,
+                                                 [resources.resource_dir, resources.resource_dir],
+                                                 task.workdir))
 
-  def test_render_args_force_build_tools(self):
+  def test_render_args_force_args(self):
     with distribution() as dist:
       with self.android_resources() as android_resources:
-        build_tools = '20.0.0'
-        self.set_options(sdk_path=dist, build_tools_version=build_tools)
-        task = self.create_task(self.context())
-        target = android_resources
-        expected_args = [task.aapt_tool(build_tools),
-                         'package', '-m', '-J', task.workdir,
-                         '-M', target.manifest.path,
-                         '-S', target.resource_dir,
-                         '-I', task.android_jar_tool(target.manifest.target_sdk),
-                         '--ignore-assets', task.ignored_assets]
-        self.assertEqual(expected_args, task._render_args(target, task.workdir))
+        with self.android_binary(dependencies=[android_resources]) as binary:
+          build_tools = '20.0.0'
+          sdk = '19'
+          ignored = '!picasa.ini:!*~:BUILD*'
+          self.set_options(sdk_path=dist, build_tools_version=build_tools, target_sdk=sdk,
+                           ignored_assets=ignored)
+          task = self.create_task(self.context())
+          target = binary
+          expected_args = [task.aapt_tool(build_tools),
+                           'package', '-m', '-J', task.workdir,
+                           '-M', target.manifest.path,
+                           '--auto-add-overlay',
+                           '-S', android_resources.resource_dir,
+                           '-I', task.android_jar_tool(sdk),
+                           '--ignore-assets', ignored]
+          self.assertEqual(expected_args, task._render_args(target, target.target_sdk,
+                                                            [android_resources.resource_dir],
+                                                            task.workdir))
 
   def test_createtarget(self):
     with distribution() as dist:
