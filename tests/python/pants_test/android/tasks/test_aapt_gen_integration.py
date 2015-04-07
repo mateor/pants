@@ -44,35 +44,37 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
   def test_android_library_dep(self):
     # Doing the work under a tempdir gives us a handle for the workdir and guarantees a compile.
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
-      pants_run = self.run_pants_with_workdir([
-         'gen',
-        'examples/src/android/hello_with_library/main:hello_with_library', '--level=debug', '--no-colors'],
-        workdir)
+      spec = 'examples/src/android/hello_with_library/main:hello_with_library'
+      pants_run = self.run_pants_with_workdir(['gen', '-ldebug', spec], workdir)
       self.assert_success(pants_run)
-      # Ensure that the R.java is produced for the binary and the library dependency.
+
+      # Make sure that the R.java was produced for the binary and its library dependency.
       lib_file = 'gen/aapt/19/org/pantsbuild/example/pants_library/R.java'
       apk_file = 'gen/aapt/19/org/pantsbuild/example_library/hello_with_library/R.java'
       self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
       self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
 
-    def find_aapt_blocks(lines):
-      for line in lines:
-        if re.search(r'Executing: .*?\baapt', line):
-          yield line
+      def find_aapt_blocks(lines):
+        for line in lines:
+          if re.search(r'Executing: .*?\baapt', line):
+            yield line
 
-    # Scraping debug statements for protoc compilation.
-    all_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
-    self.assertEquals(len(all_blocks), 2,
-                      'Expected there to be exactly one protoc compilation group! (Were {count}.)\n{out}'
-                      .format(count=len(all_blocks), out=pants_run.stderr_data))
-    for line in all_blocks:
-      print("ALL CLOCKS LINE: ", (line))
-      first = re.search(r'hello_with_library.*?\b', line)
-      if first:
-        print("FIRST: ", line)
-        resource_dirs = re.findall(r'-S.*?', line)
-        print("RESOURCE_DIRS: ", resource_dirs)
-
-        self.assertEquals(len(resource_dirs), 2,
-                          'Expected there to be exactly one protoc compilation group! (Were {count})\n'
-                          .format(count=resource_dirs))
+      # Scraping debug statements.
+      all_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
+      self.assertEquals(len(all_blocks), 2,
+                        'Expected two invocations of the aapt tool! (Were {count})\n{out}'
+                        .format(count=len(all_blocks), out=pants_run.stderr_data))
+      for line in all_blocks:
+        apk = re.search(r'hello_with_library.*?\b', line)
+        if apk:
+          resource_dirs = re.findall(r'-S.*?', line)
+          print("RESOUREC DIRS: ", resource_dirs)
+          self.assertEquals(len(resource_dirs), 2,
+                            'Expected two resource dirs to be included when calling aapt on '
+                            'hello_with_library apk. (Were {count})\n'.format(count=resource_dirs))
+        else:
+          # If the apk target name didn't match, we know it called aapt on the library dependency.
+          resource_dirs = re.findall(r'-S.*?', line)
+          self.assertEquals(len(resource_dirs), 1,
+                            'Expected one resource dirs to be included when calling aapt on '
+                            'example_library dep. (Were {count})\n'.format(count=resource_dirs))
