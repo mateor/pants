@@ -53,6 +53,10 @@ class AaptGen(AaptTask):
     self._jar_library_by_sdk = {}
 
   def create_sdk_jar_deps(self, targets):
+    """Create a JarLibrary target for every sdk in play.
+
+    :param list targets: A list of AndroidBinary targets.
+    """
     # Prepare exactly N android jar targets where N is the number of SDKs in-play.
     sdks = set(ar.target_sdk for ar in targets)
     for sdk in sdks:
@@ -134,6 +138,12 @@ class AaptGen(AaptTask):
         targ.inject_dependency(new_target.address)
 
   def create_target(self, gentarget, sdk):
+    """Create a JavaLibrary target for the R.java files created by the aapt tool.
+
+    :param AndroidTarget gentarget: An android_binary or android_library that owns resources.
+    :param string sdk: The Android SDK version of the android.jar that the created target will
+      depend on.
+    """
     spec_path = os.path.join(os.path.relpath(self.aapt_out(sdk), get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)

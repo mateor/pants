@@ -59,15 +59,15 @@ class AaptBuilderIntegrationTest(AndroidIntegrationTest):
             yield line
 
       aapt_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
-      self.assertEquals(len(aapt_blocks), 1,
-                        'Expected one invocation of the aapt tool! (Were {count})\n{out}'
-                        .format(count=len(aapt_blocks), out=pants_run.stderr_data))
+      self.assertEquals(len(aapt_blocks), 1, 'Expected one invocation of the aapt tool! '
+                                             '(was: {})\n{}'.format(len(aapt_blocks),
+                                                                    pants_run.stderr_data))
 
       # Check to make sure the resources are being passed in correct order (apk->libs).
       for line in aapt_blocks:
-        resource_dirs = re.findall("-S ([^\s]+)", line)
+        resource_dirs = re.findall(r'-S ([^\s]+)', line)
         self.assertEqual(resource_dirs[0], 'examples/src/android/hello_with_library/main/res')
         self.assertEqual(resource_dirs[1], 'examples/src/android/example_library/res')
-        self.assertEquals(len(resource_dirs), 2,
-                          'Expected two resource dirs to be included when calling aapt on '
-                          'hello_with_library apk. (Were {count})\n'.format(count=resource_dirs))
+        self.assertEquals(len(resource_dirs), 2, 'Expected two resource dirs to be included '
+                                                 'when calling aapt on hello_with_library apk.'
+                                                 ' (was: {})\n'.format(resource_dirs))

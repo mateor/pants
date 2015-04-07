@@ -22,17 +22,18 @@ from pants_test.task_test_base import TaskTestBase
 class TestAndroidBase(TaskTestBase):
   """Base class for Android tests that provides some mock structures useful for testing."""
 
-  def android_manifest(self):
-      manifest = textwrap.dedent(
-        """<?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="org.pantsbuild.example.hello" >
-            <uses-sdk
-                android:minSdkVersion="8"
-                android:targetSdkVersion="19" />
-        </manifest>
-        """)
-      return manifest
+  @staticmethod
+  def android_manifest():
+    manifest = textwrap.dedent(
+      """<?xml version="1.0" encoding="utf-8"?>
+      <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="org.pantsbuild.example.hello" >
+          <uses-sdk
+              android:minSdkVersion="8"
+              android:targetSdkVersion="19" />
+      </manifest>
+      """)
+    return manifest
 
   @contextmanager
   def android_binary(self, name=None, dependencies=None):

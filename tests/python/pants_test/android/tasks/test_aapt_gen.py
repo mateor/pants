@@ -82,7 +82,6 @@ class TestAaptGen(TestAndroidBase):
             with self.android_binary(dependencies=[resources1, library]) as binary:
               self.set_options(sdk_path=dist)
               task = self.create_task(self.context())
-              targets = [resources1, resources2]
               # Show that all dependent lib and resources are processed with the binary's target sdk
               # and that the resource dirs are scanned in reverse order of collection.
               expected_args = [task.aapt_tool(binary.build_tools_version),

@@ -60,24 +60,24 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
           if re.search(r'Executing: .*?\baapt', line):
             yield line
 
-      all_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
-      self.assertEquals(len(all_blocks), 2,
-                        'Expected two invocations of the aapt tool! (Were {count})\n{out}'
-                        .format(count=len(all_blocks), out=pants_run.stderr_data))
+      aapt_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
+      self.assertEquals(len(aapt_blocks), 2, 'Expected two invocations of the aapt tool!'
+                                             '(was :{})\n{}'.format(len(aapt_blocks),
+                                                                    pants_run.stderr_data))
 
       # Check to make sure the resources are being passed in correct order (apk->libs).
-      for line in all_blocks:
+      for line in aapt_blocks:
         apk = re.search(r'hello_with_library.*?\b', line)
         if apk:
-          resource_dirs = re.findall("-S ([^\s]+)", line)
+          resource_dirs = re.findall(r'-S ([^\s]+)', line)
           self.assertEqual(resource_dirs[0], 'examples/src/android/hello_with_library/main/res')
           self.assertEqual(resource_dirs[1], 'examples/src/android/example_library/res')
-          self.assertEquals(len(resource_dirs), 2,
-                            'Expected two resource dirs to be included when calling aapt on '
-                            'hello_with_library apk. (Were {count})\n'.format(count=resource_dirs))
+          self.assertEquals(len(resource_dirs), 2, 'Expected two resource dirs to be included '
+                                                   'when calling aapt on hello_with_library apk. '
+                                                   '(was: {})\n'.format(resource_dirs))
         else:
           # If the apk target name didn't match, we know it called aapt on the library dependency.
           resource_dirs = re.findall(r'-S.*?', line)
-          self.assertEquals(len(resource_dirs), 1,
-                            'Expected one resource dirs to be included when calling aapt on '
-                            'example_library dep. (Were {count})\n'.format(count=resource_dirs))
+          self.assertEquals(len(resource_dirs), 1, 'Expected one resource dirs to be included when '
+                                                   'calling aapt on dexample_library dep. '
+                                                   '(was: {})\n'.format(resource_dirs))
