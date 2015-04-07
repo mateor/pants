@@ -35,15 +35,17 @@ class TestAndroidBase(TaskTestBase):
       return manifest
 
   @contextmanager
-  def android_binary(self):
+  def android_binary(self, dependencies=None):
     """Represent an android_binary target."""
     with temporary_file() as fp:
+      deps = dependencies if dependencies else []
       fp.write(self.android_manifest())
       fp.close()
       path = fp.name
       target = self.make_target(spec=':binary',
                                 target_type=AndroidBinary,
-                                manifest=path)
+                                manifest=path,
+                                dependencies=deps)
       yield target
 
   @contextmanager
@@ -61,15 +63,17 @@ class TestAndroidBase(TaskTestBase):
         yield target
 
   @contextmanager
-  def android_library(self):
+  def android_library(self, dependencies=None):
     """Represent an android_library target."""
     with temporary_file() as fp:
+      deps = dependencies if dependencies else []
       fp.write(self.android_manifest())
       fp.close()
       path = fp.name
       target = self.make_target(spec=':library',
                                 target_type=AndroidLibrary,
-                                manifest=path)
+                                manifest=path,
+                                dependencies=deps)
       yield target
 
 @contextmanager
