@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from twitter.common.collections import maybe_list
 
 from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.util.contextutil import temporary_dir, temporary_file
 from pants.util.dirutil import chmod_plus_x, touch
@@ -34,8 +35,20 @@ class TestAndroidBase(TaskTestBase):
       return manifest
 
   @contextmanager
+  def android_binary(self):
+    """Represent an android_binary target."""
+    with temporary_file() as fp:
+      fp.write(self.android_manifest())
+      fp.close()
+      path = fp.name
+      target = self.make_target(spec=':binary',
+                                target_type=AndroidBinary,
+                                manifest=path)
+      yield target
+
+  @contextmanager
   def android_resources(self):
-    """Represent an android_binary target, providing a mock version of the required manifest."""
+    """Represent an android_resources target."""
     with temporary_dir() as temp:
       with temporary_file() as fp:
         fp.write(self.android_manifest())
@@ -48,14 +61,14 @@ class TestAndroidBase(TaskTestBase):
         yield target
 
   @contextmanager
-  def android_binary(self):
-    """Represent an android_binary target, providing a mock version of the required manifest."""
+  def android_library(self):
+    """Represent an android_library target."""
     with temporary_file() as fp:
       fp.write(self.android_manifest())
       fp.close()
       path = fp.name
-      target = self.make_target(spec=':binary',
-                                target_type=AndroidBinary,
+      target = self.make_target(spec=':library',
+                                target_type=AndroidLibrary,
                                 manifest=path)
       yield target
 

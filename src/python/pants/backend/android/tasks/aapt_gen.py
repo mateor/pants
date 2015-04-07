@@ -56,7 +56,7 @@ class AaptGen(AaptTask):
     self._jar_library_by_sdk = {}
 
   def create_sdk_jar_deps(self, targets):
-    # prepare exactly N android jar targets where N is the number of SDKs in-play
+    # Prepare exactly N android jar targets where N is the number of SDKs in-play.
     sdks = set(ar.target_sdk for ar in targets)
     for sdk in sdks:
       jar_url = 'file://{0}'.format(self.android_jar_tool(sdk))

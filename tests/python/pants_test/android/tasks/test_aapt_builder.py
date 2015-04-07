@@ -9,10 +9,10 @@ import os
 
 from pants.backend.android.tasks.aapt_builder import AaptBuilder
 from pants.util.contextutil import temporary_dir
-from pants_test.android.test_android_base import TestAndroidBase
+from pants_test.android.test_android_base import TestAndroidBase, distribution
 
 
-class TestAaptGen(TestAndroidBase):
+class TestAaptBuilder(TestAndroidBase):
   """Test the methods in pants.backend.android.tasks.aapt_gen."""
 
   @classmethod
@@ -20,26 +20,24 @@ class TestAaptGen(TestAndroidBase):
     return AaptBuilder
 
   def test_aapt_builder_smoke(self):
-    task = self.prepare_task(build_graph=self.build_graph,
-                             build_file_parser=self.build_file_parser)
+    task = self.create_task(self.context())
     task.execute()
 
-
   def test_render_args(self):
-    with self.distribution() as dist:
+    with distribution() as dist:
       with temporary_dir() as temp:
         with self.android_binary() as android_binary:
-          task = self.prepare_task(args=['--test-sdk-path={0}'.format(dist)],
-                                   build_graph=self.build_graph,
-                                   build_file_parser=self.build_file_parser)
+          self.set_options(sdk_path=dist)
+          task = self.create_task(self.context())
           target = android_binary
+          package_name = '{0}.unsigned.apk'.format(target.manifest.package_name)
           expected_args = [task.aapt_tool(target.build_tools_version),
                            'package', '-f',
                            '-M', target.manifest.path,
+                           '--auto-add-overlay',
                            '-S', 'res/directory',
                            '-I', task.android_jar_tool(target.manifest.target_sdk),
                            '--ignore-assets', task.ignored_assets,
-                           '-F', os.path.join(task.workdir,
-                                              '{0}.unsigned.apk'.format(target.app_name)),
+                           '-F', os.path.join(task.workdir, package_name),
                            temp]
           self.assertEqual(expected_args, task._render_args(target, ['res/directory'], [temp]))

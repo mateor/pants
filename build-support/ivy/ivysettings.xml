@@ -99,7 +99,7 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
           <artifact pattern="${android.sdk}/${android.repo.artifact-pattern}-sources.[ext]" />
           <artifact pattern="${android.sdk}/[${android.repo.artifact-pattern}-javadoc.[ext]" />
       </filesystem>
-        
+
     </chain>
   </resolvers>
 

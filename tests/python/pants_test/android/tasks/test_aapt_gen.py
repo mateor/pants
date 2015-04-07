@@ -18,6 +18,9 @@ class TestAaptGen(TestAndroidBase):
   def task_type(cls):
     return AaptGen
 
+  def test_android_library_target(self):
+    pass
+
   def test_aapt_gen_smoke(self):
     task = self.create_task(self.context())
     task.execute()

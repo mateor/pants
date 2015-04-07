@@ -42,7 +42,7 @@ class AaptBuilder(AaptTask):
     super(AaptBuilder, cls).prepare(options, round_manager)
     round_manager.require_data('dex')
 
-  def render_args(self, target, resource_dirs, inputs):
+  def _render_args(self, target, resource_dirs, inputs):
     # Glossary of used aapt flags. Aapt handles a ton of action, this will continue to expand.
     #   : 'package' is the main aapt operation (see class docstring for more info).
     #   : '-f' to 'force' overwrites if the package already exists.
