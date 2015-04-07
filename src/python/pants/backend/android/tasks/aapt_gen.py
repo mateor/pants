@@ -113,10 +113,11 @@ class AaptGen(AaptTask):
       # framework can't differentiate between one library that has to be compiled by multiple sdks.
       # We can try some things with the BUILD file rework that'd be up next in a perfect world.
       for targ in gentargets:
-        resource_dirs = []
 
         # If a library does not specify a target_sdk, use the sdk of its dependee binary.
         used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
+
+        resource_dirs = []
         for dep in targ.closure():
           # A target's resources, as well as the resources of its transitive deps, are needed.
           if isinstance(dep, AndroidResources):
@@ -127,12 +128,10 @@ class AaptGen(AaptTask):
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                        stderr=workunit.output('stderr'))
           if returncode:
-            raise TaskError('The AaptGen process exited non-zero: {0}'.format(returncode))
+            raise TaskError('The AaptGen process exited non-zero: {}'.format(returncode))
 
         new_target = self.create_target(targ, sdk)
         targ.inject_dependency(new_target.address)
-        # This skips transferring deps to the new synthetic target. The gentarget here
-        # is the AndroidBinary and it looks sufficient to just add the new synthetic dependency.
 
   def create_target(self, gentarget, sdk):
     spec_path = os.path.join(os.path.relpath(self.aapt_out(sdk), get_buildroot()))
