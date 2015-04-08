@@ -14,14 +14,14 @@ from pants.base.payload_field import PrimitiveField
 class AndroidLibrary(ImportJarsMixin, AndroidTarget):
   """Android library target as a jar."""
 
-  def __init__(self, payload=None, imports=None, **kwargs):
+  def __init__(self, payload=None, **kwargs):
     """
     :param list imports: List of addresses of `jar_library <#jar_library>`_
       targets.
     """
     payload = payload or Payload()
     payload.add_fields({
-      'import_specs': PrimitiveField(imports or ()),
+      'import_specs': PrimitiveField(()),
     })
     super(AndroidLibrary, self).__init__(payload=payload, **kwargs)
 

@@ -7,9 +7,10 @@ android_binary(
   sources=rglobs('src/main/java/**/*java'),
   manifest='src/main/AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android:android-support-v4',
+    ':android-support-v4',
     ':resources',
     ':support-unpacked',
+    ':support-annotations'
   ],
 )
 
@@ -20,8 +21,20 @@ android_resources(
 )
 
 unpacked_jars(name='support-unpacked',
-  libraries=['3rdparty/android:android-support-v4'],
+  libraries=[':android-support-v4'],
   include_patterns=[
     'android/support/**/*.class',
+  ],
+)
+
+jar_library(name='support-annotations',
+  jars=[
+    jar(org='com.android.support', name='support-annotations', rev='22.0.0'),
+  ],
+)
+
+jar_library(name='android-support-v4',
+  jars = [
+    jar(org='com.android.support', name='android-support-v4', rev='22.0.0'),
   ],
 )
