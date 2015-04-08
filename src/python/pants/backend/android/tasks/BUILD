@@ -42,7 +42,6 @@ python_library(
   dependencies = [
     'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:aapt_task',
-    'src/python/pants/backend/codegen/tasks:code_gen',
     'src/python/pants/backend/jvm/targets:java',
     'src/python/pants/base:address',
     'src/python/pants/base:build_environment',
