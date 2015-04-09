@@ -11,6 +11,9 @@ android_binary(
     ':play-services',
     ':resources',
     ':support-unpacked',
+    ':support-classes',
+    ':gms_lib',
+    ':gms_classes',
   ],
 )
 
@@ -21,19 +24,47 @@ android_resources(
 )
 
 unpacked_jars(name='play-services',
-  libraries=[':google-play-services'],
+  libraries=[':gms_classes'],
   include_patterns=[
     'com/google/**/*.class',
   ],
 )
 
 unpacked_jars(name='support-unpacked',
-  libraries=[':android-support-v4'],
+  libraries=[':support-classes'],
   include_patterns=[
-    'android/**/*.java',
+    '**/*.class',
   ],
 )
 
+android_library(
+  name='gms_lib',
+  manifest='libs/AndroidManifest.xml',
+  dependencies=[
+    ':google-play-services',
+    ':gms_resources',
+  ],
+)
+
+jar_library(name='support-classes',
+  jars=[
+    jar(org='android.support', name='support-v4', rev='6000',
+        url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/classes.jar',),
+  ],
+)
+
+jar_library(name='gms_classes',
+  jars=[
+    jar(org='android.gms', name='gms-classes', rev='6500',
+        url='file:///Users/mateor/development/pants/examples/src/android/MapEarthQuakeMap/libs/gms/classes.jar',),
+  ],
+)
+
+android_resources(
+  name='gms_resources',
+  manifest='libs/AndroidManifest.xml',
+  resource_dir='libs/res'
+)
 
 jar_library(name='android-support-v4',
   jars = [
