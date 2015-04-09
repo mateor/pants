@@ -9,6 +9,7 @@ android_binary(
   dependencies = [
     'examples/src/android/example_library',
     ':resources',
+    ':support-classes',
     ':support-unpacked',
   ],
 )
@@ -20,9 +21,16 @@ android_resources(
 )
 
 unpacked_jars(name='support-unpacked',
-  libraries=[':android-support-v4'],
+  libraries=[':support-classes'],
   include_patterns=[
     'android/**/*.class',
+  ],
+)
+
+jar_library(name='support-classes',
+  jars=[
+    jar(org='android.support', name='support-v4', rev='6000',
+        url='file:///Users/mateor/development/pants/examples/src/android/hello_with_library/main/libs/classes.jar',),
   ],
 )
 
