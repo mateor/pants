@@ -4,7 +4,7 @@
 
 jar_library(name='android-support-v4',
   jars = [
-    jar(org='com.android.support', name='android-support-v4', rev='22.0.0'),
+    jar(org='com.android.support', name='support-v4', rev='22.0.0'),
   ],
 )
 

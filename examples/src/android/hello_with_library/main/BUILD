@@ -20,8 +20,14 @@ android_resources(
 )
 
 unpacked_jars(name='support-unpacked',
-  libraries=['3rdparty/android:android-support-v4'],
+  libraries=[':android-support-v4'],
   include_patterns=[
     'android/**/*.class',
+  ],
+)
+
+jar_library(name='android-support-v4',
+  jars = [
+    jar(org='com.android.support', name='support-v4', rev='22.0.0'),
   ],
 )
