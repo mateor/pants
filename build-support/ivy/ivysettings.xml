@@ -42,6 +42,7 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 
   <property name="env.ANDROID_HOME" value="/please-export-your-ANDROID_HOME" override="false"/>
   <property name="android.repo.dir" value="${env.ANDROID_HOME}/extras/android/m2repository"/>
+  <property name="google.repo.dir" value="${env.ANDROID_HOME}/extras/google/m2repository"/>
 
   <resolvers>
     <chain name="chain-repos" returnFirst="true">
@@ -87,7 +88,12 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
       <ibiblio name="local.android"
                m2compatible="true"
                usepoms="true"
-               root="file://${android.repo.dir}.jar/"/>
+               root="file://${android.repo.dir}/"/>
+      <!-- Local Android SDK, as pointed to by the ANDROID_HOME environmental variable. -->
+      <ibiblio name="local.google"
+               m2compatible="true"
+               usepoms="true"
+               root="file://${google.repo.dir}/"/>
     </chain>
   </resolvers>
 
