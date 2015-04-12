@@ -43,6 +43,11 @@ class AaptGen(AaptTask):
     # The aapt tool determines this information by parsing the manifest of the target.
     return os.path.join(cls.package_path(package), 'R.java')
 
+  @classmethod
+  def prepare(cls, options, round_manager):
+    super(AaptGen, cls).prepare(options, round_manager)
+    #round_manager.require_data('exploded_aars')
+
   @staticmethod
   def is_aapt_target(target):
     """Return True for AndroidBinary targets."""
@@ -97,6 +102,7 @@ class AaptGen(AaptTask):
     return args
 
   def execute(self):
+    print("WE ARE RUNNING THE AAPT_GEN")
     # Every android_binary and each android_library dependency must have its resources processed
     # into separate R.java files.
     # The number of R.java files produced from each library is <= |sdks in play|.
