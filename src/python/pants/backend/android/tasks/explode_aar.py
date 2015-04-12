@@ -25,5 +25,5 @@ class ExplodeAar(AndroidTask):
     print("LADIES AND GENTLEMEN WE ARE FLOATING IN THE EXPLODE_AAR TASK....")
     targets = self.context.targets()
     products = self.context.products.get('ivy_imports')
-    jarmap = products[unpacked_jars]
-    print("THE CLASSPATH OBJECTS ARE: ", classpath_products)
+    #jarmap = products[unpacked_jars]
+    #print("THE CLASSPATH OBJECTS ARE: ", classpath_products)

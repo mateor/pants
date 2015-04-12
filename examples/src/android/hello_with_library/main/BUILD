@@ -10,7 +10,6 @@ android_binary(
     'examples/src/android/example_library',
     ':resources',
     ':support-classes',
-    ':support-unpacked',
   ],
 )
 
