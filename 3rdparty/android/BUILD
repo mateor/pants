@@ -10,6 +10,6 @@ jar_library(name='android-support-v4',
 
 jar_library(name='google-play-services',
   jars=[
-    jar(org='com.google.android', name='google-play-services', rev='6.5.87000'),
+    jar(org='com.google.android.gms', name='play-services', rev='7.0.0'),
   ],
 )

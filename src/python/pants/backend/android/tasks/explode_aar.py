@@ -10,9 +10,12 @@ import os
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.android_task import AndroidTask
+from pants.backend.jvm.targets.jar_dependency import JarDependency
+from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.backend.jvm.targets.java_library import JavaLibrary
 from pants.backend.jvm.tasks.unpack_jars import UnpackJars
 from pants.base.address import SyntheticAddress
+from pants.base.build_environment import get_buildroot
 from pants.fs.archive import ZIP
 from pants.util.dirutil import safe_mkdir
 
@@ -35,16 +38,16 @@ class ExplodeAar(UnpackJars):
     """Return True for AndroidLibrary targets."""
     return isinstance(target, AndroidLibrary)
 
-  def create_classes_jar_target(self, target, resource_dir):
-    """Create a JarLibrary target for the classes.jar that is required to be in every .aar archive.
+  def create_classes_jar_target(self, target, jar_file):
+    """Create a JarLibrary target for each the jar included within every AndroidLibrary dependency.
 
     :param list targets: A list of AndroidBinary targets.
     """
     # Prepare exactly N android jar targets where N is the number of SDKs in-play.
-    jar_url = 'file://{0}'.format(resource_dir)
-    address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(target))
-    unpacked = self._unpack_jar
-    self.context.add_new_target(address, AndroidResources, resource_dir=resource_dir)
+    jar_url = 'file://{0}'.format(os.path.join(get_buildroot, jar_file))
+    jar = JarDependency(org='com.google', name='android', rev=sdk, url=jar_url)
+    address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
+    #self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
   def _unpack_jar(self, jar):
     pass
@@ -58,8 +61,12 @@ class ExplodeAar(UnpackJars):
       libraries = unpacked_archives.get(target)
       print("LIBRARIES: ", libraries)
       # Separating libraries by id is safe because each target has a consistent filter pattern.
+      # TODO(mateor) investigate moving the filter to the repack in dxcompile. Unpacking under
+      # target.id could mean that jars are unpacked multiple times if they are defined in multiple
+      # specs. Moving the filtering to dxCompile would reduce the unpacking load.
       outdir = os.path.join(self.workdir, target.id)
       for items in libraries:
+        # Put in invalidation(here looks right).
         for archive in libraries[items]:
           print("HERE ARE THE ITEMS: ", archive)
           if archive.endswith('.jar'):
@@ -73,10 +80,11 @@ class ExplodeAar(UnpackJars):
             resource_dir = os.path.join(destination, 'res')
             if os.path.isfile(classes_jar):
               print("WE FOUND A CLASSES.JAR", classes_jar)
-            jar_file = classes_jar
-            if os.path.isfile(resource_dir):
-              print("WE FOUND A RESOURCE DIR", resource_dir)
-              self.create_classes_jar_target(resource_dir)
+              print
+              jar_file = classes_jar
+              if os.path.isfile(resource_dir):
+                print("WE FOUND A RESOURCE DIR", resource_dir)
+                self.create_classes_jar_target(resource_dir)
 
           #safe_mkdir(outdir)
           print("THE CLASSPATH OBJECTS ARE: ", libraries)
