@@ -134,7 +134,9 @@ class UnpackJars(Task):
           self._unpack(target)
 
     for unpacked_jars_target in unpacked_jars_list:
+      print("HERE IS AN UNPACKED_JARS_TARGET: ", unpacked_jars_target)
       unpack_dir = self._unpack_dir(unpacked_jars_target)
+      print("UNPACK_DIR: ", unpack_dir)
       if not (os.path.exists(unpack_dir) and os.path.isdir(unpack_dir)):
         raise self.MissingUnpackedDirsError(
           "Expected {unpack_dir} to exist containing unpacked files for {target}"

@@ -15,9 +15,12 @@ from pants.base.payload_field import PrimitiveField
 class AndroidLibrary(UnpackedJars, AndroidTarget):
   """Android library target as a jar."""
 
-  def __init__(self, **kwargs):
+  def __init__(self, include_patterns=None, **kwargs):
     """
     :param list imports: List of addresses of `jar_library <#jar_library>`_
       targets.
     """
+    self.include_pattern = kwargs.pop('include_patterns', [])
+    print("KWARGS: ", kwargs)
+    # TODO(BEFORE REVIEW: make 'libraries' just 'library' for android_library targets
     super(AndroidLibrary, self).__init__(**kwargs)

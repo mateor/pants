@@ -28,7 +28,7 @@ def build_file_aliases():
   )
 
 def register_goals():
-  task(name='explode-aars', action=ExplodeAar).install('imports')
+  task(name='explode-aars', action=ExplodeAar).install()
   task(name='aapt', action=AaptGen).install('gen')
   task(name='dex', action=DxCompile).install('binary')
   task(name='apk', action=AaptBuilder).install()
