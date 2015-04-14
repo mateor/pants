@@ -49,14 +49,14 @@ class ExplodeAar(UnpackJars):
     pass
 
   def execute(self):
-    print("LADIES AND GENTLEMEN WE ARE FLOATING IN THE EXPLODE_AAR TASK....")
     targets = self.context.targets(self.is_library)
-    unpacked_archives = self.context.products.get_data('unpacked_archives')    #jarmap = products[unpacked_jars]
+    print("LADIES AND GENTLEMEN WE ARE FLOATING IN THE EXPLODE_AAR TASK....")
+    unpacked_archives = self.context.products.get('ivy_imports')   #jarmap = products[unpacked_jars]
     print("UNPACKED_ARCHIVES: ", unpacked_archives)
     for target in targets:
+      unpacked_library = unpacked_archives.get(target)
       outdir = os.path.join(self.workdir, target.manifest.package_name)
       safe_mkdir(outdir)
-      unpacked_library = unpacked_archives.get(target)
       print("THE CLASSPATH OBJECTS ARE: ", unpacked_library)
       # If the library was an aar file then there is a classes.jar to inject into the target graph.
       if 'classes.jar' in unpacked_library[0]:

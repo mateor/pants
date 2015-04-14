@@ -12,17 +12,31 @@ from pants.base.payload import Payload
 from pants.base.payload_field import PrimitiveField
 
 
-class AndroidLibrary(UnpackedJars, AndroidTarget):
+class AndroidLibrary(ImportJarsMixin, AndroidTarget):
   """Android library target as a jar."""
 
-  def __init__(self, include_patterns=None, **kwargs):
+  def __init__(self, payload=None, libraries=None, include_patterns=None, exclude_patterns=None, **kwargs):
     """
     :param list imports: List of addresses of `jar_library <#jar_library>`_
       targets.
     """
-    self.include_patterns = kwargs.get('include_patterns', [])
-    self.exclude_patterns = kwargs.get('exclude_patterns', [])
+    payload = payload or Payload()
+    payload.add_fields({
+      'library_specs': PrimitiveField(libraries or ())
+    })
+    self.libraries = libraries
+    self.include_patterns = include_patterns or []
+    self.exclude_patterns = exclude_patterns or []
 
     print("KWARGS: ", kwargs)
     # TODO(BEFORE REVIEW: make 'libraries' just 'library' for android_library targets
-    super(AndroidLibrary, self).__init__(**kwargs)
+    super(AndroidLibrary, self).__init__(payload=payload, **kwargs)
+
+
+  @property
+  def imported_jar_library_specs(self):
+    """List of JarLibrary specs to import.
+
+    Required to implement the ImportJarsMixin.
+    """
+    return self.payload.library_specs

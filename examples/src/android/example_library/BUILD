@@ -7,7 +7,7 @@ android_library(
   manifest='AndroidManifest.xml',
   libraries=['3rdparty/android:android-support-v4'],
   include_patterns=[
-    'android/support/app/**/*.class',
+    'android/**/*.class',
   ],
   dependencies=[
     ':resources',

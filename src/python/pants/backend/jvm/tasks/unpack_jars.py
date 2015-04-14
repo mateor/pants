@@ -117,6 +117,7 @@ class UnpackJars(Task):
 
     unpack_filter = self._calculate_unpack_filter(unpacked_jars)
     products = self.context.products.get('ivy_imports')
+    print("HERE ARE THE IVY_IMPOZRTS: ", products)
     jarmap = products[unpacked_jars]
 
     for path, names in jarmap.items():
