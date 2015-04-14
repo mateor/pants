@@ -10,12 +10,13 @@ import os
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.jvm.targets.java_library import JavaLibrary
+from pants.backend.jvm.tasks.unpack_jars import UnpackJars
 from pants.base.address import SyntheticAddress
 from pants.fs.archive import ZIP
 from pants.util.dirutil import safe_mkdir
 
 
-class ExplodeAar(AndroidTask):
+class ExplodeAar(UnpackJars):
 
   @classmethod
   def prepare(cls, options, round_manager):
@@ -61,5 +62,7 @@ class ExplodeAar(AndroidTask):
       if 'classes.jar' in unpacked_library[0]:
         classes_jar = os.path.join(unpacked_library[1], 'classes.jar')
         print("WE FOUND A CLASSES.JAR", classes_jar)
-        ZIP.extract(classes_jar, outdir, filter_func=target.include_patterns)
+        print("INCLUDES ARE: ", target.include_patterns)
+        unpack_filter = self._calculate_unpack_filter(target)
+        ZIP.extract(classes_jar, outdir, filter_func=unpack_filter)
         print("WE EXTARCTED YALL")

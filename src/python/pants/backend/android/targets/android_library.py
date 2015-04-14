@@ -20,7 +20,9 @@ class AndroidLibrary(UnpackedJars, AndroidTarget):
     :param list imports: List of addresses of `jar_library <#jar_library>`_
       targets.
     """
-    self.include_pattern = kwargs.pop('include_patterns', [])
+    self.include_patterns = kwargs.get('include_patterns', [])
+    self.exclude_patterns = kwargs.get('exclude_patterns', [])
+
     print("KWARGS: ", kwargs)
     # TODO(BEFORE REVIEW: make 'libraries' just 'library' for android_library targets
     super(AndroidLibrary, self).__init__(**kwargs)

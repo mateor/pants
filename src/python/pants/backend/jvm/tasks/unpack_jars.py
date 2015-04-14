@@ -91,6 +91,19 @@ class UnpackJars(Task):
           .format(field_name=field_name, field_value=p, spec=spec, msg=e))
     return compiled_patterns
 
+  def _calculate_unpack_filter(self, unpacked_jars):
+
+    include_patterns = self._compile_patterns(unpacked_jars.include_patterns,
+                                              field_name='include_patterns',
+                                              spec=unpacked_jars.address.spec)
+    exclude_patterns = self._compile_patterns(unpacked_jars.exclude_patterns,
+                                              field_name='exclude_patterns',
+                                              spec=unpacked_jars.address.spec)
+
+    print("INCLUDE PATTERNS: ", include_patterns)
+
+    return lambda f: self._unpack_filter(f, include_patterns, exclude_patterns)
+
   def _unpack(self, unpacked_jars):
     """Extracts files from the downloaded jar files and places them in a work directory.
 
@@ -102,14 +115,7 @@ class UnpackJars(Task):
     if not os.path.exists(unpack_dir):
       os.makedirs(unpack_dir)
 
-    include_patterns = self._compile_patterns(unpacked_jars.include_patterns,
-                                              field_name='include_patterns',
-                                              spec=unpacked_jars.address.spec)
-    exclude_patterns = self._compile_patterns(unpacked_jars.exclude_patterns,
-                                              field_name='exclude_patterns',
-                                              spec=unpacked_jars.address.spec)
-
-    unpack_filter = lambda f: self._unpack_filter(f, include_patterns, exclude_patterns)
+    unpack_filter = self._calculate_unpack_filter(unpacked_jars)
     products = self.context.products.get('ivy_imports')
     jarmap = products[unpacked_jars]
 
