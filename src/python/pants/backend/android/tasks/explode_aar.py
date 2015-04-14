@@ -57,7 +57,8 @@ class ExplodeAar(UnpackJars):
     for target in targets:
       libraries = unpacked_archives.get(target)
       print("LIBRARIES: ", libraries)
-      outdir = os.path.join(self.workdir, target.manifest.package_name)
+      # Separating libraries by id is safe because each target has a consistent filter pattern.
+      outdir = os.path.join(self.workdir, target.id)
       for items in libraries:
         for archive in libraries[items]:
           print("HERE ARE THE ITEMS: ", archive)
@@ -66,7 +67,7 @@ class ExplodeAar(UnpackJars):
             print("EW FOUND AN JAR FILE: ", jar_file)
           elif archive.endswith('.aar'):
             print("EW FOUND AN AAR: ", archive)
-            destination = os.path.join(outdir, archive)
+            destination = os.path.join(self.workdir, archive)
             ZIP.extract(os.path.join(items, archive), destination)
             classes_jar = os.path.join(destination, 'classes.jar')
             resource_dir = os.path.join(destination, 'res')
