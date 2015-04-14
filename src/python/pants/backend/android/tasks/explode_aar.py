@@ -62,8 +62,8 @@ class ExplodeAar(UnpackJars):
         for archive in libraries[items]:
           print("HERE ARE THE ITEMS: ", archive)
           if archive.endswith('.jar'):
-            print("EW FOUND AN JAR FILE: ", archive)
-            jar_file = os.path.join(outdir, archive)
+            jar_file = os.path.join(items, archive)
+            print("EW FOUND AN JAR FILE: ", jar_file)
           elif archive.endswith('.aar'):
             print("EW FOUND AN AAR: ", archive)
             destination = os.path.join(outdir, archive)
@@ -83,5 +83,5 @@ class ExplodeAar(UnpackJars):
         print("INCLUDES ARE: ", target.include_patterns)
         unpack_filter = self._calculate_unpack_filter(target)
 
-     #   ZIP.extract(jar_file, outdir, filter_func=unpack_filter)
+        ZIP.extract(jar_file, outdir, filter_func=unpack_filter)
         print("WE EXTARCTED YALL")
