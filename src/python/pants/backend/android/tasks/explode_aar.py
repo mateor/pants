@@ -22,6 +22,9 @@ from pants.util.dirutil import safe_mkdir
 
 class ExplodeAar(UnpackJars):
 
+  class InvalidLibraryFile(Exception):
+    """Indicates an invalid android manifest."""
+
   @classmethod
   def prepare(cls, options, round_manager):
     super(ExplodeAar, cls).prepare(options, round_manager)
@@ -105,6 +108,7 @@ class ExplodeAar(UnpackJars):
             manifest = os.path.join(unpack_destination, 'AndroidManifest.xml')
             jar_target = os.path.join(unpack_destination, 'classes.jar')
             resource_dir = os.path.join(unpack_destination, 'res')
+
             if os.path.isdir(resource_dir):
               print("WE FOUND A RESOURCE DIR", resource_dir)
               self.create_resource_target(target, archive, manifest, resource_dir)
@@ -113,6 +117,13 @@ class ExplodeAar(UnpackJars):
               print("THIS IS A JAR TARGET", jar_target)
               jar_files[archive] = jar_target
               print("THIS CREATES THE JAR LIBRSRY FOR: ", jar_files)
+
+            if os.path.isfile(manifest):
+              target.manifest_path = manifest
+            else:
+              raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
+                                             "AndroidManifest.xml: {}".format(self))
+
 
 
 

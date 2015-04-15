@@ -29,3 +29,8 @@ class AndroidResources(AndroidTarget):
       raise TargetDefinitionException(self, 'An android_resources target must specify a '
                                             '\'resource_dir\' that contains the target\'s '
                                             'resource files.')
+
+  @property
+  def manifest_required(self):
+    """Return True since android_resources must declare an AndroidManifest.xml in the BUILD file."""
+    return True

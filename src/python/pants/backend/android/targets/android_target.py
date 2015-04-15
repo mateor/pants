@@ -42,9 +42,7 @@ class AndroidTarget(JvmTarget):
   def manifest(self):
     """Return an AndroidManifest object made from a manifest by AndroidManifestParser."""
 
-    # For both gradle and ant layouts, AndroidManifest is conventionally at top-level.
-    # I would recommend users still explicitly define a 'manifest' in android BUILD files.
-    if self._manifest is None:
+    if self._manifest is None and self.manifest_required:
       # If there was no 'manifest' field in the BUILD file, try to find one with the default value.
       if self._manifest_path is None:
         self._manifest_path = 'AndroidManifest.xml'
@@ -55,3 +53,8 @@ class AndroidTarget(JvmTarget):
                                               "path.".format(manifest))
       self._manifest = AndroidManifestParser.parse_manifest(manifest)
     return self._manifest
+
+  @property
+  def manifest_required(self, target):
+    """Subclass must return True if the BUILD file is required to declare an AndroidManifest.xml."""
+    raise NotImplementedError

@@ -130,6 +130,7 @@ class AaptGen(AaptTask):
         for dep in targ.closure():
           # A target's resources, as well as the resources of its transitive deps, are needed.
           if isinstance(dep, AndroidResources):
+            print("HERE IS A RESOURCE TARGET: ", dep)
             resource_dirs.append(dep.resource_dir)
 
         print("HERE ARE THE RESOURCE_DEIRS AAPT FOUND: ", resource_dirs)
