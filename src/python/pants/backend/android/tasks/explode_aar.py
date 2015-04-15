@@ -55,21 +55,22 @@ class ExplodeAar(UnpackJars):
                                     # TODO FIX REVISION
                                     name=target.id, rev='100', url=jar_url))
     address = SyntheticAddress(self.workdir, '{}-library.jar'.format(name))
-    new_target = self.context.add_new_target(address, JarLibrary, jars=jar_deps, derived_from=target)
+    new_target = self.context.add_new_target(address, JarLibrary, jars=jar_deps,
+                                             derived_from=target)
     target.inject_dependency(new_target.address)
 
-  def create_resource_target(self, target, resource_dir):
+  def create_resource_target(self, target, archive, manifest, resource_dir):
     """Create a JarLibrary target for each the jar included within every AndroidLibrary dependency.
 
     :param list targets: A list of AndroidBinary targets.
     :param list targets: A list of AndroidBinary targets.
     """
     # Prepare exactly N android jar targets where N is the number of SDKs in-play.
-
-    jar_url = 'file://{0}'.format(self.android_jar_tool(jar))
-    jar = JarDependency(org='com.google', name='android', rev=sdk, url=jar_url)
-    address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
-    self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
+    address = SyntheticAddress(self.workdir, '{}-{}resources'.format(archive, target.id))
+    new_target = self.context.add_new_target(address, AndroidResources,
+                                             manifest=manifest,resource_dir=resource_dir,
+                                             derived_from=target)
+    target.inject_dependency(new_target.address)
 
   def _unpack_jar(self, jar):
     pass
@@ -81,11 +82,12 @@ class ExplodeAar(UnpackJars):
     for target in targets:
       libraries = unpacked_archives.get(target)
       print("LIBRARIES: ", libraries)
-      # Separating libraries by id is safe because each target has a consistent filter pattern.
+
       # TODO(mateor) investigate moving the filter to the repack in dxcompile. Unpacking under
       # target.id could mean that jars are unpacked multiple times if they are defined in multiple
       # specs. Moving the filtering to dxCompile would reduce the unpacking load.
 
+      # Separating libraries by target.id is safe b/c each target has a consistent filter pattern.
       outdir = os.path.join(self.workdir, target.id)
       jar_files = {}
       for archive_path in libraries:
@@ -100,10 +102,12 @@ class ExplodeAar(UnpackJars):
             print("ARRRR FOUND AN AAR: ", archive)
             unpack_destination = os.path.join(self.workdir, archive)
             ZIP.extract(os.path.join(archive_path, archive), unpack_destination)
+            manifest = os.path.join(unpack_destination, 'AndroidManifest.xml')
             jar_target = os.path.join(unpack_destination, 'classes.jar')
             resource_dir = os.path.join(unpack_destination, 'res')
-            if os.path.isfile(resource_dir):
+            if os.path.isdir(resource_dir):
               print("WE FOUND A RESOURCE DIR", resource_dir)
+              self.create_resource_target(target, archive, manifest, resource_dir)
 
             if os.path.isfile(jar_target):
               print("THIS IS A JAR TARGET", jar_target)
@@ -111,7 +115,6 @@ class ExplodeAar(UnpackJars):
               print("THIS CREATES THE JAR LIBRSRY FOR: ", jar_files)
 
 
-              #self.create_resource_target(target, resource_dir)
 
           #safe_mkdir(outdir)
             # If the library was an aar file then there is a classes.jar to inject into the target graph.

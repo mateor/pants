@@ -125,13 +125,14 @@ class AaptGen(AaptTask):
 
         # If a library does not specify a target_sdk, use the sdk of its dependee binary.
         used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
-
+        print("THE TARGET: ", targ, " HAS A MANIFEST: ", targ.manifest.path)
         resource_dirs = []
         for dep in targ.closure():
           # A target's resources, as well as the resources of its transitive deps, are needed.
           if isinstance(dep, AndroidResources):
             resource_dirs.append(dep.resource_dir)
 
+        print("HERE ARE THE RESOURCE_DEIRS AAPT FOUND: ", resource_dirs)
         args = self._render_args(targ, used_sdk, resource_dirs, outdir)
         with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
           returncode = subprocess.call(args, stdout=workunit.output('stdout'),

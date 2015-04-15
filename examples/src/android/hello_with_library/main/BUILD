@@ -8,6 +8,7 @@ android_binary(
   manifest='AndroidManifest.xml',
   dependencies = [
     'examples/src/android/example_library',
+    ':gms_library',
     ':resources',
   ],
 )
@@ -18,12 +19,8 @@ android_resources(
   resource_dir='res'
 )
 
-
-
-
 android_library(
   name='gms_library',
-  manifest='AndroidManifest.xml',
   libraries=['3rdparty/android:google-play-services'],
   include_patterns=[
     '**/*.class',
