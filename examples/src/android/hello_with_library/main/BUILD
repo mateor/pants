@@ -21,3 +21,11 @@ android_resources(
 
 
 
+android_library(
+  name='gms_library',
+  manifest='AndroidManifest.xml',
+  libraries=['3rdparty/android:google-play-services'],
+  include_patterns=[
+    '**/*.class',
+  ],
+)

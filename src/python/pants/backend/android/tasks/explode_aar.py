@@ -48,14 +48,14 @@ class ExplodeAar(UnpackJars):
     jar_deps = []
     print("HERE ARE THE JAR_FIELS: ", jar_files)
     for jar in jar_files:
-      jar_url = 'file://{0}'.format(jar)
-      name = 'jar-'.format(os.path.basename(jar))
-      print("NAME IS:", name)
-      jar_deps.append(JarDependency(org=target.manifest.package_name,
+      jar_url = 'file://{0}'.format(jar_files[jar])
+      name = '{}-jar'.format(jar)
+      print("ORG IS: {} NAME IS: {}".format(jar, target.id))
+      jar_deps.append(JarDependency(org=jar,
                                     # TODO FIX REVISION
-                                    name=name, rev='100', url=jar_url))
+                                    name=target.id, rev='100', url=jar_url))
     address = SyntheticAddress(self.workdir, '{}-library.jar'.format(name))
-    new_target = self.context.add_new_target(address, JarLibrary, jars=jar_deps)
+    new_target = self.context.add_new_target(address, JarLibrary, jars=jar_deps, derived_from=target)
     target.inject_dependency(new_target.address)
 
   def create_resource_target(self, target, resource_dir):
@@ -87,7 +87,7 @@ class ExplodeAar(UnpackJars):
       # specs. Moving the filtering to dxCompile would reduce the unpacking load.
 
       outdir = os.path.join(self.workdir, target.id)
-      jar_files = []
+      jar_files = {}
       for archive_path in libraries:
         # Put in invalidation(here looks right).
 
@@ -105,18 +105,19 @@ class ExplodeAar(UnpackJars):
             if os.path.isfile(resource_dir):
               print("WE FOUND A RESOURCE DIR", resource_dir)
 
-          if os.path.isfile(jar_target):
-            print("THIS IS A JAR TARGET", jar_target)
-            jar_files.append(jar_target)
+            if os.path.isfile(jar_target):
+              print("THIS IS A JAR TARGET", jar_target)
+              jar_files[archive] = jar_target
+              print("THIS CREATES THE JAR LIBRSRY FOR: ", jar_files)
 
-            #self.create_resource_target(target, resource_dir)
+
+              #self.create_resource_target(target, resource_dir)
 
           #safe_mkdir(outdir)
             # If the library was an aar file then there is a classes.jar to inject into the target graph.
-          print("INCLUDES ARE: ", target.include_patterns)
           unpack_filter = self._calculate_unpack_filter(target)
 
-          ZIP.extract(jar_target, outdir, filter_func=unpack_filter)
-          print("WE EXTARCTED YALL")
-      print("THIS CREATES THE JAR LIBRSRY FOR: ", jar_files)
+          if os.path.isfile(jar_target):
+            ZIP.extract(jar_target, outdir, filter_func=unpack_filter)
+            print("WE EXTARCTED YALL")
       self.create_classes_jar_target(target, jar_files)
