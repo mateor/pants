@@ -102,7 +102,6 @@ class AaptGen(AaptTask):
     return args
 
   def execute(self):
-    print("WE ARE RUNNING THE AAPT_GEN")
     # Every android_binary and each android_library dependency must have its resources processed
     # into separate R.java files.
     # The number of R.java files produced from each library is <= |sdks in play|.
