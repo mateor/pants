@@ -38,16 +38,18 @@ class ExplodeAar(UnpackJars):
     """Return True for AndroidLibrary targets."""
     return isinstance(target, AndroidLibrary)
 
-  def create_classes_jar_target(self, target, jar_file):
+  def create_classes_jar_target(self, target, jar_files):
     """Create a JarLibrary target for each the jar included within every AndroidLibrary dependency.
 
     :param list targets: A list of AndroidBinary targets.
+    :param list targets: A list of AndroidBinary targets.
     """
     # Prepare exactly N android jar targets where N is the number of SDKs in-play.
-    jar_url = 'file://{0}'.format(os.path.join(get_buildroot, jar_file))
-    jar = JarDependency(org='com.google', name='android', rev=sdk, url=jar_url)
-    address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
-    #self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
+    for jar in jar_files:
+      jar_url = 'file://{0}'.format(self.android_jar_tool(jar))
+      jar = JarDependency(org='com.google', name='android', rev=sdk, url=jar_url)
+      address = SyntheticAddress(self.workdir, 'android-{0}.jar'.format(sdk))
+      self._jar_library_by_sdk[sdk] = self.context.add_new_target(address, JarLibrary, jars=[jar])
 
   def _unpack_jar(self, jar):
     pass
