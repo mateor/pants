@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 from pants.backend.android.targets.android_binary import AndroidBinary
+from pants.backend.android.targets.android_dependency import AndroidDependency
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_builder import AaptBuilder
@@ -22,6 +23,7 @@ def build_file_aliases():
   return BuildFileAliases.create(
     targets={
       'android_binary': AndroidBinary,
+      'android_dependency': AndroidDependency,
       'android_library': AndroidLibrary,
       'android_resources': AndroidResources,
     }
