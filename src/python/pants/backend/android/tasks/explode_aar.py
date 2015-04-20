@@ -86,65 +86,67 @@ class ExplodeAar(UnpackJars):
 
   def execute(self):
     pass
-    # targets = self.context.targets(self.is_library)
-    # unpacked_archives = self.context.products.get('ivy_imports')
-    # print("UNPACKED_ARCHIVES: ", unpacked_archives)
-    # jar_libs = self.context.products.get('jar_map_default')
-    # print("JAR_LIBS IS : ", jar_libs)
-    # for target in targets:
-    #   imports = unpacked_archives.get(target)
-    #   print("LIBRARIES: ", imports)
-    #
-    #   # TODO(mateor) investigate moving the filter to the repack in dxcompile. Unpacking under
-    #   # target.id could mean that jars are unpacked multiple times if they are defined in multiple
-    #   # specs. Moving the filtering to dxCompile would reduce the unpacking load.
-    #
-    #   # Separating libraries by target.id is safe b/c each target has a consistent filter pattern.
-    #   outdir = os.path.join(self.workdir, target.id)
-    #   for archive_path in imports:
-    #
-    #     for archive in imports[archive_path]:
-    #
-    #       # InVALIDATION?
-    #
-    #       print("HERE ARE THE ITEMS: ", archive)
-    #       if archive.endswith('.jar'):
-    #         jar_target = os.path.join(archive_path, archive)
-    #         print("EW FOUND AN JAR FILE: ", jar_target)
-    #       elif archive.endswith('.aar'):
-    #         print("ARRRR FOUND AN AAR: ", archive)
-    #         unpacked_aar_destination = os.path.join(self.workdir, archive)
-    #         manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
-    #         jar_target = os.path.join(unpacked_aar_destination, 'classes.jar')
-    #         resource_dir = os.path.join(unpacked_aar_destination, 'res')
-    #
-    #         # INVALIDATION
-    #         ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
-    #
-    #
-    #
-    #
-    #
-    #         if os.path.isfile(manifest):
-    #           print("THIS AAR HAS A MANIFEST", jar_target, archive)
-    #
-    #           jar_dependency = self.create_classes_jar_target(target, archive, jar_target)
-    #
-    #           self.create_android_library_target(target, archive, manifest, resource_dir, jar_dependency)
-    #
-    #       # else:
-    #       #     raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
-    #       #                                    "AndroidManifest.xml: {}".format(self))
-    #
-    #
-    #
-    #
-    #       #safe_mkdir(outdir)
-    #         # If the library was an aar file then there is a classes.jar to inject into the target graph.
-    #
-    #     # TODO (MATEOR) move unpack to DXcompile to avoid multiple unapcks of archives.
-    #      # unpack_filter = self._calculate_unpack_filter(target)
-    #
-    #       if os.path.isfile(jar_target):
-    #         ZIP.extract(jar_target, outdir, filter_func=None)
-    #         print("WE EXTARCTED YALL")
+    targets = self.context.targets(self.is_library)
+    unpacked_archives = self.context.products.get('ivy_imports')
+    print("UNPACKED_ARCHIVES: ", unpacked_archives)
+    jar_libs = self.context.products.get('jar_map_default')
+    print("JAR_LIBS IS : ", jar_libs)
+    for target in targets:
+      imports = unpacked_archives.get(target)
+      print("LIBRARIES: ", imports)
+
+      # TODO(mateor) investigate moving the filter to the repack in dxcompile. Unpacking under
+      # target.id could mean that jars are unpacked multiple times if they are defined in multiple
+      # specs. Moving the filtering to dxCompile would reduce the unpacking load.
+
+      # Separating libraries by target.id is safe b/c each target has a consistent filter pattern.
+      outdir = os.path.join(self.workdir, target.id)
+      for archive_path in imports:
+
+        for archive in imports[archive_path]:
+
+          # InVALIDATION?
+
+          print("HERE ARE THE ITEMS: ", archive)
+          if archive.endswith('.jar'):
+            jar_target = os.path.join(archive_path, archive)
+            print("EW FOUND AN JAR FILE: ", jar_target)
+          elif archive.endswith('.aar'):
+            print("ARRRR FOUND AN AAR: ", archive)
+            unpacked_aar_destination = os.path.join(self.workdir, archive)
+            manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
+            jar_target = os.path.join(unpacked_aar_destination, 'classes.jar')
+            resource_dir = os.path.join(unpacked_aar_destination, 'res')
+
+            # INVALIDATION
+            ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+
+
+
+
+
+            if os.path.isfile(manifest):
+              print("THIS AAR HAS A MANIFEST", jar_target, archive)
+
+              jar_dependency = self.create_classes_jar_target(target, archive, jar_target)
+
+              self.create_android_library_target(target, archive, manifest, resource_dir, jar_dependency)
+
+          # else:
+          #     raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
+          #                                    "AndroidManifest.xml: {}".format(self))
+
+
+
+
+          #safe_mkdir(outdir)
+            # If the library was an aar file then there is a classes.jar to inject into the target graph.
+
+        # TODO (MATEOR) move unpack to DXcompile to avoid multiple unapcks of archives.
+         # unpack_filter = self._calculate_unpack_filter(target)
+
+          if os.path.isfile(jar_target):
+            ZIP.extract(jar_target, outdir, filter_func=None)
+            print("WE EXTARCTED YALL")
+
+            print("TESTING GLOBBING")

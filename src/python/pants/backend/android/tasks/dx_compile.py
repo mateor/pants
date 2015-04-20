@@ -10,6 +10,7 @@ import os
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.tasks.android_task import AndroidTask
 from pants.backend.jvm.tasks.nailgun_task import NailgunTask
+from pants.backend.jvm.tasks.unpack_jars import UnpackJars
 from pants.base.exceptions import TaskError
 from pants.base.workunit import WorkUnit
 from pants.util.dirutil import safe_mkdir
@@ -112,6 +113,18 @@ class DxCompile(AndroidTask, NailgunTask):
                 # The unpacked_archives are passed as a list of [found_files, rel_unpack_dir].
                 # For Android's purposes, just passing the containing dir is fine.
                 classes.append(unpacked[1])
+
+
+
+              # This filter of the dx target is untested and needs verification in the worst way.
+                # TODO (move calculate_filter to fs?) also, lots of walks/joins here...
+                unpack_filter = UnpackJars.calculate_unpack_filter(tgt)
+                print("outidr is: ", outdir)
+                for root, dirpath, file_names in os.walk(outdir):
+                  for filename in file_names:
+                    relative_dir = os.path.relpath(root, outdir)
+                    if unpack_filter(os.path.join(relative_dir, filename)):
+                      classes.append(os.path.join(root, filename))
 
           target.walk(gather_classes)
           if not classes:
