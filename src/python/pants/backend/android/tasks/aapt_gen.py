@@ -122,27 +122,30 @@ class AaptGen(AaptTask):
       # framework can't differentiate between one library that has to be compiled by multiple sdks.
       # We can try some things with the BUILD file rework that'd be up next in a perfect world.
       for targ in gentargets:
+        if targ.manifest is not None:
+          # If a library does not specify a target_sdk, use the sdk of its dependee binary.
+          used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
+          print("THE TARGET: ", targ, " HAS A MANIFEST: ", targ.manifest.path)
+          resource_dirs = []
 
-        # If a library does not specify a target_sdk, use the sdk of its dependee binary.
-        used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
-        print("THE TARGET: ", targ, " HAS A MANIFEST: ", targ.manifest.path)
-        resource_dirs = []
-        for dep in targ.closure():
-          # A target's resources, as well as the resources of its transitive deps, are needed.
-          if isinstance(dep, AndroidResources):
-            print("HERE IS A RESOURCE TARGET: ", dep)
-            resource_dirs.append(dep.resource_dir)
+          # there is no closure API. Look at line 131 in unpack_jars for build_graph syntax.
+          for dep in targ.closure():
 
-        print("HERE ARE THE RESOURCE_DEIRS AAPT FOUND: ", resource_dirs)
-        args = self._render_args(targ, used_sdk, resource_dirs, outdir)
-        with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
-          returncode = subprocess.call(args, stdout=workunit.output('stdout'),
-                                       stderr=workunit.output('stderr'))
-          if returncode:
-            raise TaskError('The AaptGen process exited non-zero: {}'.format(returncode))
+            # A target's resources, as well as the resources of its transitive deps, are needed.
+            if isinstance(dep, AndroidResources):
+              print("HERE IS A RESOURCE TARGET: ", dep)
+              resource_dirs.append(dep.resource_dir)
 
-        new_target = self.create_target(targ, sdk)
-        targ.inject_dependency(new_target.address)
+          print("HERE ARE THE RESOURCE_DEIRS AAPT FOUND: ", resource_dirs)
+          args = self._render_args(targ, used_sdk, resource_dirs, outdir)
+          with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
+            returncode = subprocess.call(args, stdout=workunit.output('stdout'),
+                                         stderr=workunit.output('stderr'))
+            if returncode:
+              raise TaskError('The AaptGen process exited non-zero: {}'.format(returncode))
+
+          new_target = self.create_target(targ, sdk)
+          targ.inject_dependency(new_target.address)
 
   def create_target(self, gentarget, sdk):
     """Create a JavaLibrary target for the R.java files created by the aapt tool.

@@ -37,11 +37,10 @@ class AndroidLibrary(ImportJarsMixin, AndroidTarget):
     self.libraries = libraries
     self.include_patterns = include_patterns or []
     self.exclude_patterns = exclude_patterns or []
-    self._manifest = manifest
-    self.manifest_path = None
-    print("KWARGS: ", kwargs)
-    # TODO(BEFORE REVIEW: make 'libraries' just 'library' for android_library targets
-    super(AndroidLibrary, self).__init__(payload=payload, **kwargs)
+    self._manifest_path = manifest
+    self._manifest = None
+
+    super(AndroidLibrary, self).__init__(manifest=self._manifest_path, payload=payload, **kwargs)
 
 
   @property
@@ -55,13 +54,12 @@ class AndroidLibrary(ImportJarsMixin, AndroidTarget):
   @property
   def manifest(self):
     if self._manifest is None:
-      try:
-        self._manifest = AndroidManifestParser.parse_manifest(self.manifest_path)
-      except AndroidManifestParser.BadManifestError:
-        raise TargetDefinitionException(self, "An android_library BUILD file must declare a "
-                                              "manifest if the library is a jar file or else there "
-                                              "must be an AndroidManifest.xml contained within the "
-                                              "library's .aar file: {}.".format(self))
+      # Libraries may not have a manifest if self.libraries are aar files.
+      if self._manifest_path is None:
+        return None
+      else:
+        manifest = os.path.join(self._spec_path, self._manifest_path)
+        self._manifest = AndroidManifestParser.parse_manifest(manifest)
     return self._manifest
 
   @property
