@@ -65,8 +65,8 @@ class DxCompile(AndroidTask, NailgunTask):
     #            See comment on self.classes_dex for restrictions.
     args.extend(['--dex', '--no-strict', '--output={0}'.format(dex_file)])
 
-    # classes is a list of class files to be included in the created dex file.
-    args.extend(classes)
+    # classes is a set of class files to be included in the created dex file.
+    args.extend(list(classes))
     return args
 
   def _compile_dex(self, args, build_tools_version):
@@ -93,40 +93,50 @@ class DxCompile(AndroidTask, NailgunTask):
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
           classes_by_target = self.context.products.get_data('classes_by_target')
-          unpacked_archives = self.context.products.get_data('unpacked_archives')
-          classes = []
+          unpacked_archives = self.context.products.get('unpacked_libraries')
+          classes = set()
+          class_files = set()
 
           def gather_classes(tgt):
             def add_classes(target_products):
               for _, products in target_products.abs_paths():
                 for prod in products:
-                  classes.append(prod)
-
+                  classes.update([prod])
             target_classes = classes_by_target.get(tgt)
 
             if target_classes:
               add_classes(target_classes)
 
-            if unpacked_archives:
-              unpacked = unpacked_archives.get(tgt)
-              if unpacked:
-                # The unpacked_archives are passed as a list of [found_files, rel_unpack_dir].
-                # For Android's purposes, just passing the containing dir is fine.
-                classes.append(unpacked[1])
+            unpacked = unpacked_archives.get(tgt)
+            if unpacked:
+              for archives in unpacked.values():
+                for unpacked_dir in archives:
 
 
 
-              # This filter of the dx target is untested and needs verification in the worst way.
-                # TODO (move calculate_filter to fs?) also, lots of walks/joins here...
-                unpack_filter = UnpackJars.calculate_unpack_filter(tgt)
-                print("outidr is: ", outdir)
-                for root, dirpath, file_names in os.walk(outdir):
-                  for filename in file_names:
-                    relative_dir = os.path.relpath(root, outdir)
-                    if unpack_filter(os.path.join(relative_dir, filename)):
-                      classes.append(os.path.join(root, filename))
+
+                  # classes.append(unpacked[1])
+
+
+
+                # This filter of the dx target is untested and needs verification in the worst way.
+                  # TODO (move calculate_filter to fs?) also, lots of walks/joins here...
+
+                  # Only UnpackedJars have unpackedproducts so its safe to check for include/exclude.
+                  # Only gather individual files if the BUILD file specifies includes/excludes.
+
+                  unpack_filter = UnpackJars.get_unpack_filter(tgt)
+                  print("outidr is: ", unpacked_dir)
+                  for root, dirpath, file_names in os.walk(unpacked_dir):
+                    for filename in file_names:
+                      relative_dir = os.path.relpath(root, unpacked_dir)
+                      if unpack_filter(os.path.join(relative_dir, filename)):
+                        if filename not in class_files:
+                          class_files.update([filename])
+                          classes.update([os.path.join(root, filename)])
 
           target.walk(gather_classes)
+         # import pdb; pdb.set_trace()
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
           args = self._render_args(outdir, classes)
