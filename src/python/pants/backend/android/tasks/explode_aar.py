@@ -71,7 +71,7 @@ class ExplodeAar(UnpackJars):
     :param list targets: A list of AndroidBinary targets.
     :param list targets: A list of AndroidBinary targets.
     """
-    if os.path.isfile(resource_dir):
+    if os.path.isdir(resource_dir):
       address = SyntheticAddress(self.workdir, '{}-resources'.format(archive))
       new_target = self.context.add_new_target(address, AndroidResources,
                                                manifest=manifest, resource_dir=resource_dir,
@@ -81,9 +81,9 @@ class ExplodeAar(UnpackJars):
     return []
 
   def create_android_library_target(self, target, archive, manifest, resource_dir, jar_target):
-    print("MANIFEST IN CREATE_TARGET", manifest)
+    print("resource dir IN CREATE_TARGET", resource_dir)
     deps = self.create_resource_target(target, archive, manifest, resource_dir)
-
+    print("LIBRARIES DEPS ARE ", deps)
     libraries = self.create_classes_jar_target(target, archive, jar_target)
     address = SyntheticAddress(self.workdir, '{}-{}-android_library'.format(archive, target.id))
     new_target = self.context.add_new_target(address, AndroidLibrary,

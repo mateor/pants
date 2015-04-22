@@ -122,6 +122,7 @@ class AaptGen(AaptTask):
       # framework can't differentiate between one library that has to be compiled by multiple sdks.
       # We can try some things with the BUILD file rework that'd be up next in a perfect world.
       for targ in gentargets:
+        # Some AndroidLibraries are made from unpacked aars - if no manifest, no work to be done.
         if targ.manifest is not None:
           # If a library does not specify a target_sdk, use the sdk of its dependee binary.
           used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
@@ -130,7 +131,7 @@ class AaptGen(AaptTask):
 
           # there is no closure API. Look at line 131 in unpack_jars for build_graph syntax.
           for dep in targ.closure():
-
+            print("THE {} DEPS IS: {}".format(targ, dep))
             # A target's resources, as well as the resources of its transitive deps, are needed.
             if isinstance(dep, AndroidResources):
               print("HERE IS A RESOURCE TARGET: ", dep)
