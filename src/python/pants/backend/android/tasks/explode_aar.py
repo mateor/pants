@@ -139,7 +139,7 @@ class ExplodeAar(UnpackJars):
               jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
               resource_dir = os.path.join(unpacked_aar_destination, 'res')
 
-
+              # TODO add another JAr for every jar under 'libs'.
 
 
 
