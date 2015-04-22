@@ -52,16 +52,18 @@ class ExplodeAar(UnpackJars):
     :param list targets: A list of AndroidBinary targets.
     """
     print("WE ARE CREATING A TARGET: ", archive, jar)
-    jar_url = 'file://{0}'.format(jar)
-    name = '{}-jar'.format(archive)
-    jar_dep = (JarDependency(org=archive,
-                                  # TODO FIX REVISION
-                                  name=target.id, rev='100', url=jar_url))
-    address = SyntheticAddress(self.workdir, '{}-{}.jar'.format(target.id, archive))
-    new_target = self.context.add_new_target(address, JarLibrary, jars=[jar_dep],
-                                             derived_from=target)
-    #target.inject_dependency(new_target.address)
-    return new_target
+    if os.path.isfile(jar):
+      jar_url = 'file://{0}'.format(jar)
+      name = '{}-jar'.format(archive)
+      jar_dep = (JarDependency(org='ralph',
+                                    # TODO FIX REVISION
+                                    name=target.id, rev='100', url=jar_url))
+      address = SyntheticAddress(self.workdir, '{}-{}.jar'.format(target.id, archive))
+      new_target = self.context.add_new_target(address, JarLibrary, jars=[jar_dep],
+                                               derived_from=target)
+      #target.inject_dependency(new_target.address)
+     # return [new_target]
+    return []
 
   def create_resource_target(self, target, archive, manifest, resource_dir):
     """Create a JarLibrary target for each the jar included within every AndroidLibrary dependency.
@@ -69,17 +71,30 @@ class ExplodeAar(UnpackJars):
     :param list targets: A list of AndroidBinary targets.
     :param list targets: A list of AndroidBinary targets.
     """
-    address = SyntheticAddress(self.workdir, '{}-{}resources'.format(archive, target.id))
-    new_target = self.context.add_new_target(address, AndroidResources,
-                                             manifest=manifest, resource_dir=resource_dir,
-                                             derived_from=target)
-    #target.inject_dependency(new_target.address)
-    return new_target
+    if os.path.isfile(resource_dir):
+      address = SyntheticAddress(self.workdir, '{}-resources'.format(archive))
+      new_target = self.context.add_new_target(address, AndroidResources,
+                                               manifest=manifest, resource_dir=resource_dir,
+                                               derived_from=target)
+      #target.inject_dependency(new_target.address)
+      return [new_target]
+    return []
 
   def create_android_library_target(self, target, archive, manifest, resource_dir, jar_target):
-    if os.path.isdir(resource_dir):
-      print("WE FOUND A RESOURCE DIR", resource_dir)
-      resource_target = self.create_resource_target(target, archive, manifest, resource_dir)
+    print("MANIFEST IN CREATE_TARGET", manifest)
+    deps = self.create_resource_target(target, archive, manifest, resource_dir)
+
+    libraries = self.create_classes_jar_target(target, archive, jar_target)
+    address = SyntheticAddress(self.workdir, '{}-{}-android_library'.format(archive, target.id))
+    new_target = self.context.add_new_target(address, AndroidLibrary,
+                                             manifest=manifest,
+                                             libraries=libraries,
+                                             include_patterns=target.include_patterns,
+                                             exclude_patterns=target.exclude_patterns,
+                                             dependencies=deps,
+                                             derived_from=target)
+  #target.inject_dependency(new_target.address)
+    return new_target
 
   def _unpack_jar(self, jar):
     pass
@@ -87,10 +102,8 @@ class ExplodeAar(UnpackJars):
   def execute(self):
     targets = self.context.targets(self.is_library)
     unpacked_archives = self.context.products.get('ivy_imports')
-    print("UNPACKED_ARCHIVES: ", unpacked_archives)
     for target in targets:
       imports = unpacked_archives.get(target)
-      print("LIBRARIES: ", imports)
 
       # TODO(mateor) investigate moving the filter to the repack in dxcompile. Unpacking under
       # target.id could mean that jars are unpacked multiple times if they are defined in multiple
@@ -106,34 +119,43 @@ class ExplodeAar(UnpackJars):
             # InVALIDATION?
             outdir = os.path.join(self.workdir, target.id, archive)
 
-            print("HERE ARE THE ITEMS: ", archive)
             if archive.endswith('.jar'):
-              jar_target = os.path.join(archive_path, archive)
-              print("EW FOUND AN JAR FILE: ", jar_target)
+              unpack_candidate = os.path.join(archive_path, archive)
             elif archive.endswith('.aar'):
-              print("ARRRR FOUND AN AAR: ", archive)
+              # Unpack .aar files to reveal products.
               unpacked_aar_destination = os.path.join(self.workdir, archive)
-              manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
-              jar_target = os.path.join(unpacked_aar_destination, 'classes.jar')
-              resource_dir = os.path.join(unpacked_aar_destination, 'res')
+              unpack_candidate = os.path.join(unpacked_aar_destination, 'classes.jar')
 
               # INVALIDATION
               ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+
+            # Unpack jar for inclusion in apk file.
+            if os.path.isfile(unpack_candidate):
+              ZIP.extract(unpack_candidate, outdir)
+              #INVALIDATION
+
+          if archive not in self._created_targets:
+              manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
+              jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
+              resource_dir = os.path.join(unpacked_aar_destination, 'res')
+
+
 
 
 
 
 
               if os.path.isfile(manifest):
-                print("THIS AAR HAS A MANIFEST", jar_target, archive)
+                print("WE ARE CREATING A NEW ANDROIDLB For : ")
+                new_target = self.create_android_library_target(target, archive, manifest, resource_dir,
+                                                                jar_file)
+                self._created_targets[archive] = new_target
+              # else:
+                #     raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
+                #                                    "AndroidManifest.xml: {}".format(self))
 
-                jar_dependency = self.create_classes_jar_target(target, archive, jar_target)
+          target.inject_dependency(self._created_targets[archive].address)
 
-                self.create_android_library_target(target, archive, manifest, resource_dir, jar_dependency)
-
-            # else:
-            #     raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
-            #                                    "AndroidManifest.xml: {}".format(self))
 
 
 
@@ -143,13 +165,12 @@ class ExplodeAar(UnpackJars):
 
            # unpack_filter = self._calculate_unpack_filter(target)
 
-            if os.path.isfile(jar_target):
-              ZIP.extract(jar_target, outdir)
-              print('EXPLODE OUTDIR: ', outdir)
-              rel_unpack_dir = os.path.relpath(outdir, get_buildroot())
 
-              self.context.products.get('unpacked_libraries').add(target, get_buildroot()).append(rel_unpack_dir)
-              #unpacked_libraries = self.context.products.get_data('unpacked_libraries', lambda: {})
-              #import pdb; pdb.set_trace()
-              #unpacked_libraries[target].append(rel_unpack_dir)
-            print("UNPAKCED_LIB: ", self.context.products.get('unpacked_libraries'))
+          print('EXPLODE OUTDIR: ', outdir)
+          rel_unpack_dir = os.path.relpath(outdir, get_buildroot())
+
+          self.context.products.get('unpacked_libraries').add(target, get_buildroot()).append(rel_unpack_dir)
+          #unpacked_libraries = self.context.products.get_data('unpacked_libraries', lambda: {})
+          #import pdb; pdb.set_trace()
+          #unpacked_libraries[target].append(rel_unpack_dir)
+          print("UNPAKCED_LIB: ", self.context.products.get('unpacked_libraries'))
