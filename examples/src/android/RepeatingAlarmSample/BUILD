@@ -9,7 +9,6 @@ android_binary(
   dependencies = [
     '3rdparty/android:android-support-v4',
     ':resources',
-    ':support-unpacked',
   ],
 )
 
@@ -17,11 +16,4 @@ android_resources(
   name='resources',
   manifest='src/main/AndroidManifest.xml',
   resource_dir='src/main/res'
-)
-
-unpacked_jars(name='support-unpacked',
-  libraries=['3rdparty/android:android-support-v4'],
-  include_patterns=[
-    'android/support/**/*.class',
-  ],
 )

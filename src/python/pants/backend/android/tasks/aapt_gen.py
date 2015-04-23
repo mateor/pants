@@ -56,6 +56,7 @@ class AaptGen(AaptTask):
   def __init__(self, *args, **kwargs):
     super(AaptGen, self).__init__(*args, **kwargs)
     self._jar_library_by_sdk = {}
+    self._created_library_targets = {}
 
   def create_sdk_jar_deps(self, targets):
     """Create a JarLibrary target for every sdk in play.
@@ -126,18 +127,14 @@ class AaptGen(AaptTask):
         if targ.manifest:
           # If a library does not specify a target_sdk, use the sdk of its dependee binary.
           used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
-          print("THE TARGET: ", targ, " HAS A MANIFEST: ", targ.manifest.path)
           resource_dirs = []
 
           # there is no closure API. Look at line 131 in unpack_jars for build_graph syntax.
           for dep in targ.closure():
-            print("THE {} DEPS IS: {}".format(targ, dep))
             # A target's resources, as well as the resources of its transitive deps, are needed.
             if isinstance(dep, AndroidResources):
-              print("HERE IS A RESOURCE TARGET: ", dep)
               resource_dirs.append(dep.resource_dir)
 
-          print("HERE ARE THE RESOURCE_DEIRS AAPT FOUND: ", resource_dirs)
           if resource_dirs:
             args = self._render_args(targ, used_sdk, resource_dirs, outdir)
             with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
@@ -146,24 +143,26 @@ class AaptGen(AaptTask):
               if returncode:
                 raise TaskError('The AaptGen process exited non-zero: {}'.format(returncode))
 
-              new_target = self.create_target(targ, sdk)
-              targ.inject_dependency(new_target.address)
+              aapt_gen_file = self._calculate_genfile(targ.manifest.package_name)
+              if aapt_gen_file not in self._created_library_targets:
+                new_target = self.create_target(targ, sdk, aapt_gen_file)
+                self._created_library_targets[aapt_gen_file] = new_target
+              targ.inject_dependency(self._created_library_targets[aapt_gen_file].address)
 
-  def create_target(self, gentarget, sdk):
+  def create_target(self, gentarget, sdk, aapt_output):
     """Create a JavaLibrary target for the R.java files created by the aapt tool.
 
     :param AndroidTarget gentarget: An android_binary or android_library that owns resources.
     :param string sdk: The Android SDK version of the android.jar that the created target will
       depend on.
     """
-    aapt_gen_file = self._calculate_genfile(gentarget.manifest.package_name)
     spec_path = os.path.join(os.path.relpath(self.aapt_out(sdk), get_buildroot()))
     address = SyntheticAddress(spec_path=spec_path, target_name=gentarget.id)
     deps = [self._jar_library_by_sdk[sdk]]
     tgt = self.context.add_new_target(address,
                                       JavaLibrary,
                                       derived_from=gentarget,
-                                      sources=[aapt_gen_file],
+                                      sources=[aapt_output],
                                       dependencies=deps)
     return tgt
 

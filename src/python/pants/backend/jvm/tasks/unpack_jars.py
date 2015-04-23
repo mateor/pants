@@ -40,8 +40,7 @@ class UnpackJarsFingerprintStrategy(DefaultFingerprintHashingMixin, FingerprintS
 class UnpackJars(Task):
   """Looks for UnpackedJars targets and unpacks them.
 
-     Adds an entry to SourceRoot for the contents.  Initially only
-     supported by JavaProtobufLibrary.
+     Adds an entry to SourceRoot for the contents.
   """
 
   class InvalidPatternError(Exception):
@@ -122,7 +121,6 @@ class UnpackJars(Task):
 
     unpack_filter = self.get_unpack_filter(unpacked_jars)
     products = self.context.products.get('ivy_imports')
-    print("HERE ARE THE IVY_IMPOZRTS: ", products)
     jarmap = products[unpacked_jars]
 
     for path, names in jarmap.items():

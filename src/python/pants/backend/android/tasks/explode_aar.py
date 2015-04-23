@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 
+from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.android_task import AndroidTask
@@ -39,7 +40,7 @@ class ExplodeAar(UnpackJars):
   @staticmethod
   def is_library(target):
     """Return True for AndroidLibrary targets."""
-    return isinstance(target, AndroidLibrary)
+    return isinstance(target, AndroidLibrary) or isinstance(target, AndroidBinary)
 
   def __init__(self, *args, **kwargs):
     super(ExplodeAar, self).__init__(*args, **kwargs)
@@ -51,13 +52,13 @@ class ExplodeAar(UnpackJars):
     :param list targets: A list of AndroidBinary targets.
     :param list targets: A list of AndroidBinary targets.
     """
-    print("WE ARE CREATING A TARGET: ", archive, jar)
+    print("JAR TARGET: ", archive, jar)
     if os.path.isfile(jar):
       jar_url = 'file://{0}'.format(jar)
       name = '{}-jar'.format(archive)
-      jar_dep = (JarDependency(org='ralph',
+      jar_dep = (JarDependency(org=target.id,
                                     # TODO FIX REVISION
-                                    name=target.id, rev='100', url=jar_url))
+                                    name=archive, rev='100', url=jar_url))
       address = SyntheticAddress(self.workdir, '{}-{}.jar'.format(target.id, archive))
       new_target = self.context.add_new_target(address, JarLibrary, jars=[jar_dep],
                                                derived_from=target)
@@ -101,7 +102,9 @@ class ExplodeAar(UnpackJars):
 
   def execute(self):
     targets = self.context.targets(self.is_library)
+    print("TARGETS: ", targets)
     unpacked_archives = self.context.products.get('ivy_imports')
+    print("IMPORTS: ", unpacked_archives)
     for target in targets:
       imports = unpacked_archives.get(target)
 
@@ -135,6 +138,7 @@ class ExplodeAar(UnpackJars):
               #INVALIDATION
 
           if archive not in self._created_targets:
+              print("WE ARE CREATING A TRAGET: ", archive)
               manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
               jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
               resource_dir = os.path.join(unpacked_aar_destination, 'res')
@@ -154,7 +158,9 @@ class ExplodeAar(UnpackJars):
                 #     raise self.InvalidLibraryFile("An android_library's .aar file must contain a "
                 #                                    "AndroidManifest.xml: {}".format(self))
 
-          target.inject_dependency(self._created_targets[archive].address)
+          #HACK
+          if archive.endswith('.aar'):
+            target.inject_dependency(self._created_targets[archive].address)
 
 
 
@@ -173,4 +179,4 @@ class ExplodeAar(UnpackJars):
           #unpacked_libraries = self.context.products.get_data('unpacked_libraries', lambda: {})
           #import pdb; pdb.set_trace()
           #unpacked_libraries[target].append(rel_unpack_dir)
-          print("UNPAKCED_LIB: ", self.context.products.get('unpacked_libraries'))
+    print("UNPAKCED_LIB: ", self.context.products.get('unpacked_libraries'))

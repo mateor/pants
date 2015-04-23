@@ -11,6 +11,7 @@ android_library(
   ],
   dependencies=[
     ':resources',
+    '3rdparty/android:android-support-v4',
   ],
 )
 
