@@ -41,10 +41,12 @@ class ExplodeAar(UnpackJars):
     self._created_targets = {}
 
   def create_classes_jar_target(self, target, archive, jar_file):
-    """Create a JarLibrary target containing a JarDependency from the jar_file.
+    """Create a JarLibrary target containing the jar_file as a JarDependency.
 
-    :param list targets: A list of AndroidBinary targets.
-    :param list targets: A list of AndroidBinary targets.
+    :param Target target: AndroidTarget that the new JarDependency derives from.
+    :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
+    :param string jar_file: Full path of the classes.jar contained within aar files.
+    :returns: JarLibrary target
     """
     # Try to parse revision number. This is just to satisfy the spec, the rev is part of jar_file.
     archive_version = os.path.splitext(archive)[0].rpartition('-')[-1]
@@ -59,8 +61,10 @@ class ExplodeAar(UnpackJars):
   def create_resource_target(self, target, archive, manifest, resource_dir):
     """Create an AndroidResources target.
 
-    :param list targets: A list of AndroidBinary targets.
-    :param list targets: A list of AndroidBinary targets.
+    :param Target target: AndroidTarget that the new AndroidResources target derives from.
+    :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
+    :param string resource_dir: Full path of the res directory contained within aar files.
+    :returns: AndroidResources target
     """
 
     address = SyntheticAddress(self.workdir, '{}-resources'.format(archive))
@@ -69,12 +73,27 @@ class ExplodeAar(UnpackJars):
                                              derived_from=target)
     return new_target
 
-  def create_android_library_target(self, target, archive, manifest, resource_dir, jar_target):
+  def create_android_library_target(self, target, archive, unpacked_aar_location):
+
+    """Create an AndroidResources target.
+
+    :param Target target: AndroidTarget that the new AndroidLibrary target derives from.
+    :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
+    :param string unpacked_aar_location: Full path of dir holding contents of an unpacked aar file.
+    :returns: AndroidLibrary target
+    """
+    # The following three elements of an aar file have names proscribed by the aar spec:
+    #   http://tools.android.com/tech-docs/new-build-system/aar-format
+    # They are said to be mandatory although in practice that assumption only holds for manifest.
+    manifest = os.path.join(unpacked_aar_location, 'AndroidManifest.xml')
+    jar_file = os.path.join(unpacked_aar_location, 'classes.jar')
+    resource_dir = os.path.join(unpacked_aar_location, 'res')
+    
     deps = []
     if os.path.isdir(resource_dir):
       deps.append(self.create_resource_target(target, archive, manifest, resource_dir))
-    if os.path.isfile(jar_target):
-      deps.append(self.create_classes_jar_target(target, archive, jar_target))
+    if os.path.isfile(jar_file):
+      deps.append(self.create_classes_jar_target(target, archive, jar_file))
     address = SyntheticAddress(self.workdir, '{}-{}-android_library'.format(archive, target.id))
     new_target = self.context.add_new_target(address, AndroidLibrary,
                                              manifest=manifest,
@@ -121,9 +140,7 @@ class ExplodeAar(UnpackJars):
               #INVALIDATION
 
           if archive not in self._created_targets:
-            manifest = os.path.join(unpacked_aar_destination, 'AndroidManifest.xml')
-            jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
-            resource_dir = os.path.join(unpacked_aar_destination, 'res')
+
 
             # TODO(mateor) add another JarDependency for every jar under 'libs'.
 
@@ -131,14 +148,9 @@ class ExplodeAar(UnpackJars):
 
 
 
-            if os.path.isfile(manifest):
-              print("WE ARE CREATING A NEW ANDROIDLB For : ")
-              new_target = self.create_android_library_target(target, archive, manifest, resource_dir,
-                                                              jar_file)
+              new_target = self.create_android_library_target(target, archive,
+                                                              unpacked_aar_destination)
               self._created_targets[archive] = new_target
-            else:
-              raise self.InvalidLibraryFile('An android_library .aar file must contain an '
-                                            'AndroidManifest.xml: {}'.format(archive))
 
           #HACK
           if archive.endswith('.aar'):
@@ -155,7 +167,6 @@ class ExplodeAar(UnpackJars):
            # unpack_filter = self._calculate_unpack_filter(target)
 
 
-          print('EXPLODE OUTDIR: ', outdir)
           rel_unpack_dir = os.path.relpath(outdir, get_buildroot())
 
           self.context.products.get('unpacked_libraries').add(target, get_buildroot()).append(rel_unpack_dir)
