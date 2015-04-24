@@ -7,8 +7,9 @@ android_binary(
   sources=rglobs('src/main/java/**/*java'),
   manifest='src/main/AndroidManifest.xml',
   dependencies = [
-    '3rdparty/android:android-support-v4',
+    ':gms-library',
     ':resources',
+    ':appcompat',
   ],
 )
 
@@ -16,4 +17,20 @@ android_resources(
   name='resources',
   manifest='src/main/AndroidManifest.xml',
   resource_dir='src/main/res'
+)
+
+android_library(
+  name='gms-library',
+  libraries=['3rdparty/android:google-play-services'],
+  include_patterns=[
+    '**/*.class',
+  ],
+)
+
+android_library(
+  name='appcompat',
+  libraries=['3rdparty/android:appcompat-v7'],
+  include_patterns=[
+    '**/*.class',
+  ],
 )

@@ -91,22 +91,23 @@ class UnpackJars(Task):
     return compiled_patterns
 
   @classmethod
-  def calculate_unpack_filter(cls, include_patterns, exclude_patterns, spec):
+  def calculate_unpack_filter(cls, includes=[], excludes=[], spec=None):
 
-    include_patterns = cls._compile_patterns(include_patterns,
+    include_patterns = cls._compile_patterns(includes,
                                              field_name='include_patterns',
                                              spec=spec)
-    exclude_patterns = cls._compile_patterns(exclude_patterns,
+    exclude_patterns = cls._compile_patterns(excludes,
                                              field_name='exclude_patterns',
                                              spec=spec)
     return lambda f: cls._unpack_filter(f, include_patterns, exclude_patterns)
 
-  # This is only useful if I push the unpack stuff up to fs or util.
+  # TODO (mateor) move above unpack methods that aren't specific to jars up to fs.archive.
+
   @classmethod
   def get_unpack_filter(cls, unpacked_jars):
-    return cls.calculate_unpack_filter(unpacked_jars.include_patterns,
-                                        unpacked_jars.exclude_patterns,
-                                        unpacked_jars.address.spec)
+    return cls.calculate_unpack_filter(includes=unpacked_jars.include_patterns,
+                                        excludes=unpacked_jars.exclude_patterns,
+                                        spec=unpacked_jars.address.spec)
 
   def _unpack(self, unpacked_jars):
     """Extracts files from the downloaded jar files and places them in a work directory.
