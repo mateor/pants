@@ -46,7 +46,7 @@ class AaptGen(AaptTask):
   @classmethod
   def prepare(cls, options, round_manager):
     super(AaptGen, cls).prepare(options, round_manager)
-    round_manager.require_data('exploded_aars')
+    round_manager.require_data('exploded_libraries')
 
   @staticmethod
   def is_aapt_target(target):

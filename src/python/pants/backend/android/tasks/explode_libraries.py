@@ -10,6 +10,7 @@ import os
 from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
+from pants.backend.core.tasks.task import Task
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.backend.jvm.tasks.unpack_jars import UnpackJars
@@ -18,18 +19,15 @@ from pants.base.build_environment import get_buildroot
 from pants.fs.archive import ZIP
 
 
-class ExplodeAar(UnpackJars):
-
-  class InvalidLibraryFile(Exception):
-    """Indicates an invalid android manifest."""
+class ExplodeLibraries(Task):
 
   @classmethod
   def prepare(cls, options, round_manager):
-    super(ExplodeAar, cls).prepare(options, round_manager)
+    super(ExplodeLibraries, cls).prepare(options, round_manager)
 
   @classmethod
   def product_types(cls):
-    return ['exploded_aars']
+    return ['exploded_libraries']
 
   @staticmethod
   def is_library(target):
@@ -37,7 +35,7 @@ class ExplodeAar(UnpackJars):
     return isinstance(target, AndroidLibrary) or isinstance(target, AndroidBinary)
 
   def __init__(self, *args, **kwargs):
-    super(ExplodeAar, self).__init__(*args, **kwargs)
+    super(ExplodeLibraries, self).__init__(*args, **kwargs)
     self._created_targets = {}
 
   def create_classes_jar_target(self, target, archive, jar_file):
@@ -88,7 +86,7 @@ class ExplodeAar(UnpackJars):
     manifest = os.path.join(unpacked_aar_location, 'AndroidManifest.xml')
     jar_file = os.path.join(unpacked_aar_location, 'classes.jar')
     resource_dir = os.path.join(unpacked_aar_location, 'res')
-    
+
     deps = []
     if os.path.isdir(resource_dir):
       deps.append(self.create_resource_target(target, archive, manifest, resource_dir))
@@ -103,9 +101,6 @@ class ExplodeAar(UnpackJars):
                                              derived_from=target)
     return new_target
 
-  def _unpack_jar(self, jar):
-    pass
-
   def execute(self):
     # TODO(mateor) add AndroidBinary support. If there is no need for include/exclude, an
     #  android_binary should be able to simply declare an android_dependency as a dep and work.
@@ -114,11 +109,10 @@ class ExplodeAar(UnpackJars):
     unpacked_archives = self.context.products.get('ivy_imports')
     for target in targets:
       imports = unpacked_archives.get(target)
-
       if imports:
-
         for archive_path in imports:
           for archive in imports[archive_path]:
+
             outdir = os.path.join(self.workdir, 'exploded-jars', archive)
 
             # InVALIDATION?
@@ -139,7 +133,6 @@ class ExplodeAar(UnpackJars):
               ZIP.extract(unpack_candidate, outdir)
               #INVALIDATION
 
-          if archive not in self._created_targets:
 
 
             # TODO(mateor) add another JarDependency for every jar under 'libs'.
@@ -148,29 +141,20 @@ class ExplodeAar(UnpackJars):
 
 
 
+          #HACK
+          if archive.endswith('.aar'):
+            # The contents of the unpacked aar file must be made into an AndroidLibrary target.
+            if archive not in self._created_targets:
               new_target = self.create_android_library_target(target, archive,
                                                               unpacked_aar_destination)
               self._created_targets[archive] = new_target
-
-          #HACK
-          if archive.endswith('.aar'):
-            # WHat if no target was made? error catch.
             target.inject_dependency(self._created_targets[archive].address)
 
 
-
-
-
-            #safe_mkdir(outdir)
-              # If the library was an aar file then there is a classes.jar to inject into the target graph.
-
-           # unpack_filter = self._calculate_unpack_filter(target)
-
-
+          # The class files from the jars are packed into the classes.dex file during DxCompile.
           rel_unpack_dir = os.path.relpath(outdir, get_buildroot())
 
-          self.context.products.get('unpacked_libraries').add(target, get_buildroot()).append(rel_unpack_dir)
+          self.context.products.get('exploded_libraries').add(target, get_buildroot()).append(rel_unpack_dir)
           #unpacked_libraries = self.context.products.get_data('unpacked_libraries', lambda: {})
           #import pdb; pdb.set_trace()
           #unpacked_libraries[target].append(rel_unpack_dir)
-    print("UNPAKCED_LIB: ", self.context.products.get('unpacked_libraries'))
