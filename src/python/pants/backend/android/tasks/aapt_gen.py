@@ -119,35 +119,32 @@ class AaptGen(AaptTask):
           gentargets.append(tgt)
       target.walk(gather_gentargets)
 
+
       # TODO(mateo) add invalidation framework. Adding it here doesn't work right now because the
       # framework can't differentiate between one library that has to be compiled by multiple sdks.
-      # We can try some things with the BUILD file rework that'd be up next in a perfect world.
-      for targ in gentargets:
+      for gen in gentargets:
         # AndroidLibraries are not currently required to have a manifest. No manifest = no work.
-        if targ.manifest:
+        if gen.manifest:
           # If a library does not specify a target_sdk, use the sdk of its dependee binary.
-          used_sdk = targ.manifest.target_sdk if targ.manifest.target_sdk else sdk
-          resource_dirs = []
+          used_sdk = gen.manifest.target_sdk if gen.manifest.target_sdk else sdk
 
-          # there is no closure API. Look at line 131 in unpack_jars for build_graph syntax.
-          for dep in targ.closure():
-            # A target's resources, as well as the resources of its transitive deps, are needed.
-            if isinstance(dep, AndroidResources):
-              resource_dirs.append(dep.resource_dir)
+          # Get resource_dir of all AndroidResources targets in the transitive dependencies.
+          resource_deps = self.context.build_graph.transitive_subgraph_of_addresses([gen.address])
+          resource_dirs = [t.resource_dir for t in resource_deps if isinstance(t, AndroidResources)]
 
           if resource_dirs:
-            args = self._render_args(targ, used_sdk, resource_dirs, outdir)
+            args = self._render_args(gen, used_sdk, resource_dirs, outdir)
             with self.context.new_workunit(name='aapt_gen', labels=[WorkUnit.MULTITOOL]) as workunit:
               returncode = subprocess.call(args, stdout=workunit.output('stdout'),
                                            stderr=workunit.output('stderr'))
               if returncode:
                 raise TaskError('The AaptGen process exited non-zero: {}'.format(returncode))
 
-              aapt_gen_file = self._calculate_genfile(targ.manifest.package_name)
+              aapt_gen_file = self._calculate_genfile(gen.manifest.package_name)
               if aapt_gen_file not in self._created_library_targets:
-                new_target = self.create_target(targ, sdk, aapt_gen_file)
+                new_target = self.create_target(gen, sdk, aapt_gen_file)
                 self._created_library_targets[aapt_gen_file] = new_target
-              targ.inject_dependency(self._created_library_targets[aapt_gen_file].address)
+              gen.inject_dependency(self._created_library_targets[aapt_gen_file].address)
 
   def create_target(self, gentarget, sdk, aapt_output):
     """Create a JavaLibrary target for the R.java files created by the aapt tool.

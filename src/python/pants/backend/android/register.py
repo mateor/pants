@@ -12,8 +12,8 @@ from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.aapt_builder import AaptBuilder
 from pants.backend.android.tasks.aapt_gen import AaptGen
 from pants.backend.android.tasks.dx_compile import DxCompile
-from pants.backend.android.tasks.explode_libraries import ExplodeLibraries
 from pants.backend.android.tasks.sign_apk import SignApkTask
+from pants.backend.android.tasks.unpack_libraries import UnpackLibraries
 from pants.backend.android.tasks.zipalign import Zipalign
 from pants.base.build_file_aliases import BuildFileAliases
 from pants.goal.task_registrar import TaskRegistrar as task
@@ -30,7 +30,7 @@ def build_file_aliases():
   )
 
 def register_goals():
-  task(name='explode-aars', action=ExplodeLibraries).install('unpack-jars')
+  task(name='unpack-libs', action=UnpackLibraries).install('unpack-jars')
   task(name='aapt', action=AaptGen).install('gen')
   task(name='dex', action=DxCompile).install('binary')
   task(name='apk', action=AaptBuilder).install()

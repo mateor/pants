@@ -93,7 +93,7 @@ class DxCompile(AndroidTask, NailgunTask):
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
           classes_by_target = self.context.products.get_data('classes_by_target')
-          unpacked_archives = self.context.products.get('unpacked_libraries')
+          unpacked_archives = self.context.products.get('exploded_libraries')
           classes = set()
           class_files = set()
 
@@ -112,17 +112,9 @@ class DxCompile(AndroidTask, NailgunTask):
               for archives in unpacked.values():
                 for unpacked_dir in archives:
 
-
-
-
-                  # classes.append(unpacked[1])
-
-
-
                 # This filter of the dx target is untested and needs verification in the worst way.
-                  # TODO (move calculate_filter to fs?) also, lots of walks/joins here...
+                  # TODO (move calculate_filter to fs)
 
-                  # Only UnpackedJars have unpackedproducts so its safe to check for include/exclude.
                   # Only gather individual files if the BUILD file specifies includes/excludes.
 
                   unpack_filter = UnpackJars.get_unpack_filter(tgt)

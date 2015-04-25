@@ -18,14 +18,14 @@ from pants.base.build_environment import get_buildroot
 from pants.fs.archive import ZIP
 
 
-class ExplodeLibraries(Task):
+class UnpackLibraries(Task):
 
   class MissingUnpackedDirsError(Exception):
     """Raised if a directory that is expected to be unpacked doesn't exist."""
 
   @classmethod
   def prepare(cls, options, round_manager):
-    super(ExplodeLibraries, cls).prepare(options, round_manager)
+    super(UnpackLibraries, cls).prepare(options, round_manager)
 
   @classmethod
   def product_types(cls):
@@ -39,7 +39,7 @@ class ExplodeLibraries(Task):
     return isinstance(target, AndroidLibrary)
 
   def __init__(self, *args, **kwargs):
-    super(ExplodeLibraries, self).__init__(*args, **kwargs)
+    super(UnpackLibraries, self).__init__(*args, **kwargs)
     self._created_targets = {}
 
   def create_classes_jar_target(self, target, archive, jar_file):
