@@ -26,8 +26,3 @@ class AndroidBinary(AndroidTarget):
         raise TargetDefinitionException(self, "AndroidBinary targets must declare targetSdkVersion "
                                               "in the AndroidManifest.xml.")
     return self._target_sdk
-
-  @property
-  def manifest_required(self):
-    """Return True since an android_binary must declare an AndroidManifest.xml in the BUILD file."""
-    return True

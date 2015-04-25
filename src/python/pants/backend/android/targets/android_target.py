@@ -15,7 +15,6 @@ from pants.base.exceptions import TargetDefinitionException
 class AndroidTarget(JvmTarget):
   """A base class for all Android targets."""
 
-
   def __init__(self,
                address=None,
                # TODO (mateor) add support for minSDk
@@ -42,7 +41,7 @@ class AndroidTarget(JvmTarget):
   def manifest(self):
     """Return an AndroidManifest object made from a manifest by AndroidManifestParser."""
 
-    if self._manifest is None and self.manifest_required:
+    if self._manifest is None:
       # If there was no 'manifest' field in the BUILD file, try to find one with the default value.
       if self._manifest_path is None:
         self._manifest_path = 'AndroidManifest.xml'
@@ -53,8 +52,3 @@ class AndroidTarget(JvmTarget):
                                               "path.".format(manifest))
       self._manifest = AndroidManifestParser.parse_manifest(manifest)
     return self._manifest
-
-  @property
-  def manifest_required(self, target):
-    """Subclass must return True if the BUILD file is required to declare an AndroidManifest.xml."""
-    raise NotImplementedError
