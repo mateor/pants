@@ -62,7 +62,7 @@ class UnpackJars(Task):
     return os.path.normpath(os.path.join(self._workdir, unpacked_jars.id))
 
   @classmethod
-  def _unpack_filter(cls, filename, include_patterns, exclude_patterns):
+  def _file_filter(cls, filename, include_patterns, exclude_patterns):
     """:return: True if the file should be allowed through the filter"""
     found = False
     if include_patterns:
@@ -92,19 +92,28 @@ class UnpackJars(Task):
 
   @classmethod
   def calculate_unpack_filter(cls, includes=[], excludes=[], spec=None):
+    """Take regex patterns and return a filter function.
 
+    :param list includes: List of include patterns to pass to _unpack_filter.
+    :param list excludes: List of exclude patterns to pass to _unpack_filter.
+
+    """
     include_patterns = cls._compile_patterns(includes,
                                              field_name='include_patterns',
                                              spec=spec)
     exclude_patterns = cls._compile_patterns(excludes,
                                              field_name='exclude_patterns',
                                              spec=spec)
-    return lambda f: cls._unpack_filter(f, include_patterns, exclude_patterns)
+    return lambda f: cls._file_filter(f, include_patterns, exclude_patterns)
 
   # TODO (mateor) move above unpack methods that aren't specific to jars up to fs.archive.
 
   @classmethod
   def get_unpack_filter(cls, unpacked_jars):
+    """Calculate a filter function from the include/exclude patterns of a Target.
+
+    :param Target unpacked_jars: A target with include_patterns and exclude_patterns attributes.
+    """
     return cls.calculate_unpack_filter(includes=unpacked_jars.include_patterns,
                                         excludes=unpacked_jars.exclude_patterns,
                                         spec=unpacked_jars.address.spec)
