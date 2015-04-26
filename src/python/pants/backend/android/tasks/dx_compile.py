@@ -45,7 +45,7 @@ class DxCompile(AndroidTask, NailgunTask):
   def prepare(cls, options, round_manager):
     super(DxCompile, cls).prepare(options, round_manager)
     round_manager.require_data('classes_by_target')
-    round_manager.require_data('unpacked_archives')
+    round_manager.require_data('unpacked_libraries')
 
   def __init__(self, *args, **kwargs):
     super(DxCompile, self).__init__(*args, **kwargs)
@@ -93,7 +93,7 @@ class DxCompile(AndroidTask, NailgunTask):
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
           classes_by_target = self.context.products.get_data('classes_by_target')
-          unpacked_archives = self.context.products.get('exploded_libraries')
+          unpacked_archives = self.context.products.get('unpacked_libraries')
           classes = set()
           class_files = set()
 

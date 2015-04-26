@@ -81,5 +81,5 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
           # If the apk target name didn't match, we know it called aapt on the library dependency.
           resource_dirs = re.findall(r'-S.*?', line)
           self.assertEquals(len(resource_dirs), 1, 'Expected one resource dirs to be included when '
-                                                   'calling aapt on dexample_library dep. '
+                                                   'calling aapt on example_library dep. '
                                                    '(was: {})\n'.format(resource_dirs))

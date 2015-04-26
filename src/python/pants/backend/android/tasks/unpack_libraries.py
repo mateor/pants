@@ -12,7 +12,6 @@ from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.core.tasks.task import Task
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
-from pants.backend.jvm.tasks.unpack_jars import UnpackJarsFingerprintStrategy
 from pants.base.address import SyntheticAddress
 from pants.base.build_environment import get_buildroot
 from pants.fs.archive import ZIP
@@ -29,12 +28,12 @@ class UnpackLibraries(Task):
 
   @classmethod
   def product_types(cls):
-    return ['exploded_libraries']
+    return ['unpacked_libraries']
 
   @staticmethod
   def is_library(target):
     """Return True for AndroidLibrary targets."""
-    # TODO(mateor) add AndroidBinary support. If there is no need for include/exclude, an
+    # TODO(mateor) add AndroidBinary support. If include/exclude patterns aren't needed, an
     #  android_binary should be able to simply declare an android_dependency as a dependency.
     return isinstance(target, AndroidLibrary)
 
@@ -97,6 +96,7 @@ class UnpackLibraries(Task):
     jar_file = os.path.join(unpacked_aar_location, 'classes.jar')
     resource_dir = os.path.join(unpacked_aar_location, 'res')
 
+    # Sanity-check to make sure all aaars we expect to be unpacked are actually unpacked.
     if not os.path.isfile(manifest):
       raise self.MissingUnpackedDirsError("An AndroidManifest.xml is expected in every unpacked "
                                           ".aar file but none was found in the {} archive "
@@ -131,7 +131,6 @@ class UnpackLibraries(Task):
           for archive_path in imports:
             for archive in imports[archive_path]:
               outdir = self.unpack_jar_location(archive)
-              # InVALIDATION?
 
               if archive.endswith('.jar'):
                 jar_file = os.path.join(archive_path, archive)
@@ -140,7 +139,7 @@ class UnpackLibraries(Task):
                 unpacked_aar_destination = self.unpack_aar_location(archive)
                 jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
 
-                # INVALIDATION
+                # Unpack .aar files.
                 ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
 
               # Unpack jar for inclusion in apk file.
@@ -162,7 +161,7 @@ class UnpackLibraries(Task):
 
           # The class files from the jars are packed into the classes.dex file during DxCompile.
           relative_unpack_dir = os.path.relpath(self.unpack_jar_location(archive), get_buildroot())
-          exploded_products = self.context.products.get('exploded_libraries')
+          exploded_products = self.context.products.get('unpacked_libraries')
           exploded_products.add(target, get_buildroot()).append(relative_unpack_dir)
     #import pdb; pdb.set_trace()
   def unpack_jar_location(self, archive):
