@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 
+from pants.backend.android.targets.android_binary import AndroidBinary
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.core.tasks.task import Task
@@ -37,9 +38,15 @@ class UnpackLibraries(Task):
     #  android_binary should be able to simply declare an android_dependency as a dependency.
     return isinstance(target, AndroidLibrary)
 
+  @staticmethod
+  def is_app(target):
+    """Return True for AndroidBinary targets."""
+    return isinstance(target, AndroidBinary)
+
   def __init__(self, *args, **kwargs):
     super(UnpackLibraries, self).__init__(*args, **kwargs)
     self._created_targets = {}
+    self._archive_paths = {}
 
   def create_classes_jar_target(self, target, archive, jar_file):
     """Create a JarLibrary target containing the jar_file as a JarDependency.
@@ -117,53 +124,77 @@ class UnpackLibraries(Task):
 
   def execute(self):
 
-    targets = self.context.targets(self.is_library)
+    targets = self.context.targets(self.is_app)
     ivy_imports = self.context.products.get('ivy_imports')
 
+    target_archives = {}
+
+    # Gather the archives each android package depends upon.
+    for android in targets:
+      # Dedup archives per target.
+      android_archives = set()
+      transitive_deps = self.context.build_graph.transitive_subgraph_of_addresses([android.address])
+      library_deps = [t for t in transitive_deps if isinstance(t, AndroidLibrary)]
+      print("LIBRARY_DEPS: ", library_deps, android)
+      for library in library_deps:
+        imports = ivy_imports.get(library)
+        if imports:
+          print("IMPORTS: ", imports)
+          for archive_path in imports:
+            for archive in imports[archive_path]:
+              if archive not in self._archive_paths:
+                self._archive_paths[archive] = os.path.join(archive_path, archive)
+              android_archives.update([archive])
+      target_archives[android] = android_archives
+
+      print("ANDROID:        ARCHIVES: ", android, target_archives[android])
 
     with self.invalidated(targets) as invalidation_check:
       invalid_targets = []
       for vt in invalidation_check.invalid_vts:
         invalid_targets.extend(vt.targets)
       for target in invalid_targets:
-        imports = ivy_imports.get(target)
-        if imports:
-          for archive_path in imports:
-            for archive in imports[archive_path]:
-              outdir = self.unpack_jar_location(archive)
+        for archive in target_archives[target]:
+          print("THIS TARGET: {}, and ARCHIVES: {}".format(target, target_archives))
+          outdir = self.unpack_jar_location(archive)
 
-              if archive.endswith('.jar'):
-                jar_file = os.path.join(archive_path, archive)
-              elif archive.endswith('.aar'):
-                # Unpack .aar files to reveal products.
-                unpacked_aar_destination = self.unpack_aar_location(archive)
-                jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
+          if archive.endswith('.jar'):
+            jar_file = self._archive_paths[archive]
+          elif archive.endswith('.aar'):
+            # Unpack .aar files to reveal products.
+            unpacked_aar_destination = self.unpack_aar_location(archive)
+            jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
 
-                # Unpack .aar files.
-                ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+            # Unpack .aar files.
+            ZIP.extract(self._archive_paths[archive], unpacked_aar_destination)
 
-              # Unpack jar for inclusion in apk file.
-              if os.path.isfile(jar_file):
-                ZIP.extract(jar_file, outdir)
-                #INVALIDATION
+          # Unpack jar for inclusion in apk file.
+          if os.path.isfile(jar_file):
+            ZIP.extract(jar_file, outdir)
+            #INVALIDATION
 
-    for target in targets:
+    for target in self.context.targets(self.is_library):
+      #binary_archives = target_archives[target]
       imports = ivy_imports.get(target)
-      for archives in imports.values():
-        for archive in archives:
-          if archive.endswith('.aar'):
+      if imports:
+        print("IMPORTS: ", imports)
+        for archive_path in imports:
+          for archive in imports[archive_path]:
+            if archive.endswith('.aar'):
 
-            # The contents of the unpacked aar file must be made into an AndroidLibrary target.
-            if archive not in self._created_targets:
-              new_target = self.create_android_library_target(target, archive)
-              self._created_targets[archive] = new_target
-            target.inject_dependency(self._created_targets[archive].address)
+              # The contents of the unpacked aar file must be made into an AndroidLibrary target.
+              if archive not in self._created_targets:
+                new_target = self.create_android_library_target(target, archive)
+                self._created_targets[archive] = new_target
+              print("INJECTING TARGET: {} /n with {}".format(target, self._created_targets[archive]))
+              target.inject_dependency(self._created_targets[archive].address)
+             # import pdb; pdb.set_trace()
+            # The class files from the jars are packed into the classes.dex file during DxCompile.
+            relative_unpack_dir = os.path.relpath(self.unpack_jar_location(archive), get_buildroot())
+            exploded_products = self.context.products.get('unpacked_libraries')
+            exploded_products.add(target, get_buildroot()).append(relative_unpack_dir)
+        #import pdb; pdb.set_trace()
 
-          # The class files from the jars are packed into the classes.dex file during DxCompile.
-          relative_unpack_dir = os.path.relpath(self.unpack_jar_location(archive), get_buildroot())
-          exploded_products = self.context.products.get('unpacked_libraries')
-          exploded_products.add(target, get_buildroot()).append(relative_unpack_dir)
-    #import pdb; pdb.set_trace()
   def unpack_jar_location(self, archive):
     return os.path.join(self.workdir, 'explode-jars', archive)
 

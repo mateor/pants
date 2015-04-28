@@ -129,8 +129,8 @@ class AaptGen(AaptTask):
           used_sdk = gen.manifest.target_sdk if gen.manifest.target_sdk else sdk
 
           # Get resource_dir of all AndroidResources targets in the transitive dependencies.
-          resource_deps = self.context.build_graph.transitive_subgraph_of_addresses([gen.address])
-          resource_dirs = [t.resource_dir for t in resource_deps if isinstance(t, AndroidResources)]
+          trans_deps = self.context.build_graph.transitive_subgraph_of_addresses([gen.address])
+          resource_dirs = [t.resource_dir for t in trans_deps if isinstance(t, AndroidResources)]
 
           if resource_dirs:
             args = self._render_args(gen, used_sdk, resource_dirs, outdir)
