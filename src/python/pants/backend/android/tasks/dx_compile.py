@@ -21,6 +21,9 @@ class DxCompile(AndroidTask, NailgunTask):
   Compile java classes into dex files, Dalvik executables.
   """
 
+  class DuplicateClassFileException(TaskError):
+    """Raise is raised when multiple copies of the same class are being added to dex file."""
+
   # Name of output file. "Output name must end with one of: .dex .jar .zip .apk or be a directory."
   DEX_NAME = 'classes.dex'
 
@@ -95,7 +98,7 @@ class DxCompile(AndroidTask, NailgunTask):
           classes_by_target = self.context.products.get_data('classes_by_target')
           unpacked_archives = self.context.products.get('unpacked_libraries')
           classes = set()
-          class_files = set()
+          class_files = {}
 
           def gather_classes(tgt):
             def add_classes(target_products):
@@ -121,10 +124,26 @@ class DxCompile(AndroidTask, NailgunTask):
                   for root, dirpath, file_names in os.walk(unpacked_dir):
                     for filename in file_names:
                       relative_dir = os.path.relpath(root, unpacked_dir)
+                      # Check against the library's include/exclude patterns and include if True.
                       if unpack_filter(os.path.join(relative_dir, filename)):
-                        if filename not in class_files:
-                          class_files.update([filename])
-                          classes.update([os.path.join(root, filename)])
+                        class_location = os.path.join(root, filename)
+                        class_file = os.path.join(relative_dir, filename)
+
+                        # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
+                        # already been added. If so, check the full path. If the full path is
+                        # identical then we can ignore the duplicate because the version number is
+                        # the same. But if the path is different, that means that there is probably
+                        # conflicting version numbers for the library deps of the binary. In that
+                        # case we don't know for sure which is preferred so we need to raise a loud
+                        # exception.
+
+                        if class_file in class_files:
+                          if class_files[class_file] != class_location:
+                            raise self.DuplicateClassFileException("Duplicate class files added: "
+                                                                   "{}".format(target))
+                        # Keep a dictionary of class_files and file locations, to check for dupes.
+                        class_files[class_file] = class_location
+                        classes.update([class_location])
 
           target.walk(gather_classes)
          # import pdb; pdb.set_trace()
