@@ -19,7 +19,7 @@ from pants.fs.archive import ZIP
 
 class UnpackLibraries(Task):
 
-  class MissingUnpackedDirsError(Exception):
+  class MissingElementException(Exception):
     """Raised if a directory that is expected to be unpacked doesn't exist."""
 
   @classmethod
@@ -45,10 +45,11 @@ class UnpackLibraries(Task):
   def create_classes_jar_target(self, target, archive, jar_file):
     """Create a JarLibrary target containing the jar_file as a JarDependency.
 
-    :param Target target: AndroidTarget that the new JarDependency derives from.
+    :param Target target: The new target will be derived from this AndroidTarget .
     :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
-    :param string jar_file: Full path of the classes.jar contained within aar files.
-    :returns: JarLibrary target
+    :param string jar_file: Full path of the classes.jar contained within unpacked aar files.
+    :return: A new Target.
+    :rtype: JarLibrary
     """
     # TODO(mateor) add another JarDependency for every jar under 'libs'.
 
@@ -68,7 +69,8 @@ class UnpackLibraries(Task):
     :param Target target: AndroidTarget that the new AndroidResources target derives from.
     :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
     :param string resource_dir: Full path of the res directory contained within aar files.
-    :returns: AndroidResources target
+    :return: A new Target.
+    :rtype: AndroidResources
     """
 
     address = SyntheticAddress(self.workdir, '{}-resources'.format(archive))
@@ -87,7 +89,8 @@ class UnpackLibraries(Task):
     :param Target target: AndroidTarget that the new AndroidLibrary target derives from.
     :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
     :param string unpacked_aar_location: Full path of dir holding contents of an unpacked aar file.
-    :returns: AndroidLibrary target
+    :return: A new Target.
+    :rtype: AndroidLibrary
     """
     # The following three elements of an aar file have names mandated by the aar spec:
     #   http://tools.android.com/tech-docs/new-build-system/aar-format
@@ -97,16 +100,19 @@ class UnpackLibraries(Task):
     jar_file = os.path.join(unpacked_aar_location, 'classes.jar')
     resource_dir = os.path.join(unpacked_aar_location, 'res')
 
-    # Sanity-check to make sure all aaars we expect to be unpacked are actually unpacked.
+    # Sanity-check to make sure all .aar files we expect to be unpacked are actually unpacked.
     if not os.path.isfile(manifest):
-      raise self.MissingUnpackedDirsError("An AndroidManifest.xml is expected in every unpacked "
+      raise self.MissingElementException("An AndroidManifest.xml is expected in every unpacked "
                                           ".aar file but none was found in the {} archive "
-                                          "for the {} target".format(manifest, target))
+                                          "for the {} target".format(archive, target))
+
+    # Depending on the contents of the unpacked aar file, create the dependencies.
     deps = []
     if os.path.isdir(resource_dir):
       deps.append(self.create_resource_target(target, archive, manifest, resource_dir))
     if os.path.isfile(jar_file):
       deps.append(self.create_classes_jar_target(target, archive, jar_file))
+
     address = SyntheticAddress(self.workdir, '{}-android_library'.format(archive))
     new_target = self.context.add_new_target(address, AndroidLibrary,
                                              manifest=manifest,
@@ -142,15 +148,16 @@ class UnpackLibraries(Task):
                 if archive not in self._unpacked_archives:
                   ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
                   self._unpacked_archives.update([archive])
-                  
+
                   # Create an .aar/classes.jar signature for self._unpacked_archives.
                   archive = os.path.join(archive, 'classes.jar')
 
               # Contrary to the .aar spec, some .aars don't have a classes.jar, ergo the file check.
-              if os.path.isfile(jar_file) and archive not in self._unpacked_archives:
+              if archive not in self._unpacked_archives and os.path.isfile(jar_file):
                 ZIP.extract(jar_file, jar_outdir)
                 self._unpacked_archives.update([archive])
 
+    # Create the new targets from the contents of unpacked aar files.
     for target in targets:
       imports = ivy_imports.get(target)
       for archives in imports.values():
@@ -169,7 +176,9 @@ class UnpackLibraries(Task):
           exploded_products.add(target, get_buildroot()).append(relative_unpack_dir)
 
   def unpack_jar_location(self, archive):
+    """Location for unpacked jar files, whether fetched from maven or found inside an aar file."""
     return os.path.join(self.workdir, 'explode-jars', archive)
 
   def unpack_aar_location(self, archive):
+    """Output location for unpacking .aar archives."""
     return os.path.join(self.workdir, archive)

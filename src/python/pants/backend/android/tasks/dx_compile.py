@@ -112,41 +112,37 @@ class DxCompile(AndroidTask, NailgunTask):
 
             unpacked = unpacked_archives.get(tgt)
             if unpacked:
+              # If there are unpacked_archives then we know this target is an AndroidLibrary.
               for archives in unpacked.values():
                 for unpacked_dir in archives:
 
-                # This filter of the dx target is untested and needs verification in the worst way.
-                  # TODO (move calculate_filter to fs)
-
-                  # Only gather individual files if the BUILD file specifies includes/excludes.
-
+                  # TODO (move calculate_filter from UnpackJars to fs.archive)
                   unpack_filter = UnpackJars.get_unpack_filter(tgt)
                   for root, dirpath, file_names in os.walk(unpacked_dir):
                     for filename in file_names:
                       relative_dir = os.path.relpath(root, unpacked_dir)
+
                       # Check against the library's include/exclude patterns and include if True.
                       if unpack_filter(os.path.join(relative_dir, filename)):
                         class_location = os.path.join(root, filename)
                         class_file = os.path.join(relative_dir, filename)
 
                         # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
-                        # already been added. If so, check the full path. If the full path is
-                        # identical then we can ignore the duplicate because the version number is
-                        # the same. But if the path is different, that means that there is probably
-                        # conflicting version numbers for the library deps of the binary. In that
-                        # case we don't know for sure which is preferred so we need to raise a loud
-                        # exception.
+                        # already been added. If so, compare the full paths. If the full path is
+                        # identical then we can ignore it as a duplicate. If the path is different,
+                        # that means that there is probably conflicting version numbers among the
+                        # library dependencies and we want to raise an exception.
 
                         if class_file in class_files:
                           if class_files[class_file] != class_location:
                             raise self.DuplicateClassFileException("Duplicate class files added: "
                                                                    "{}".format(target))
-                        # Keep a dictionary of class_files and file locations, to check for dupes.
+                        # Keep a dict of class_files and file paths to check for dupes/conflicts.
                         class_files[class_file] = class_location
                         classes.update([class_location])
 
           target.walk(gather_classes)
-         # import pdb; pdb.set_trace()
+
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
 
