@@ -40,6 +40,7 @@ class UnpackLibraries(Task):
   def __init__(self, *args, **kwargs):
     super(UnpackLibraries, self).__init__(*args, **kwargs)
     self._created_targets = {}
+    self._unpacked_archives = set()
 
   def create_classes_jar_target(self, target, archive, jar_file):
     """Create a JarLibrary target containing the jar_file as a JarDependency.
@@ -120,7 +121,6 @@ class UnpackLibraries(Task):
     targets = self.context.targets(self.is_library)
     ivy_imports = self.context.products.get('ivy_imports')
 
-
     with self.invalidated(targets) as invalidation_check:
       invalid_targets = []
       for vt in invalidation_check.invalid_vts:
@@ -130,8 +130,7 @@ class UnpackLibraries(Task):
         if imports:
           for archive_path in imports:
             for archive in imports[archive_path]:
-              outdir = self.unpack_jar_location(archive)
-
+              jar_outdir = self.unpack_jar_location(archive)
               if archive.endswith('.jar'):
                 jar_file = os.path.join(archive_path, archive)
               elif archive.endswith('.aar'):
@@ -140,12 +139,17 @@ class UnpackLibraries(Task):
                 jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
 
                 # Unpack .aar files.
-                ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+                if archive not in self._unpacked_archives:
+                  ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+                  self._unpacked_archives.update([archive])
+                  
+                  # Create an .aar/classes.jar signature for self._unpacked_archives.
+                  archive = os.path.join(archive, 'classes.jar')
 
-              # Unpack jar for inclusion in apk file.
-              if os.path.isfile(jar_file):
-                ZIP.extract(jar_file, outdir)
-                #INVALIDATION
+              # Contrary to the .aar spec, some .aars don't have a classes.jar, ergo the file check.
+              if os.path.isfile(jar_file) and archive not in self._unpacked_archives:
+                ZIP.extract(jar_file, jar_outdir)
+                self._unpacked_archives.update([archive])
 
     for target in targets:
       imports = ivy_imports.get(target)
@@ -163,7 +167,7 @@ class UnpackLibraries(Task):
           relative_unpack_dir = os.path.relpath(self.unpack_jar_location(archive), get_buildroot())
           exploded_products = self.context.products.get('unpacked_libraries')
           exploded_products.add(target, get_buildroot()).append(relative_unpack_dir)
-    #import pdb; pdb.set_trace()
+
   def unpack_jar_location(self, archive):
     return os.path.join(self.workdir, 'explode-jars', archive)
 
