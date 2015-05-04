@@ -79,7 +79,7 @@ class UnpackLibraries(Task):
                                              derived_from=target)
     return new_target
 
-  def create_android_library_target(self, target, archive):
+  def create_android_library_target(self, target, archive, unpacked_aar_location):
 
     """Create an AndroidResources target.
 
@@ -95,7 +95,6 @@ class UnpackLibraries(Task):
     # The following three elements of an aar file have names mandated by the aar spec:
     #   http://tools.android.com/tech-docs/new-build-system/aar-format
     # They are said to be mandatory although in practice that assumption only holds for manifest.
-    unpacked_aar_location = self.unpack_aar_location(archive)
     manifest = os.path.join(unpacked_aar_location, 'AndroidManifest.xml')
     jar_file = os.path.join(unpacked_aar_location, 'classes.jar')
     resource_dir = os.path.join(unpacked_aar_location, 'res')
@@ -166,7 +165,8 @@ class UnpackLibraries(Task):
 
               # The contents of the unpacked aar file must be made into an AndroidLibrary target.
               if archive not in self._created_targets:
-                new_target = self.create_android_library_target(target, archive)
+                unpacked_location = self.unpack_aar_location(archive)
+                new_target = self.create_android_library_target(target, archive, unpacked_location)
                 self._created_targets[archive] = new_target
               target.inject_dependency(self._created_targets[archive].address)
 

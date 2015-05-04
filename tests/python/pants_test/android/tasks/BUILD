@@ -20,6 +20,7 @@ target(
     ':aapt_gen_integration',
     ':dx_compile_integration',
     ':sign_apk_integration',
+    ':unpack_libraries_integration',
     ':zipalign_integration',
   ],
 )
@@ -114,24 +115,35 @@ python_tests(
 )
 
 python_tests(
-  name = 'zipalign',
-  sources = [
-    'test_zipalign.py',
-  ],
-  dependencies = [
-    'src/python/pants/backend/android/tasks:zipalign',
-    'src/python/pants/util:contextutil',
-    'tests/python/pants_test/android:android_base',
-  ],
-)
-
-python_tests(
   name = 'unpack_libraries',
   sources = [
     'test_unpack_libraries.py',
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:unpack_libraries',
+    'src/python/pants/util:contextutil',
+    'src/python/pants/util:dirutil',
+    'tests/python/pants_test/android:android_base',
+  ],
+)
+
+python_tests(
+  name = 'unpack_libraries_integration',
+  sources = [
+    'test_unpack_libraries_integration.py',
+  ],
+  dependencies = [
+    'tests/python/pants_test/android:android_integration_test',
+  ],
+)
+
+python_tests(
+  name = 'zipalign',
+  sources = [
+    'test_zipalign.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/tasks:zipalign',
     'src/python/pants/util:contextutil',
     'tests/python/pants_test/android:android_base',
   ],
