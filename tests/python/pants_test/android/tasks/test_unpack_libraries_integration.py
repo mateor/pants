@@ -23,7 +23,6 @@ class UnpackLibrariesIntegrationTest(AndroidIntegrationTest):
   @pytest.mark.skipif('not UnpackLibrariesIntegrationTest.tools',
                       reason='UnpackLibraries integration test requires that ANDROID_HOME is set.')
   def test_library_unpack(self):
-    # Doing the work under a tempdir gives us a handle for the workdir and guarantees a clean build.
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
       spec = 'examples/src/android/hello_with_library/main:hello_with_library'
       pants_run = self.run_pants_with_workdir(['unpack-jars', spec], workdir)

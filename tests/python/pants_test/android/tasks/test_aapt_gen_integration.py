@@ -46,7 +46,7 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
   def test_android_library_dep(self):
     # Doing the work under a tempdir gives us a handle for the workdir and guarantees a clean build.
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
-      spec = 'examples/src/android/hello_with_library/main:hello_with_library'
+      spec = 'examples/src/android/example_library/main:hello_with_library'
       pants_run = self.run_pants_with_workdir(['gen', '-ldebug', spec], workdir)
       self.assert_success(pants_run)
 
