@@ -89,6 +89,19 @@ python_library(
 )
 
 python_library(
+  name = 'unpack_libraries',
+  sources = ['unpack_libraries.py'],
+  dependencies = [
+    'src/python/pants/backend/android/targets:android',
+    'src/python/pants/backend/core/tasks:common',
+    'src/python/pants/backend/jvm/targets:java',
+    'src/python/pants/base:address',
+    'src/python/pants/base:build_environment',
+    'src/python/pants/fs:fs',
+  ],
+)
+
+python_library(
   name = 'zipalign',
   sources = ['zipalign.py'],
   dependencies = [

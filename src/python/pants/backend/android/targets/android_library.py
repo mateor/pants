@@ -25,8 +25,6 @@ class AndroidLibrary(ImportJarsMixin, AndroidTarget):
     :param list include_patterns: fileset patterns to include from the archive
     :param list exclude_patterns: fileset patterns to exclude from the archive
     """
-    # TODO(mateor) The next step is to widen the scope of libraries. Currently it accepts
-    # AndroidDependency(aars or jars) and JarLibrary. Expand to include JavaLibrary.
 
     # TODO(mateor) Perhaps add a BUILD file attribute to force archive type: one of (jar, aar).
     payload = payload or Payload()

@@ -18,7 +18,7 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
   """Integration test for AaptGen
 
   The Android SDK is modular, finding an SDK on the PATH is no guarantee that there is
-  a dx.jar anywhere on disk. The TOOLS are the ones required by the target in 'test_aapt_gen'
+  a particular aapt binary on disk. The TOOLS are the ones required by the target in 'test_aapt_gen'
   method. If you add a target, you may need to expand the TOOLS list and perhaps define new
   BUILD_TOOLS or TARGET_SDK class variables.
   """
@@ -78,8 +78,8 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
                                                    'when calling aapt on hello_with_library apk. '
                                                    '(was: {})\n'.format(resource_dirs))
         else:
-          # If the apk target name didn't match, we know it called aapt on the library dependency.
+          # If it isn't the apk, then we can assume it is the library dependency.
           resource_dirs = re.findall(r'-S.*?', line)
-          self.assertEquals(len(resource_dirs), 1, 'Expected one resource dirs to be included when '
+          self.assertEquals(len(resource_dirs), 1, 'Expected one resource dir to be included when '
                                                    'calling aapt on example_library dep. '
                                                    '(was: {})\n'.format(resource_dirs))

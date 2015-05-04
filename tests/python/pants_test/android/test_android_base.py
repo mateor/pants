@@ -41,15 +41,14 @@ class TestAndroidBase(TaskTestBase):
   def android_target(self, name=None, package_name=None, dependencies=None,
                      target_type=AndroidTarget, **kwargs):
     """Represent an Android target."""
-    with temporary_file() as fp:
-      fp.write(self.android_manifest(package_name=package_name))
-      fp.close()
-      path = fp.name
+    with temporary_file() as manifest:
+      manifest.write(self.android_manifest(package_name=package_name))
+      manifest.close()
       name = name or 'target'
       deps = dependencies or []
       target = self.make_target(spec=':{}'.format(name),
                                 target_type=target_type,
-                                manifest=path,
+                                manifest=manifest.name,
                                 dependencies=deps,
                                 **kwargs)
       yield target

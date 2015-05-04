@@ -8,6 +8,7 @@ target(
     ':aapt_gen',
     ':aapt_task',
     ':sign_apk',
+    ':unpack_libraries',
     ':zipalign',
   ],
 )
@@ -119,6 +120,18 @@ python_tests(
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:zipalign',
+    'src/python/pants/util:contextutil',
+    'tests/python/pants_test/android:android_base',
+  ],
+)
+
+python_tests(
+  name = 'unpack_libraries',
+  sources = [
+    'test_unpack_libraries.py',
+  ],
+  dependencies = [
+    'src/python/pants/backend/android/tasks:unpack_libraries',
     'src/python/pants/util:contextutil',
     'tests/python/pants_test/android:android_base',
   ],
