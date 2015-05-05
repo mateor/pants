@@ -24,6 +24,6 @@ class UnpackLibrariesIntegrationTest(AndroidIntegrationTest):
                       reason='UnpackLibraries integration test requires that ANDROID_HOME is set.')
   def test_library_unpack(self):
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
-      spec = 'examples/src/android/hello_with_library/main:hello_with_library'
+      spec = 'examples/src/android/hello_with_library:'
       pants_run = self.run_pants_with_workdir(['unpack-jars', spec], workdir)
       self.assert_success(pants_run)

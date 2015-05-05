@@ -46,13 +46,13 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
   def test_android_library_dep(self):
     # Doing the work under a tempdir gives us a handle for the workdir and guarantees a clean build.
     with temporary_dir(root_dir=self.workdir_root()) as workdir:
-      spec = 'examples/src/android/example_library/main:hello_with_library'
+      spec = 'examples/src/android/hello_with_library:'
       pants_run = self.run_pants_with_workdir(['gen', '-ldebug', spec], workdir)
       self.assert_success(pants_run)
 
       # Make sure that the R.java was produced for the binary and its library dependency.
-      lib_file = 'gen/aapt/19/org/pantsbuild/example/pants_library/R.java'
-      apk_file = 'gen/aapt/19/org/pantsbuild/example_library/hello_with_library/R.java'
+      lib_file = 'gen/aapt/21/org/pantsbuild/examples/example_library/R.java'
+      apk_file = 'gen/aapt/21/org/pantsbuild/examples/hello_with_library/R.java'
       self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
       self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
 
@@ -63,23 +63,33 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
             yield line
 
       aapt_blocks = list(find_aapt_blocks(pants_run.stderr_data.split('\n')))
-      self.assertEquals(len(aapt_blocks), 2, 'Expected two invocations of the aapt tool!'
+
+      # Pulling in google-play-services-v21 from the SDK brings in 20 .aar libraries of which only 6
+      # have resources. Add 2 for android_binary and android_library targets = 8 total invocations.
+      self.assertEquals(len(aapt_blocks), 8, 'Expected eight invocations of the aapt tool!'
                                              '(was :{})\n{}'.format(len(aapt_blocks),
                                                                     pants_run.stderr_data))
 
       # Check to make sure the resources are being passed in correct order (apk->libs).
       for line in aapt_blocks:
         apk = re.search(r'hello_with_library.*?\b', line)
+        library = re.search(r'examples/src/android/example_library/AndroidManifest.*?\b', line)
+        resource_dirs = re.findall(r'-S ([^\s]+)', line)
+
         if apk:
-          resource_dirs = re.findall(r'-S ([^\s]+)', line)
+          # The order of resource directories should mirror the dependencies. The dependency order
+          # is hello_with_library -> example_library -> gms-library.
           self.assertEqual(resource_dirs[0], 'examples/src/android/hello_with_library/main/res')
           self.assertEqual(resource_dirs[1], 'examples/src/android/example_library/res')
-          self.assertEquals(len(resource_dirs), 2, 'Expected two resource dirs to be included '
+          self.assertEquals(len(resource_dirs), 8, 'Expected eight resource dirs to be included '
                                                    'when calling aapt on hello_with_library apk. '
-                                                   '(was: {})\n'.format(resource_dirs))
+                                                   '(was: {})\n'.format(len(resource_dirs)))
+        elif library:
+          # The seven invocations are the example_library and the 6 gms dependencies.
+          self.assertEquals(len(resource_dirs), 7, 'Expected seven resource dir to be included '
+                                                   'when calling aapt on example_library dep. '
+                                                   '(was: {})\n'.format(len(resource_dirs)))
         else:
-          # If it isn't the apk, then we can assume it is the library dependency.
-          resource_dirs = re.findall(r'-S.*?', line)
           self.assertEquals(len(resource_dirs), 1, 'Expected one resource dir to be included when '
-                                                   'calling aapt on example_library dep. '
-                                                   '(was: {})\n'.format(resource_dirs))
+                                                   'calling aapt on each gms-library dep. '
+                                                   '(was: {})\n'.format(len(resource_dirs)))

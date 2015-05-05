@@ -10,8 +10,8 @@ android_library(
     'android/**/*.class',
   ],
   dependencies=[
+    ':gms-library',
     ':resources',
-    '3rdparty/android:android-support-v4',
   ],
 )
 
@@ -19,4 +19,14 @@ android_resources(
   name='resources',
   manifest='AndroidManifest.xml',
   resource_dir='res'
+)
+
+android_library(
+  name='gms-library',
+  libraries=['3rdparty/android:google-play-services'],
+  include_patterns=[
+    '**/*.class',
+  ],
+  dependencies = [
+  ]
 )
