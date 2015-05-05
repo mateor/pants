@@ -4,8 +4,8 @@
 
 android_binary(
   name='hello_with_library',
-  sources=rglobs('src/*.java'),
-  manifest='AndroidManifest.xml',
+  sources=rglobs('main/src/*.java'),
+  manifest='main/AndroidManifest.xml',
   dependencies = [
     'examples/src/android/example_library',
     ':gms_library',
@@ -16,7 +16,7 @@ android_binary(
 android_resources(
   name='resources',
   manifest='AndroidManifest.xml',
-  resource_dir='res'
+  resource_dir='main/res'
 )
 
 android_library(
