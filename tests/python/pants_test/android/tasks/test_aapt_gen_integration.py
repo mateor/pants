@@ -53,8 +53,8 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
       # Make sure that the R.java was produced for the binary and its library dependency.
       lib_file = 'gen/aapt/21/org/pantsbuild/examples/example_library/R.java'
       apk_file = 'gen/aapt/21/org/pantsbuild/examples/hello_with_library/R.java'
-      self.assertEqual(os.path.isfile(os.path.join(workdir, lib_file)), True)
-      self.assertEqual(os.path.isfile(os.path.join(workdir, apk_file)), True)
+      self.assertTrue(os.path.isfile(os.path.join(workdir, lib_file)))
+      self.assertTrue(os.path.isfile(os.path.join(workdir, apk_file)))
 
       # Scrape debug statements.
       def find_aapt_blocks(lines):
@@ -81,15 +81,15 @@ class AaptGenIntegrationTest(AndroidIntegrationTest):
           # is hello_with_library -> example_library -> gms-library.
           self.assertEqual(resource_dirs[0], 'examples/src/android/hello_with_library/main/res')
           self.assertEqual(resource_dirs[1], 'examples/src/android/example_library/res')
-          self.assertEquals(len(resource_dirs), 8, 'Expected eight resource dirs to be included '
+          self.assertEqual(len(resource_dirs), 8, 'Expected eight resource dirs to be included '
                                                    'when calling aapt on hello_with_library apk. '
                                                    '(was: {})\n'.format(len(resource_dirs)))
         elif library:
           # The seven invocations are the example_library and the 6 gms dependencies.
-          self.assertEquals(len(resource_dirs), 7, 'Expected seven resource dir to be included '
+          self.assertEqual(len(resource_dirs), 7, 'Expected seven resource dir to be included '
                                                    'when calling aapt on example_library dep. '
                                                    '(was: {})\n'.format(len(resource_dirs)))
         else:
-          self.assertEquals(len(resource_dirs), 1, 'Expected one resource dir to be included when '
+          self.assertEqual(len(resource_dirs), 1, 'Expected one resource dir to be included when '
                                                    'calling aapt on each gms-library dep. '
                                                    '(was: {})\n'.format(len(resource_dirs)))

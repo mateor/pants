@@ -121,6 +121,8 @@ python_tests(
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:unpack_libraries',
+    'src/python/pants/backend/core/targets:common',
+    'src/python/pants/base:build_file_aliases',
     'src/python/pants/util:contextutil',
     'src/python/pants/util:dirutil',
     'tests/python/pants_test/android:android_base',

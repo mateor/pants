@@ -8,10 +8,14 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 import os
 from contextlib import contextmanager
 
+from pants.backend.android.targets.android_dependency import AndroidDependency
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.android.tasks.unpack_libraries import UnpackLibraries
+from pants.backend.core.targets.dependencies import Dependencies
+from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
+from pants.base.build_file_aliases import BuildFileAliases
 from pants.util.contextutil import open_zip, temporary_dir, temporary_file
 from pants.util.dirutil import safe_mkdir, safe_open, touch
 from pants_test.android.test_android_base import TestAndroidBase
@@ -24,8 +28,21 @@ class UnpackLibrariesTest(TestAndroidBase):
   def task_type(cls):
     return UnpackLibraries
 
+  @property
+  def alias_groups(self):
+    return BuildFileAliases.create(
+      targets={
+        'android_dependency': AndroidDependency,
+        'jar_library': JarLibrary,
+        'target': Dependencies
+      },
+      objects={
+        'jar': JarDependency,
+      },
+    )
+
   @contextmanager
-  def unpacked_library(self, manifest=True, classes_jar=True, resources=True):
+  def unpacked_aar_library(self, manifest=True, classes_jar=True, resources=True):
     with temporary_dir() as unpacked:
       if manifest:
         manifest_file = os.path.join(unpacked, 'AndroidManifest.xml')
@@ -34,20 +51,22 @@ class UnpackLibrariesTest(TestAndroidBase):
           fp.write(self.android_manifest())
           fp.close()
       if classes_jar:
-        touch(os.path.join(unpacked, 'classes.jar'))
+        # Create the classes.jar file.
+        with self.sample_jarfile(location=unpacked):
+          pass
       if resources:
         safe_mkdir(os.path.join(unpacked, 'res'))
       yield unpacked
 
   @contextmanager
-  def sample_jarfile(self):
+  def sample_jarfile(self, location=None, file_name=None):
     """Create a jar file."""
-    with temporary_dir() as temp_dir:
-      jar_name = os.path.join(temp_dir, 'foo.jar')
-      with open_zip(jar_name, 'w') as library:
-        library.writestr('a/b/c/Foo.class', 'Foo text')
-        library.writestr('a/b/c/Bar.class', 'message Foo {}')
-      yield jar_name
+    name = file_name or 'classes.jar'
+    jar_name = os.path.join(location, name)
+    with open_zip(jar_name, 'w') as library:
+      library.writestr('a/b/c/Foo.class', 'Foo')
+      library.writestr('a/b/c/Bar.class', 'Bar')
+    yield jar_name
 
 
   def test_unpack_smoke(self):
@@ -98,7 +117,7 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   def test_create_android_library_target(self):
     with self.android_library(include_patterns=['**/*.class']) as android_library:
-      with self.unpacked_library() as contents:
+      with self.unpacked_aar_library() as contents:
         task = self.create_task(self.context())
         archive = 'org.pantsbuild.example-1.0'
         created_library = task.create_android_library_target(android_library, archive, contents)
@@ -114,7 +133,7 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   def test_no_classes_jar(self):
     with self.android_library(include_patterns=['**/*.class']) as android_library:
-      with self.unpacked_library(classes_jar=False) as contents:
+      with self.unpacked_aar_library(classes_jar=False) as contents:
         task = self.create_task(self.context())
         archive = 'org.pantsbuild.example-1.0'
         created_library = task.create_android_library_target(android_library, archive, contents)
@@ -124,7 +143,7 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   def test_no_resources(self):
     with self.android_library() as android_library:
-      with self.unpacked_library(classes_jar=False) as contents:
+      with self.unpacked_aar_library(classes_jar=False) as contents:
         task = self.create_task(self.context())
         archive = 'org.pantsbuild.example-1.0'
         created_library = task.create_android_library_target(android_library, archive, contents)
@@ -135,7 +154,7 @@ class UnpackLibrariesTest(TestAndroidBase):
   def test_no_manifest(self):
     with self.assertRaises(UnpackLibraries.MissingElementException):
       with self.android_library(include_patterns=['**/*.class']) as android_library:
-        with self.unpacked_library(manifest=False) as contents:
+        with self.unpacked_aar_library(manifest=False) as contents:
           task = self.create_task(self.context())
           archive = 'org.pantsbuild.example-1.0'
           task.create_android_library_target(android_library, archive, contents)
