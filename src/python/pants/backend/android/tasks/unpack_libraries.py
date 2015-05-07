@@ -22,6 +22,9 @@ class UnpackLibraries(Task):
   class MissingElementException(Exception):
     """Raised if a directory that is expected to be unpacked doesn't exist."""
 
+  class UnexpectedArchiveType(Exception):
+    """Raised if an archive has an extension that is not explicitly handled by this class."""
+
   @classmethod
   def prepare(cls, options, round_manager):
     super(UnpackLibraries, cls).prepare(options, round_manager)
@@ -149,7 +152,9 @@ class UnpackLibraries(Task):
 
                   # Create an .aar/classes.jar signature for self._unpacked_archives.
                   archive = os.path.join(archive, 'classes.jar')
-
+              else:
+                raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar archives'
+                                                 '(was: {}'.format(archive))
               # Unpack the jar files.
               if archive not in self._unpacked_archives and os.path.isfile(jar_file):
                 ZIP.extract(jar_file, jar_outdir)

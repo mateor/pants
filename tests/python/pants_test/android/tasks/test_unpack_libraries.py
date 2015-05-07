@@ -91,6 +91,11 @@ class UnpackLibrariesTest(TestAndroidBase):
       )
     '''.format(name=name, version=version, filepath=library_file)))
 
+  def _add_dummy_product(self, foo_target, android_dep, unpack_task):
+    ivy_imports_product = unpack_task.context.products.get('ivy_imports')
+    ivy_imports_product.add(foo_target, os.path.dirname(android_dep),
+                            [os.path.basename(android_dep)])
+
   def test_unpack_smoke(self):
     task = self.create_task(self.context())
     task.execute()
@@ -189,6 +194,7 @@ class UnpackLibrariesTest(TestAndroidBase):
   # Test unpacking process.
   def test_aar_file(self):
     with temporary_dir() as temp:
+      aar_name = 'org.pantsbuild.android.test'  #UNUSED
       with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar_archive:
         assert(os.path.isfile(aar_archive))  # DEBUG
         print("ARCHIVE: ", aar_archive)
@@ -200,5 +206,9 @@ class UnpackLibrariesTest(TestAndroidBase):
           ],
          )
         '''))
-    self._make_android_dependency('test-jar', aar_archive, '0.0.1')
-    test_target = self.target('unpack:test')
+        self._make_android_dependency('test-jar', aar_archive, '0.0.1')
+        test_target = self.target('unpack:test')
+        task = self.create_task(self.context(target_roots=[test_target]))
+        self._add_dummy_product(test_target, aar_archive, task)
+        unpacked_targets = task.execute()
+        import pdb; pdb.set_trace()
