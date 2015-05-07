@@ -16,6 +16,7 @@ from pants.backend.core.targets.dependencies import Dependencies
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.base.build_file_aliases import BuildFileAliases
+from pants.fs.archive import ZIP
 from pants.util.contextutil import open_zip, temporary_dir, temporary_file
 from pants.util.dirutil import safe_mkdir, safe_open, touch
 from pants_test.android.test_android_base import TestAndroidBase
@@ -42,21 +43,27 @@ class UnpackLibrariesTest(TestAndroidBase):
     )
 
   @contextmanager
-  def unpacked_aar_library(self, manifest=True, classes_jar=True, resources=True):
-    with temporary_dir() as unpacked:
-      if manifest:
-        manifest_file = os.path.join(unpacked, 'AndroidManifest.xml')
-        touch(manifest_file)
-        with safe_open(manifest_file, 'w') as fp:
-          fp.write(self.android_manifest())
-          fp.close()
-      if classes_jar:
-        # Create the classes.jar file.
-        with self.sample_jarfile(location=unpacked):
-          pass
-      if resources:
-        safe_mkdir(os.path.join(unpacked, 'res'))
-      yield unpacked
+  def unpacked_aar_library(self, location, manifest=True, classes_jar=True, resources=True):
+    if manifest:
+      manifest_file = os.path.join(location, 'AndroidManifest.xml')
+      touch(manifest_file)
+      with safe_open(manifest_file, 'w') as fp:
+        fp.write(self.android_manifest())
+        fp.close()
+    if classes_jar:
+      touch(os.path.join(location, 'classes.jar'))
+    if resources:
+      safe_mkdir(os.path.join(location, 'res'))
+    yield location
+
+  @contextmanager
+  def sample_aarfile(self, name, location):
+    with temporary_dir() as temp:
+      with self.unpacked_aar_library(temp) as aar_contents:
+        archive = ZIP.create(aar_contents, location, name)
+        aar = os.path.join(location, '{}.aar'.format(name))
+        os.rename(archive, aar)
+    yield aar
 
   @contextmanager
   def sample_jarfile(self, location=None, file_name=None):
@@ -67,7 +74,6 @@ class UnpackLibrariesTest(TestAndroidBase):
       library.writestr('a/b/c/Foo.class', 'Foo')
       library.writestr('a/b/c/Bar.class', 'Bar')
     yield jar_name
-
 
   def test_unpack_smoke(self):
     task = self.create_task(self.context())
@@ -117,44 +123,57 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   def test_create_android_library_target(self):
     with self.android_library(include_patterns=['**/*.class']) as android_library:
-      with self.unpacked_aar_library() as contents:
-        task = self.create_task(self.context())
-        archive = 'org.pantsbuild.example-1.0'
-        created_library = task.create_android_library_target(android_library, archive, contents)
+      with temporary_dir() as temp:
+        with self.unpacked_aar_library(temp) as contents:
+          task = self.create_task(self.context())
+          archive = 'org.pantsbuild.example-1.0'
+          created_library = task.create_android_library_target(android_library, archive, contents)
 
-        self.assertEqual(created_library.derived_from, android_library)
-        self.assertTrue(created_library.is_synthetic)
-        self.assertTrue(isinstance(created_library, AndroidLibrary))
-        self.assertEqual(android_library.include_patterns, created_library.include_patterns)
-        self.assertEqual(android_library.exclude_patterns, created_library.exclude_patterns)
-        self.assertEqual(len(created_library.dependencies), 2)
-        for dep in created_library.dependencies:
-          isinstance(dep, AndroidResources) or isinstance(dep, JarLibrary)
+          self.assertEqual(created_library.derived_from, android_library)
+          self.assertTrue(created_library.is_synthetic)
+          self.assertTrue(isinstance(created_library, AndroidLibrary))
+          self.assertEqual(android_library.include_patterns, created_library.include_patterns)
+          self.assertEqual(android_library.exclude_patterns, created_library.exclude_patterns)
+          self.assertEqual(len(created_library.dependencies), 2)
+          for dep in created_library.dependencies:
+            isinstance(dep, AndroidResources) or isinstance(dep, JarLibrary)
 
   def test_no_classes_jar(self):
     with self.android_library(include_patterns=['**/*.class']) as android_library:
-      with self.unpacked_aar_library(classes_jar=False) as contents:
-        task = self.create_task(self.context())
-        archive = 'org.pantsbuild.example-1.0'
-        created_library = task.create_android_library_target(android_library, archive, contents)
-        self.assertEqual(len(created_library.dependencies), 1)
-        for dep in created_library.dependencies:
-          isinstance(dep, AndroidResources)
+      with temporary_dir() as temp:
+        with self.unpacked_aar_library(temp, classes_jar=False) as contents:
+          task = self.create_task(self.context())
+          archive = 'org.pantsbuild.example-1.0'
+          created_library = task.create_android_library_target(android_library, archive, contents)
+          self.assertEqual(len(created_library.dependencies), 1)
+          for dep in created_library.dependencies:
+            isinstance(dep, AndroidResources)
 
   def test_no_resources(self):
     with self.android_library() as android_library:
-      with self.unpacked_aar_library(classes_jar=False) as contents:
-        task = self.create_task(self.context())
-        archive = 'org.pantsbuild.example-1.0'
-        created_library = task.create_android_library_target(android_library, archive, contents)
-        self.assertEqual(len(created_library.dependencies), 1)
-        for dep in created_library.dependencies:
-          isinstance(dep, JarLibrary)
+      with temporary_dir() as temp:
+        with self.unpacked_aar_library(temp, classes_jar=False) as contents:
+          task = self.create_task(self.context())
+          archive = 'org.pantsbuild.example-1.0'
+          created_library = task.create_android_library_target(android_library, archive, contents)
+          self.assertEqual(len(created_library.dependencies), 1)
+          for dep in created_library.dependencies:
+            isinstance(dep, JarLibrary)
 
   def test_no_manifest(self):
     with self.assertRaises(UnpackLibraries.MissingElementException):
       with self.android_library(include_patterns=['**/*.class']) as android_library:
-        with self.unpacked_aar_library(manifest=False) as contents:
-          task = self.create_task(self.context())
-          archive = 'org.pantsbuild.example-1.0'
-          task.create_android_library_target(android_library, archive, contents)
+        with temporary_dir() as temp:
+          with self.unpacked_aar_library(temp, manifest=False) as contents:
+            task = self.create_task(self.context())
+            archive = 'org.pantsbuild.example-1.0'
+            task.create_android_library_target(android_library, archive, contents)
+
+  # Test unpacking process.
+  def test_aar_file(self):
+    with temporary_dir() as temp:
+      print("TEMP: ", temp)
+      with self.sample_aarfile('com.pants', temp) as aar_archive:
+       # self.assertTrue(os.path.isfile(aar_archive))
+        assert(os.path.isfile(aar_archive))
+        print("ARCHIVE: ", aar_archive)
