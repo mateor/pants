@@ -54,7 +54,9 @@ class UnpackLibrariesTest(TestAndroidBase):
         fp.write(self.android_manifest())
         fp.close()
     if classes_jar:
-      touch(os.path.join(location, 'classes.jar'))
+      with self.sample_jarfile(location) as archive:
+        pass
+#      touch(os.path.join(location, 'classes.jar'))
     if resources:
       safe_mkdir(os.path.join(location, 'res'))
     yield location
@@ -211,4 +213,4 @@ class UnpackLibrariesTest(TestAndroidBase):
         task = self.create_task(self.context(target_roots=[test_target]))
         self._add_dummy_product(test_target, aar_archive, task)
         unpacked_targets = task.execute()
-        import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
