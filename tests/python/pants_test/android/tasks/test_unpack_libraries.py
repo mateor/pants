@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 from contextlib import contextmanager
+from textwrap import dedent
 
 from pants.backend.android.targets.android_dependency import AndroidDependency
 from pants.backend.android.targets.android_library import AndroidLibrary
@@ -34,6 +35,7 @@ class UnpackLibrariesTest(TestAndroidBase):
     return BuildFileAliases.create(
       targets={
         'android_dependency': AndroidDependency,
+        'android_library': AndroidLibrary,
         'jar_library': JarLibrary,
         'target': Dependencies
       },
@@ -44,6 +46,7 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   @contextmanager
   def unpacked_aar_library(self, location, manifest=True, classes_jar=True, resources=True):
+    """Create the contents of an aar file, with optional components."""
     if manifest:
       manifest_file = os.path.join(location, 'AndroidManifest.xml')
       touch(manifest_file)
@@ -58,6 +61,7 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   @contextmanager
   def sample_aarfile(self, name, location):
+    """Create an aar file, using the contents created by self.unpacked_aar_library."""
     with temporary_dir() as temp:
       with self.unpacked_aar_library(temp) as aar_contents:
         archive = ZIP.create(aar_contents, location, name)
@@ -74,6 +78,18 @@ class UnpackLibrariesTest(TestAndroidBase):
       library.writestr('a/b/c/Foo.class', 'Foo')
       library.writestr('a/b/c/Bar.class', 'Bar')
     yield jar_name
+
+  def _make_android_dependency(self, name, library_file, version):
+    build_path = os.path.join(self.build_root, 'unpack', 'libs', 'BUILD')
+    if os.path.exists(build_path):
+      os.remove(build_path)
+    self.add_to_build_file('unpack/libs', dedent('''
+      android_dependency(name='{name}',
+        jars=[
+          jar(org='com.example', name='bar', rev='{version}', url='file:///{filepath}'),
+        ],
+      )
+    '''.format(name=name, version=version, filepath=library_file)))
 
   def test_unpack_smoke(self):
     task = self.create_task(self.context())
@@ -115,6 +131,7 @@ class UnpackLibrariesTest(TestAndroidBase):
           task = self.create_task(self.context())
           archive = 'org.pantsbuild.example-1.0'
           created_target = task.create_resource_target(android_library, archive, manifest.name, res)
+
           self.assertEqual(created_target.derived_from, android_library)
           self.assertTrue(created_target.is_synthetic)
           self.assertTrue(isinstance(created_target, AndroidResources))
@@ -172,8 +189,16 @@ class UnpackLibrariesTest(TestAndroidBase):
   # Test unpacking process.
   def test_aar_file(self):
     with temporary_dir() as temp:
-      print("TEMP: ", temp)
-      with self.sample_aarfile('com.pants', temp) as aar_archive:
-       # self.assertTrue(os.path.isfile(aar_archive))
-        assert(os.path.isfile(aar_archive))
+      with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar_archive:
+        assert(os.path.isfile(aar_archive))  # DEBUG
         print("ARCHIVE: ", aar_archive)
+        self.add_to_build_file('unpack', dedent('''
+        android_library(name='test',
+          libraries=['unpack/libs:test-jar'],
+          include_patterns=[
+            'a/b/c/*.class',
+          ],
+         )
+        '''))
+    self._make_android_dependency('test-jar', aar_archive, '0.0.1')
+    test_target = self.target('unpack:test')
