@@ -19,7 +19,7 @@ from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.base.build_file_aliases import BuildFileAliases
 from pants.fs.archive import ZIP
 from pants.util.contextutil import open_zip, temporary_dir, temporary_file
-from pants.util.dirutil import safe_mkdir, safe_open, touch
+from pants.util.dirutil import safe_mkdir, safe_open, safe_walk, touch
 from pants_test.android.test_android_base import TestAndroidBase
 
 
@@ -196,10 +196,7 @@ class UnpackLibrariesTest(TestAndroidBase):
   # Test unpacking process.
   def test_aar_file(self):
     with temporary_dir() as temp:
-      aar_name = 'org.pantsbuild.android.test'  #UNUSED
       with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar_archive:
-        assert(os.path.isfile(aar_archive))  # DEBUG
-        print("ARCHIVE: ", aar_archive)
         self.add_to_build_file('unpack', dedent('''
         android_library(name='test',
           libraries=['unpack/libs:test-jar'],
@@ -212,5 +209,13 @@ class UnpackLibrariesTest(TestAndroidBase):
         test_target = self.target('unpack:test')
         task = self.create_task(self.context(target_roots=[test_target]))
         self._add_dummy_product(test_target, aar_archive, task)
-        unpacked_targets = task.execute()
-    #import pdb; pdb.set_trace()
+        task.execute()
+        exploded_products = task.context.products.get('unpacked_libraries')
+        test_products = exploded_products.get(test_target)
+        for unpack_dirs in test_products.values():
+          for unpack_dir in unpack_dirs:
+            files = []
+            for _, dirname, filename in safe_walk(unpack_dir):
+              files.append(filename)
+              print("FILES: ", filename)
+        exit()
