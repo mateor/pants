@@ -16,6 +16,8 @@ from pants.backend.android.tasks.unpack_libraries import UnpackLibraries
 from pants.backend.core.targets.dependencies import Dependencies
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
+from pants.backend.jvm.tasks.ivy_imports import IvyImports
+from pants.backend.jvm.tasks.ivy_task_mixin import IvyTaskMixin
 from pants.base.build_file_aliases import BuildFileAliases
 from pants.fs.archive import ZIP
 from pants.util.contextutil import open_zip, temporary_dir, temporary_file
@@ -62,6 +64,7 @@ class UnpackLibrariesTest(TestAndroidBase):
     yield location
 
   @contextmanager
+  # TODO(standardize between sample_jarfile and sample_aarfile.)
   def sample_aarfile(self, name, location):
     """Create an aar file, using the contents created by self.unpacked_aar_library."""
     with temporary_dir() as temp:
@@ -81,6 +84,11 @@ class UnpackLibrariesTest(TestAndroidBase):
       library.writestr('a/b/c/Bar.class', 'Bar')
     yield jar_name
 
+  # There is a bit of fudging here. In practice, the jar name is transformed by ivy into
+  # '[organisation]-[artifact]-[revision](-[classifier]).[ext]'. The unpack_libraries task does not
+  # care about the details of the imported jar name but it does rely on it being unique and
+  # including the version number. When adding a dummy product this test class preemptively mimics
+  # that naming structure in order to mock the filename of mapped jars.
   def _make_android_dependency(self, name, library_file, version):
     build_path = os.path.join(self.build_root, 'unpack', 'libs', 'BUILD')
     if os.path.exists(build_path):
@@ -193,7 +201,25 @@ class UnpackLibrariesTest(TestAndroidBase):
             archive = 'org.pantsbuild.example-1.0'
             task.create_android_library_target(android_library, archive, contents)
 
+  def test_ivy_args(self):
+    # A regression test for ivy_mixin_task. UnpackLibraries depends on the mapped jar filename being
+    # unique and including the version number. If you are making a change to
+    # ivy_task_mixin._get_ivy_args() that maintains those properties, feel free to update this test.
+    ivy_args = [
+      '-retrieve', '{}/[organisation]/[artifact]/[conf]/'
+                   '[organisation]-[artifact]-[revision](-[classifier]).[ext]'.format('foo'),
+      '-symlink',
+      ]
+    self.assertEqual(ivy_args, IvyTaskMixin._get_ivy_args('foo'))
+
   # Test unpacking process.
+  def _approximate_ivy_mapjar_name(self, aar_archive, android_archive):
+    location = os.path.dirname(aar_archive)
+    ivy_mapjar_name = os.path.join(location,
+                                   '{}{}'.format(android_archive, os.path.splitext(aar_archive)[1]))
+    os.rename(aar_archive, ivy_mapjar_name)
+    return ivy_mapjar_name
+
   def test_aar_file(self):
     with temporary_dir() as temp:
       with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar_archive:
@@ -208,14 +234,38 @@ class UnpackLibrariesTest(TestAndroidBase):
         self._make_android_dependency('test-jar', aar_archive, '0.0.1')
         test_target = self.target('unpack:test')
         task = self.create_task(self.context(target_roots=[test_target]))
-        self._add_dummy_product(test_target, aar_archive, task)
+
+        # fudge
+        for android_archive in test_target.imported_jars:
+          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
+          self._add_dummy_product(test_target, target_jar, task)
         task.execute()
-        exploded_products = task.context.products.get('unpacked_libraries')
-        test_products = exploded_products.get(test_target)
-        for unpack_dirs in test_products.values():
-          for unpack_dir in unpack_dirs:
-            files = []
-            for _, dirname, filename in safe_walk(unpack_dir):
-              files.append(filename)
-              print("FILES: ", filename)
-        exit()
+        aar_name = os.path.basename(target_jar)
+        files = []
+        jar_location = task.unpack_jar_location(aar_name)
+        for _, dirname, filename in safe_walk(jar_location):
+          files += filename
+        self.assertIn('Foo.class', files)
+
+      # Add sentinel file to the archive without bumping the version.
+        with open_zip(aar_archive, 'w') as library:
+          library.writestr('a/b/c/Baz.class', 'Baz')
+
+        # Calling the task a second time will not unpack the target so the sentinel is not found.
+        self._add_dummy_product(test_target, target_jar, task)
+        task.execute()
+        files = []
+        for _, dirname, filename in safe_walk(jar_location):
+          files.extend(filename)
+        self.assertNotIn('Baz.class', files)
+
+        # Bump the version and the archive is unpacked and the class is found.
+        self._make_android_dependency('test-jar', aar_archive, '0.0.2')
+        self._add_dummy_product(test_target, target_jar, task)
+        task.execute()
+        jar_location = task.unpack_jar_location(os.path.basename(aar_archive))
+
+        files = []
+        for _, dirname, filename in safe_walk(jar_location):
+          files.extend(filename)
+        self.assertIn('Baz.class', files)

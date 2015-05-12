@@ -154,7 +154,7 @@ class UnpackLibraries(Task):
                   archive = os.path.join(archive, 'classes.jar')
               else:
                 raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar archives'
-                                                 '(was: {}'.format(archive))
+                                                 '(was: {})'.format(archive))
               # Unpack the jar files.
               if archive not in self._unpacked_archives and os.path.isfile(jar_file):
                 ZIP.extract(jar_file, jar_outdir)
