@@ -83,66 +83,79 @@ class DxCompile(AndroidTask, NailgunTask):
     return self.runjava(classpath=classpath, jvm_options=jvm_options, main=java_main,
                         args=args, workunit_name='dx')
 
+
+  def gather_classes(self, target, classes_by_target, unpacked_archives):
+
+
+
+    classes = set()
+    class_files = {}
+
+    def get_classes(tgt):
+      def add_classes(target_products):
+        for _, products in target_products.abs_paths():
+          for prod in products:
+            classes.update([prod])
+      target_classes = classes_by_target.get(tgt)
+
+      if target_classes:
+        add_classes(target_classes)
+
+      unpacked = unpacked_archives.get(tgt)
+      if unpacked:
+        # If there are unpacked_archives then we know this target is an AndroidLibrary.
+        for archives in unpacked.values():
+          for unpacked_dir in archives:
+
+            # TODO (mateor) move calculate_filter() from UnpackJars to fs.archive or
+            # an Unpack base class)
+            file_filter = UnpackJars.get_unpack_filter(tgt)
+            for root, dirpath, file_names in os.walk(unpacked_dir):
+              for filename in file_names:
+                relative_dir = os.path.relpath(root, unpacked_dir)
+
+                # Check against the library's include/exclude patterns and include if True.
+                if file_filter(os.path.join(relative_dir, filename)):
+                  class_location = os.path.join(root, filename)
+                  class_file = os.path.join(relative_dir, filename)
+
+                  # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
+                  # already been added. If so, compare the relpath. If the relpath is
+                  # identical then we can ignore it as a duplicate. If the path is different,
+                  # that means that there is probably conflicting version numbers among the
+                  # library dependencies and we want to raise an exception.
+
+                  if class_file in class_files:
+                    if class_files[class_file] != class_location:
+                      raise self.DuplicateClassFileException(
+                         "Adding duplicate class files from separate libraries into dex file!"
+                         "This likely indicates a version conflict in the target's dependencies.\n"
+                         "Target: {}\nConflicts\n"
+                         "1: {} \n2: {}".format(target,
+                                                os.path.join(class_location, class_file),
+                                                os.path.join(class_files[class_file], class_file)))
+                  # Keep a dict of class_files and file paths to check for dupes/conflicts.
+                  class_files[class_file] = class_location
+                  classes.update([class_location])
+
+    target.walk(get_classes)
+    return classes
+
+
   def execute(self):
     with self.context.new_workunit(name='dx-compile', labels=[WorkUnit.MULTITOOL]):
       targets = self.context.targets(self.is_dextarget)
+      classes_by_target = self.context.products.get_data('classes_by_target')
+      unpacked_archives = self.context.products.get('unpacked_libraries')
 
       with self.invalidated(targets) as invalidation_check:
         invalid_targets = []
         for vt in invalidation_check.invalid_vts:
           invalid_targets.extend(vt.targets)
         for target in invalid_targets:
-
           outdir = self.dx_out(target)
           safe_mkdir(outdir)
-          classes_by_target = self.context.products.get_data('classes_by_target')
-          unpacked_archives = self.context.products.get('unpacked_libraries')
-          classes = set()
-          class_files = {}
-
-          def gather_classes(tgt):
-            def add_classes(target_products):
-              for _, products in target_products.abs_paths():
-                for prod in products:
-                  classes.update([prod])
-            target_classes = classes_by_target.get(tgt)
-
-            if target_classes:
-              add_classes(target_classes)
-
-            unpacked = unpacked_archives.get(tgt)
-            if unpacked:
-              # If there are unpacked_archives then we know this target is an AndroidLibrary.
-              for archives in unpacked.values():
-                for unpacked_dir in archives:
-
-                  # TODO (move calculate_filter from UnpackJars to fs.archive)
-                  unpack_filter = UnpackJars.get_unpack_filter(tgt)
-                  for root, dirpath, file_names in os.walk(unpacked_dir):
-                    for filename in file_names:
-                      relative_dir = os.path.relpath(root, unpacked_dir)
-
-                      # Check against the library's include/exclude patterns and include if True.
-                      if unpack_filter(os.path.join(relative_dir, filename)):
-                        class_location = os.path.join(root, filename)
-                        class_file = os.path.join(relative_dir, filename)
-
-                        # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
-                        # already been added. If so, compare the full paths. If the full path is
-                        # identical then we can ignore it as a duplicate. If the path is different,
-                        # that means that there is probably conflicting version numbers among the
-                        # library dependencies and we want to raise an exception.
-
-                        if class_file in class_files:
-                          if class_files[class_file] != class_location:
-                            raise self.DuplicateClassFileException("Duplicate class files added: "
-                                                                   "{}".format(target))
-                        # Keep a dict of class_files and file paths to check for dupes/conflicts.
-                        class_files[class_file] = class_location
-                        classes.update([class_location])
-
-          target.walk(gather_classes)
-
+          classes = self.gather_classes(target, classes_by_target, unpacked_archives)
           if not classes:
             raise TaskError("No classes were found for {0!r}.".format(target))
 
