@@ -48,7 +48,7 @@ class UnpackLibrariesTest(TestAndroidBase):
     )
 
   @contextmanager
-  def unpacked_aar_library(self, location, manifest=True, classes_jar=True, resources=True):
+  def unpacked_aar_library(self, location, manifest=True, classes_jar=True, resources=True, filenames=None):
     """Create the contents of an aar file, with optional components."""
     if manifest:
       manifest_file = os.path.join(location, 'AndroidManifest.xml')
@@ -58,7 +58,7 @@ class UnpackLibrariesTest(TestAndroidBase):
         fp.close()
     if classes_jar:
       # Create classes.jar.
-      with self.sample_jarfile(location):
+      with self.sample_jarfile(location, filenames=filenames):
         pass
 #      touch(os.path.join(location, 'classes.jar'))
     if resources:
@@ -67,23 +67,26 @@ class UnpackLibrariesTest(TestAndroidBase):
 
   @contextmanager
   # TODO(standardize between sample_jarfile and sample_aarfile.)
-  def sample_aarfile(self, name, location):
+  def sample_aarfile(self, name, location, filenames=None):
     """Create an aar file, using the contents created by self.unpacked_aar_library."""
     with temporary_dir() as temp:
-      with self.unpacked_aar_library(temp) as aar_contents:
+      with self.unpacked_aar_library(temp, filenames=filenames) as aar_contents:
         archive = ZIP.create(aar_contents, location, name)
         aar = os.path.join(location, '{}.aar'.format(name))
         os.rename(archive, aar)
     yield aar
 
   @contextmanager
-  def sample_jarfile(self, location=None, file_name=None):
+  def sample_jarfile(self, location=None, file_name=None, filenames=None):
     """Create a jar file."""
     name = file_name or 'classes.jar'
     jar_name = os.path.join(location, name)
     with open_zip(jar_name, 'w') as library:
       library.writestr('a/b/c/Foo.class', 'Foo')
       library.writestr('a/b/c/Bar.class', 'Bar')
+      if filenames:
+        for class_file in filenames:
+          library.writestr(class_file, 'Baz')
     yield jar_name
 
 
@@ -231,63 +234,67 @@ class UnpackLibrariesTest(TestAndroidBase):
   def test_aar_file(self):
     with temporary_dir() as temp:
       with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar_archive:
-        self.add_to_build_file('unpack', dedent('''
-        android_library(name='test',
-          libraries=['unpack/libs:test-jar'],
-          include_patterns=[
-            'a/b/c/*.class',
-          ],
-         )
-        '''))
-        self._make_android_dependency('test-jar', aar_archive, '0.0.2')
-        test_target = self.target('unpack:test')
-        task = self.create_task(self.context(target_roots=[test_target]))
+        with self.sample_aarfile('org.pantsbuild.android.test', temp, filenames=['a/b/c/Baz.class']) as second_archive:
+          self.add_to_build_file('unpack', dedent('''
+          android_library(name='test',
+            libraries=['unpack/libs:test-jar'],
+            include_patterns=[
+              'a/b/c/*.class',
+            ],
+           )
+          '''))
+          self._make_android_dependency('test-jar', aar_archive, '0.0.2')
+          test_target = self.target('unpack:test')
+          task = self.create_task(self.context(target_roots=[test_target]))
 
-        # fudge
-        for android_archive in test_target.imported_jars:
-          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
-          self._add_dummy_product(test_target, target_jar, task)
-        task.execute()
-        aar_name = os.path.basename(target_jar)
-        files = []
-        jar_location = task.unpack_jar_location(aar_name)
-        for _, dirname, filename in safe_walk(jar_location):
-          files += filename
-        self.assertIn('Foo.class', files)
+          # fudge
+          for android_archive in test_target.imported_jars:
+            target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
+            self._add_dummy_product(test_target, target_jar, task)
+          task.execute()
+          aar_name = os.path.basename(target_jar)
+          files = []
+          jar_location = task.unpack_jar_location(aar_name)
+          print("JAR_LOSCTION #1: ", jar_location)
+          for _, dirname, filename in safe_walk(jar_location):
+            files += filename
+          self.assertIn('Foo.class', files)
 
-      # Add sentinel file to the archive without bumping the version.
-        with open_zip(aar_archive, 'w') as library:
-          library.writestr('a/b/c/Baz.class', 'Baz')
+        # Add sentinel file to the archive without bumping the version.
+         # with open_zip(aar_archive, 'w') as library:
+           # library.writestr('a/b/c/Baz.class', 'Baz')
 
-        # Calling the task a second time will not unpack the target so the sentinel is not found.
-        for android_archive in test_target.imported_jars:
-          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
-          self._add_dummy_product(test_target, target_jar, task)
-        task.execute()
-        files = []
-        aar_name = os.path.basename(target_jar)
-        jar_location = task.unpack_jar_location(aar_name)
-        for _, dirname, filename in safe_walk(jar_location):
-          files.extend(filename)
-        self.assertNotIn('Baz.class', files)
+          # Calling the task a second time will not unpack the target so the sentinel is not found.
+          for android_archive in test_target.imported_jars:
+            target_jar = self._approximate_ivy_mapjar_name(second_archive, android_archive)
+            self._add_dummy_product(test_target, target_jar, task)
+            import pdb; pdb.set_trace()
+          task.execute()
+          files = []
+          aar_name = os.path.basename(target_jar)
+          jar_location = task.unpack_jar_location(aar_name)
+          print("JAR_LOCATION #2: ", jar_location)
+          for _, dirname, filename in safe_walk(jar_location):
+            files.extend(filename)
+          self.assertNotIn('Baz.class', files)
 
-        # Bump the version and the archive is unpacked and the class is found.
-        self.reset_build_graph()  # Forget about the old definition of the unpack/jars:foo-jar target
+          # Bump the version and the archive is unpacked and the class is found.
+          self.reset_build_graph()  # Forget about the old definition of the unpack/jars:foo-jar target
 
-        self._make_android_dependency('test-jar', aar_archive, '0.0.3')
-        #test_target = self.target('unpack:test')
-        #task = self.create_task(self.context(target_roots=[test_target]))
-        for android_archive in test_target.imported_jars:
+          self._make_android_dependency('test-jar', aar_archive, '0.0.3')
+          #test_target = self.target('unpack:test')
+          #task = self.create_task(self.context(target_roots=[test_target]))
+          for android_archive in test_target.imported_jars:
 
-          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
+            target_jar = self._approximate_ivy_mapjar_name(second_archive, android_archive)
 
-          self._add_dummy_product(test_target, target_jar, task)
-          import pdb; pdb.set_trace()
-        task.execute()
-        aar_name = os.path.basename(target_jar)
-        jar_location = task.unpack_jar_location(aar_name)
+            self._add_dummy_product(test_target, target_jar, task)
+            #import pdb; pdb.set_trace()
+          task.execute()
+          aar_name = os.path.basename(target_jar)
+          jar_location = task.unpack_jar_location(aar_name)
 
-        files = []
-        for _, dirname, filename in safe_walk(jar_location):
-          files.extend(filename)
-        self.assertIn('Baz.class', files)
+          files = []
+          for _, dirname, filename in safe_walk(jar_location):
+            files.extend(filename)
+          #self.assertIn('Baz.class', files)

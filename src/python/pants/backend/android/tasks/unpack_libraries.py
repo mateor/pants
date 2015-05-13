@@ -20,7 +20,7 @@ from pants.fs.archive import ZIP
 class UnpackLibraries(Task):
 
   class MissingElementException(Exception):
-    """Raised if a directory that is expected to be unpacked doesn't exist."""
+    """Raised if an unpacked file or directory unexpectedly does not exist."""
 
   class UnexpectedArchiveType(Exception):
     """Raised if an archive has an extension that is not explicitly handled by this class."""
