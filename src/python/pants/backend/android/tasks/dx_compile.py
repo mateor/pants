@@ -84,10 +84,12 @@ class DxCompile(AndroidTask, NailgunTask):
                         args=args, workunit_name='dx')
 
 
-  def gather_classes(self, target, classes_by_target, unpacked_archives):
-
-
-
+  def _gather_classes(self, target):
+    # Gather relevant classes from walk of AndroidBinary's dependency graph. This includes
+    # any classes found in unpacked AndroidDependency libraries. These unpacked libraries are
+    # filtered by their associated AndroidLibrary include/exclude patterns.
+    classes_by_target = self.context.products.get_data('classes_by_target')
+    unpacked_archives = self.context.products.get('unpacked_libraries')
     classes = set()
     class_files = {}
 
@@ -143,27 +145,23 @@ class DxCompile(AndroidTask, NailgunTask):
 
 
   def execute(self):
-    with self.context.new_workunit(name='dx-compile', labels=[WorkUnit.MULTITOOL]):
-      targets = self.context.targets(self.is_dextarget)
-      classes_by_target = self.context.products.get_data('classes_by_target')
-      unpacked_archives = self.context.products.get('unpacked_libraries')
+    targets = self.context.targets(self.is_dextarget)
 
-      with self.invalidated(targets) as invalidation_check:
-        invalid_targets = []
-        for vt in invalidation_check.invalid_vts:
-          invalid_targets.extend(vt.targets)
-        for target in invalid_targets:
-          outdir = self.dx_out(target)
-          safe_mkdir(outdir)
-          classes = self.gather_classes(target, classes_by_target, unpacked_archives)
-          if not classes:
-            raise TaskError("No classes were found for {0!r}.".format(target))
+    with self.invalidated(targets) as invalidation_check:
+      invalid_targets = []
+      for vt in invalidation_check.invalid_vts:
+        invalid_targets.extend(vt.targets)
+      for target in invalid_targets:
+        outdir = self.dx_out(target)
+        safe_mkdir(outdir)
+        classes = self._gather_classes(target)
+        if not classes:
+          raise TaskError("No classes were found for {0!r}.".format(target))
 
-          args = self._render_args(outdir, classes)
-          # TODO (mateor) Why isn't workunit in util.execute_runner properly handling stderr/out?
-          self._compile_dex(args, target.build_tools_version)
-      for target in targets:
-        self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
+        args = self._render_args(outdir, classes)
+        self._compile_dex(args, target.build_tools_version)
+    for target in targets:
+      self.context.products.get('dex').add(target, self.dx_out(target)).append(self.DEX_NAME)
 
   def dx_jar_tool(self, build_tools_version):
     """Return the appropriate dx.jar.
