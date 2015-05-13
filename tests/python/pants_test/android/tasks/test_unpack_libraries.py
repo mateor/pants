@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+import shutil
 from contextlib import contextmanager
 from textwrap import dedent
 
@@ -56,7 +57,8 @@ class UnpackLibrariesTest(TestAndroidBase):
         fp.write(self.android_manifest())
         fp.close()
     if classes_jar:
-      with self.sample_jarfile(location) as archive:
+      # Create classes.jar.
+      with self.sample_jarfile(location):
         pass
 #      touch(os.path.join(location, 'classes.jar'))
     if resources:
@@ -84,27 +86,7 @@ class UnpackLibrariesTest(TestAndroidBase):
       library.writestr('a/b/c/Bar.class', 'Bar')
     yield jar_name
 
-  # There is a bit of fudging here. In practice, the jar name is transformed by ivy into
-  # '[organisation]-[artifact]-[revision](-[classifier]).[ext]'. The unpack_libraries task does not
-  # care about the details of the imported jar name but it does rely on it being unique and
-  # including the version number. When adding a dummy product this test class preemptively mimics
-  # that naming structure in order to mock the filename of mapped jars.
-  def _make_android_dependency(self, name, library_file, version):
-    build_path = os.path.join(self.build_root, 'unpack', 'libs', 'BUILD')
-    if os.path.exists(build_path):
-      os.remove(build_path)
-    self.add_to_build_file('unpack/libs', dedent('''
-      android_dependency(name='{name}',
-        jars=[
-          jar(org='com.example', name='bar', rev='{version}', url='file:///{filepath}'),
-        ],
-      )
-    '''.format(name=name, version=version, filepath=library_file)))
 
-  def _add_dummy_product(self, foo_target, android_dep, unpack_task):
-    ivy_imports_product = unpack_task.context.products.get('ivy_imports')
-    ivy_imports_product.add(foo_target, os.path.dirname(android_dep),
-                            [os.path.basename(android_dep)])
 
   def test_unpack_smoke(self):
     task = self.create_task(self.context())
@@ -213,11 +195,37 @@ class UnpackLibrariesTest(TestAndroidBase):
     self.assertEqual(ivy_args, IvyTaskMixin._get_ivy_args('foo'))
 
   # Test unpacking process.
+
+
+  # There is a bit of fudging here. In practice, the jar name is transformed by ivy into
+  # '[organisation]-[artifact]-[revision](-[classifier]).[ext]'. The unpack_libraries task does not
+  # care about the details of the imported jar name but it does rely on that name being unique and
+  # including the version number. When adding a dummy product this test class preemptively mimics
+  # that naming structure in order to mock the filename of mapped jars.
+  def _make_android_dependency(self, name, library_file, version):
+    build_file = os.path.join(self.build_root, 'unpack', 'libs', 'BUILD')
+    if os.path.exists(build_file):
+      os.remove(build_file)
+    self.add_to_build_file('unpack/libs', dedent('''
+      android_dependency(name='{name}',
+        jars=[
+          jar(org='com.example', name='bar', rev='{version}', url='file:///{filepath}'),
+        ],
+      )
+    '''.format(name=name, version=version, filepath=library_file)))
+    #import pdb; pdb.set_trace()
+
+  def _add_dummy_product(self, foo_target, android_dep, unpack_task):
+    ivy_imports_product = unpack_task.context.products.get('ivy_imports')
+    ivy_imports_product.add(foo_target, os.path.dirname(android_dep),
+                            [os.path.basename(android_dep)])
+
+  # TODO UPdate params to be descripti
   def _approximate_ivy_mapjar_name(self, aar_archive, android_archive):
     location = os.path.dirname(aar_archive)
     ivy_mapjar_name = os.path.join(location,
                                    '{}{}'.format(android_archive, os.path.splitext(aar_archive)[1]))
-    os.rename(aar_archive, ivy_mapjar_name)
+    shutil.copy(aar_archive, ivy_mapjar_name)
     return ivy_mapjar_name
 
   def test_aar_file(self):
@@ -231,7 +239,7 @@ class UnpackLibrariesTest(TestAndroidBase):
           ],
          )
         '''))
-        self._make_android_dependency('test-jar', aar_archive, '0.0.1')
+        self._make_android_dependency('test-jar', aar_archive, '0.0.2')
         test_target = self.target('unpack:test')
         task = self.create_task(self.context(target_roots=[test_target]))
 
@@ -252,18 +260,32 @@ class UnpackLibrariesTest(TestAndroidBase):
           library.writestr('a/b/c/Baz.class', 'Baz')
 
         # Calling the task a second time will not unpack the target so the sentinel is not found.
-        self._add_dummy_product(test_target, target_jar, task)
+        for android_archive in test_target.imported_jars:
+          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
+          self._add_dummy_product(test_target, target_jar, task)
         task.execute()
         files = []
+        aar_name = os.path.basename(target_jar)
+        jar_location = task.unpack_jar_location(aar_name)
         for _, dirname, filename in safe_walk(jar_location):
           files.extend(filename)
         self.assertNotIn('Baz.class', files)
 
         # Bump the version and the archive is unpacked and the class is found.
-        self._make_android_dependency('test-jar', aar_archive, '0.0.2')
-        self._add_dummy_product(test_target, target_jar, task)
+        self.reset_build_graph()  # Forget about the old definition of the unpack/jars:foo-jar target
+
+        self._make_android_dependency('test-jar', aar_archive, '0.0.3')
+        #test_target = self.target('unpack:test')
+        #task = self.create_task(self.context(target_roots=[test_target]))
+        for android_archive in test_target.imported_jars:
+
+          target_jar = self._approximate_ivy_mapjar_name(aar_archive, android_archive)
+
+          self._add_dummy_product(test_target, target_jar, task)
+          import pdb; pdb.set_trace()
         task.execute()
-        jar_location = task.unpack_jar_location(os.path.basename(aar_archive))
+        aar_name = os.path.basename(target_jar)
+        jar_location = task.unpack_jar_location(aar_name)
 
         files = []
         for _, dirname, filename in safe_walk(jar_location):
