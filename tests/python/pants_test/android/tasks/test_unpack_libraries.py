@@ -82,14 +82,12 @@ class UnpackLibrariesTest(TestAndroidBase):
     name = file_name or 'classes.jar'
     jar_name = os.path.join(location, name)
     with open_zip(jar_name, 'w') as library:
-      library.writestr('a/b/c/Foo.class', 'Foo')
-      library.writestr('a/b/c/Bar.class', 'Bar')
+      library.writestr('a/b/c/Foo.class', '0xCAFEBABE')
+      library.writestr('a/b/c/Bar.class', '0xCAFEBABE')
       if filenames:
         for class_file in filenames:
-          library.writestr(class_file, 'Baz')
+          library.writestr(class_file, '0xCAFEBABE')
     yield jar_name
-
-
 
   def test_unpack_smoke(self):
     task = self.create_task(self.context())
