@@ -13,6 +13,7 @@ from pants.backend.android.tasks.dx_compile import DxCompile
 from pants.goal.products import MultipleRootedProducts
 from pants.util.contextutil import temporary_dir, temporary_file
 from pants_test.android.test_android_base import TestAndroidBase, distribution
+from pants_test.android.valid_classfile import valid_classfile
 
 
 class DxCompileTest(TestAndroidBase):
@@ -25,9 +26,10 @@ class DxCompileTest(TestAndroidBase):
   def setUp(self):
     super(DxCompileTest, self).setUp()
     self.set_options(read_artifact_caches=None,
-                     write_artifact_caches=None)
+                     write_artifact_caches=None,
+                     use_nailgun=False)
 
-  def _prepare_task(self, context, target, files):
+  def _add_classes_to_context(self, context, target, files):
 
     #dx_task = self.create_task(context)
 
@@ -35,7 +37,7 @@ class DxCompileTest(TestAndroidBase):
                                                lambda: defaultdict(MultipleRootedProducts))
     java_agent_products = MultipleRootedProducts()
     for class_file in files:
-      self.create_file('.pants.d/unpack-jars/unpack-libs/{}'.format(class_file), '0xCAFEBABE')
+      self.create_file('.pants.d/unpack-jars/unpack-libs/{}'.format(class_file), valid_classfile())
       file_location = os.path.join(self.build_root, '.pants.d/unpack-jars/unpack-libs')
       java_agent_products.add_rel_paths(file_location, ['{}'.format(class_file)])
     class_products[target] = java_agent_products
@@ -43,9 +45,6 @@ class DxCompileTest(TestAndroidBase):
 
     return context
 
-   # print("TRAGET CLASSES: ", dx_task.context.products.get_data('classes_by_target').get(target))
-    #import pdb; pdb.set_trace()
-    return dx_task
 
   def test_gather_files(self):
     with distribution() as dist:
@@ -56,6 +55,7 @@ class DxCompileTest(TestAndroidBase):
                            'org.pantsbuild.example/a/b/c/Baz.class',]
           context = self.context(target_roots=binary)
 
-          task_context = self._prepare_task(context, android_library, files)
+          task_context = self._add_classes_to_context(context, android_library, files)
           dx_task = self.create_task(task_context)
           print("TASK: ", dx_task.context.products.get_data('classes_by_target').get(android_library))
+          dx_task.execute()
