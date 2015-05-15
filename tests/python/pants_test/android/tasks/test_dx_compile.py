@@ -24,26 +24,38 @@ class DxCompileTest(TestAndroidBase):
 
   def setUp(self):
     super(DxCompileTest, self).setUp()
-    self.set_options(
-      read_artifact_caches=None,
-      write_artifact_caches=None)
+    self.set_options(read_artifact_caches=None,
+                     write_artifact_caches=None)
 
-  def test_gather_classes(self):
+  def _prepare_task(self, context, target, files):
+
+    #dx_task = self.create_task(context)
+
+    class_products = context.products.get_data('classes_by_target',
+                                               lambda: defaultdict(MultipleRootedProducts))
+    java_agent_products = MultipleRootedProducts()
+    for class_file in files:
+      self.create_file('.pants.d/unpack-jars/unpack-libs/{}'.format(class_file), '0xCAFEBABE')
+      file_location = os.path.join(self.build_root, '.pants.d/unpack-jars/unpack-libs')
+      java_agent_products.add_rel_paths(file_location, ['{}'.format(class_file)])
+    class_products[target] = java_agent_products
+    print("CLASS PRODUCTS: ", class_products)
+
+    return context
+
+   # print("TRAGET CLASSES: ", dx_task.context.products.get_data('classes_by_target').get(target))
+    #import pdb; pdb.set_trace()
+    return dx_task
+
+  def test_gather_files(self):
     with distribution() as dist:
       with self.android_library() as android_library:
         with self.android_binary(dependencies=[android_library]) as binary:
+          files = ['org.pantsbuild.example/a/b/c/Foo.class',
+                           'org.pantsbuild.example/a/b/c/Bar.class',
+                           'org.pantsbuild.example/a/b/c/Baz.class',]
           context = self.context(target_roots=binary)
-          dx_task = self.create_task(context)
-          #jar_task = self.prepare_jar_task(context)
 
-          class_products = context.products.get_data('classes_by_target',
-                                                     lambda: defaultdict(MultipleRootedProducts))
-          java_agent_products = MultipleRootedProducts()
-          self.create_file('.pants.d/javac/classes/FakeAgent.class', '0xCAFEBABE')
-          java_agent_products.add_rel_paths(os.path.join(self.build_root, '.pants.d/javac/classes'),
-                                            ['FakeAgent.class'])
-          class_products[binary] = java_agent_products
-
-          print("CLASS PRODUCTS: ", class_products)
-          print("TRAGET CLASSES: ", dx_task.context.products.get_data('classes_by_target').get(binary))
-          import pdb; pdb.set_trace()
+          task_context = self._prepare_task(context, android_library, files)
+          dx_task = self.create_task(task_context)
+          print("TASK: ", dx_task.context.products.get_data('classes_by_target').get(android_library))
