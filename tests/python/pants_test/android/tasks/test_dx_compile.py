@@ -22,12 +22,20 @@ class DxCompileTest(TestAndroidBase):
   def task_type(cls):
     return DxCompile
 
+  def setUp(self):
+    super(DxCompileTest, self).setUp()
+    self.set_options(
+      read_artifact_caches=None,
+      write_artifact_caches=None)
+
   def test_gather_classes(self):
     with distribution() as dist:
       with self.android_library() as android_library:
         with self.android_binary(dependencies=[android_library]) as binary:
           context = self.context(target_roots=binary)
-          #dx_task = self.prepare_jar_task(context)
+          dx_task = self.create_task(context)
+          #jar_task = self.prepare_jar_task(context)
+
           class_products = context.products.get_data('classes_by_target',
                                                      lambda: defaultdict(MultipleRootedProducts))
           java_agent_products = MultipleRootedProducts()
@@ -35,5 +43,7 @@ class DxCompileTest(TestAndroidBase):
           java_agent_products.add_rel_paths(os.path.join(self.build_root, '.pants.d/javac/classes'),
                                             ['FakeAgent.class'])
           class_products[binary] = java_agent_products
+
           print("CLASS PRODUCTS: ", class_products)
+          print("TRAGET CLASSES: ", dx_task.context.products.get_data('classes_by_target').get(binary))
           import pdb; pdb.set_trace()
