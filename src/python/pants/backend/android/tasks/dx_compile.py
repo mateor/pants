@@ -97,7 +97,8 @@ class DxCompile(AndroidTask, NailgunTask):
         for _, products in target_products.abs_paths():
           for prod in products:
             classes.update([prod])
-      target_classes = classes_by_target.get(tgt)
+
+      target_classes = classes_by_target.get(tgt) if classes_by_target else None
 
       if target_classes:
         add_classes(target_classes)
@@ -107,7 +108,6 @@ class DxCompile(AndroidTask, NailgunTask):
         # If there are unpacked_archives then we know this target is an AndroidLibrary.
         for archives in unpacked.values():
           for unpacked_dir in archives:
-
             # TODO (mateor) move calculate_filter() from UnpackJars to fs.archive or
             # an Unpack base class)
             file_filter = UnpackJars.get_unpack_filter(tgt)
