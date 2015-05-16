@@ -20,8 +20,8 @@ from pants_test.android.test_android_base import TestAndroidBase, distribution
 class DxCompileTest(TestAndroidBase):
   """Test dex creation methods of pants.backend.android.tasks.DxCompile."""
 
-  JAVA_CLASSES_LOC = '.pants.d/compile/java/classes'
-  UNPACKED_LIBS_LOC = '.pants.d/unpack-jars/unpack-libs/explode-jars'
+  JAVA_CLASSES_LOC = os.path.join(get_buildroot(), '.pants.d/compile/java/classes')
+  UNPACKED_LIBS_LOC = os.path.join(get_buildroot(),'.pants.d/unpack-jars/unpack-libs/explode-jars')
 
   @classmethod
   def task_type(cls):
@@ -39,12 +39,13 @@ class DxCompileTest(TestAndroidBase):
     unpacked_classes = {}
     class_files = ['Example.class', 'Hello.class', 'World.class']
 
-    # This is the name of the directory that holds the unpacked libs, modeled after jar_target.id.
+    # This is the name of the directory that holds the unpacked libs - modeled after jar_target.id.
     unpacked_location = '{}-{}-{}.aar'.format(package, app, version)
     unpacked_classes[unpacked_location] = []
     for filename in class_files:
       new_file = os.path.join('a/b/c', filename)
-      touch(os.path.join(self.build_root, self.UNPACKED_LIBS_LOC, unpacked_location, new_file))
+      # Must actually be created since DxCompile._gather_classes relies heavily on os.walk.
+      touch(os.path.join(self.UNPACKED_LIBS_LOC, unpacked_location, new_file))
       unpacked_classes[unpacked_location].append(new_file)
     print("HELLLLLLOOOOOOL: ", unpacked_classes)
     return unpacked_classes
@@ -56,8 +57,8 @@ class DxCompileTest(TestAndroidBase):
                      use_nailgun=False)
   def tearDown(self):
     # Delete any previously mocked files.
-    safe_rmtree(os.path.join(self.build_root, self.JAVA_CLASSES_LOC))
-    safe_rmtree(os.path.join(self.build_root, self.UNPACKED_LIBS_LOC))
+    safe_rmtree(self.JAVA_CLASSES_LOC)
+    safe_rmtree(os.path.join(self.UNPACKED_LIBS_LOC))
 
   def _add_classes_by_target(self, context, target, files):
     # Create class files to mock the classes_by_target product.
@@ -66,8 +67,7 @@ class DxCompileTest(TestAndroidBase):
     java_agent_products = MultipleRootedProducts()
     for class_file in files:
       self.create_file(os.path.join(self.JAVA_CLASSES_LOC, class_file), '0xCAFEBABE')
-      file_path = os.path.join(self.build_root, self.JAVA_CLASSES_LOC)
-      java_agent_products.add_rel_paths(file_path, ['{}'.format(class_file)])
+      java_agent_products.add_rel_paths(self.JAVA_CLASSES_LOC, ['{}'.format(class_file)])
     class_products[target] = java_agent_products
     return context
 
@@ -75,12 +75,10 @@ class DxCompileTest(TestAndroidBase):
     # Create class files to mock the unpack_libraries product.
 
     for archive in unpacked:
-      relative_unpack_dir = (os.path.join(self.build_root, self.UNPACKED_LIBS_LOC, archive))
-      print("RELATIVE: ", relative_unpack_dir)
-      #import pdb; pdb.set_trace()
+      relative_unpack_dir = (os.path.join(self.UNPACKED_LIBS_LOC, archive))
+
       unpacked_products = context.products.get('unpacked_libraries')
       unpacked_products.add(target, self.build_root).append(relative_unpack_dir)
-   # import pdb;pdb.set_trace()
     return context
 
   def test_gather_javac_classes(self):
@@ -94,7 +92,7 @@ class DxCompileTest(TestAndroidBase):
       # Test that the proper class files are gathered for inclusion in the dex file.
       class_files = dx_task._gather_classes(binary)
       for filename in classes:
-        file_path = os.path.join(self.build_root, self.JAVA_CLASSES_LOC, filename)
+        file_path = os.path.join(self.JAVA_CLASSES_LOC, filename)
         self.assertIn(file_path, class_files)
 
   def test_gather_javac_classes_from_deps(self):
@@ -108,7 +106,7 @@ class DxCompileTest(TestAndroidBase):
 
         filtered_classes = dx_task._gather_classes(binary)
         for class_file in classes:
-          file_path = os.path.join(self.build_root, self.JAVA_CLASSES_LOC, class_file)
+          file_path = os.path.join(self.JAVA_CLASSES_LOC, class_file)
           self.assertIn(file_path, filtered_classes)
 
   def test_gather_unpacked_libs(self):
@@ -123,5 +121,5 @@ class DxCompileTest(TestAndroidBase):
         filtered_classes = dx_task._gather_classes(binary)
         for location in classes:
           for class_file in classes[location]:
-            file_path = os.path.join(self.build_root, self.UNPACKED_LIBS_LOC, location, class_file)
+            file_path = os.path.join(self.UNPACKED_LIBS_LOC, location, class_file)
             self.assertIn(file_path, filtered_classes)

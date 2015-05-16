@@ -178,11 +178,11 @@ class UnpackLibraries(Task):
             # All dependent libraries get the full unpacked source. The files that match the
             # include/exclude patterns of the android_library are calculated during DxCompile.
             unpack_product_dir = self.unpack_jar_location(archive)
-            exploded_products = self.context.products.get('unpacked_libraries')
-            exploded_products.add(target, get_buildroot()).append(unpack_product_dir)
+            unpacked_products = self.context.products.get('unpacked_libraries')
+            unpacked_products.add(target, get_buildroot()).append(unpack_product_dir)
 
   def unpack_jar_location(self, archive):
-    """Location for unpacked jar files, whether fetched from maven or found inside an aar file."""
+    """Location for unpacked jar files, whether imported as-is or found inside an aar file."""
     return os.path.join(self.workdir, 'explode-jars', archive)
 
   def unpack_aar_location(self, archive):
