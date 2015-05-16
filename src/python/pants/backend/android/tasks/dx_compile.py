@@ -23,6 +23,9 @@ class DxCompile(AndroidTask, NailgunTask):
   class DuplicateClassFileException(TaskError):
     """Raise is raised when multiple copies of the same class are being added to dex file."""
 
+  class EmptyDexError(TaskError):
+    """Raise when no classes are found to be packed into the dex file."""
+
   # Name of output file. "Output name must end with one of: .dex .jar .zip .apk or be a directory."
   DEX_NAME = 'classes.dex'
 
@@ -108,20 +111,19 @@ class DxCompile(AndroidTask, NailgunTask):
         # If there are unpacked_archives then we know this target is an AndroidLibrary.
         for archives in unpacked.values():
           for unpacked_dir in archives:
-            # TODO (mateor) move calculate_filter() from UnpackJars to fs.archive or
-            # an Unpack base class)
+            # TODO (mateor) move get_unpack_filter() from UnpackJars to fs.archive or
+            # an Unpack base class.
             file_filter = UnpackJars.get_unpack_filter(tgt)
             for root, dirpath, file_names in os.walk(unpacked_dir):
               for filename in file_names:
                 relative_dir = os.path.relpath(root, unpacked_dir)
-
                 # Check against the library's include/exclude patterns and include if True.
-                if file_filter(os.path.join(relative_dir, filename)):
+                class_file = os.path.join(relative_dir, filename)
+                if file_filter(class_file):
                   class_location = os.path.join(root, filename)
-                  class_file = os.path.join(relative_dir, filename)
 
                   # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
-                  # already been added. If so, compare the relpath. If the relpath is
+                  # already been added. If so, compare the path. If the path is
                   # identical then we can ignore it as a duplicate. If the path is different,
                   # that means that there is probably conflicting version numbers among the
                   # library dependencies and we want to raise an exception.
@@ -155,7 +157,7 @@ class DxCompile(AndroidTask, NailgunTask):
         safe_mkdir(outdir)
         classes = self._gather_classes(target)
         if not classes:
-          raise TaskError("No classes were found for {0!r}.".format(target))
+          raise self.EmptyDexError("No classes were found for {}.".format(target))
 
         args = self._render_args(outdir, classes)
         self._compile_dex(args, target.build_tools_version)
