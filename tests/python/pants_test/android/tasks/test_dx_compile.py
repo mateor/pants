@@ -109,6 +109,7 @@ class DxCompileTest(TestAndroidBase):
           self.assertIn(file_path, gathered_classes)
 
   def test_gather_unpacked_libs(self):
+    # Ensure that classes from unpacked android_dependencies are included in classes bound for dex.
     with self.android_library() as android_library:
       with self.android_binary(dependencies=[android_library]) as binary:
         context = self.context(target_roots=binary)
@@ -122,7 +123,7 @@ class DxCompileTest(TestAndroidBase):
             file_path = os.path.join(self.UNPACKED_LIBS_LOC, location, class_file)
             self.assertIn(file_path, gathered_classes)
 
-  def test_gather_both_javac_and_unpacked_classes(self):
+  def test_gather_both_compiled_and_unpacked_classes(self):
     with self.android_library() as library:
       with self.android_binary(dependencies=[library]) as binary:
         context = self.context(target_roots=binary)
@@ -145,8 +146,8 @@ class DxCompileTest(TestAndroidBase):
             file_path = os.path.join(self.UNPACKED_LIBS_LOC, location, class_file)
             self.assertIn(file_path, gathered_classes)
 
-  # UnpackedLibraries are filtered by DxCompile so that binaries can share unpacked deps.
-  # The following tests check the filter finctionality.
+  # UnpackedLibraries are filtered by DxCompile to allow binaries to share unpacked libraries.
+  # The following tests check the filter functionality.
   def test_include_filter_in_gather_classes(self):
     with self.android_library(include_patterns=['**/a/**/Example.class']) as android_library:
       with self.android_binary(dependencies=[android_library]) as binary:
@@ -268,3 +269,13 @@ class DxCompileTest(TestAndroidBase):
         dx_jar = os.path.join(dist, 'build-tools', '20.0.0', 'lib/dx.jar')
         self.assertEqual(task.dx_jar_tool(android_binary.build_tools_version),dx_jar)
 
+  def test_dx_out(self):
+    with self.android_binary() as binary:
+      task = self.create_task(self.context())
+      self.assertEqual(task.dx_out(binary), os.path.join(task.workdir, binary.id))
+
+  def test_is_dex_target(self):
+    with self.android_library() as library:
+      with self.android_binary() as binary:
+        self.assertTrue(DxCompile.is_dextarget(binary))
+        self.assertFalse(DxCompile.is_dextarget(library))
