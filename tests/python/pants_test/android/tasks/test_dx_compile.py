@@ -237,3 +237,34 @@ class DxCompileTest(TestAndroidBase):
 
           # Raises an exception when gathering classes with conflicting version numbers.
           dx_task._gather_classes(binary)
+
+  # Test misc. methods
+
+  def test_render_args(self):
+    tempdir = '/temp/out'
+    dx_task = self.create_task(self.context())
+    classes = ['example/a/b/c/Example.class']
+    args = dx_task._render_args(tempdir, classes)
+    expected_args = ['--dex', '--no-strict', '--output=/temp/out/{}'.format(dx_task.DEX_NAME)]
+    expected_args.extend(classes)
+    self.assertEqual(args, expected_args)
+
+  def test_product_types(self):
+    self.assertEqual(['dex'], DxCompile.product_types())
+
+  def test_dx_jar_tool(self):
+    with distribution() as dist:
+      with self.android_binary() as android_binary:
+        self.set_options(sdk_path=dist)
+        task = self.create_task(self.context())
+        dx_jar = os.path.join(dist, 'build-tools', android_binary.build_tools_version, 'lib/dx.jar')
+        self.assertEqual(task.dx_jar_tool(android_binary.build_tools_version),dx_jar)
+
+  def test_force_build_tools_version_dx_jar_tool(self):
+    with distribution() as dist:
+      with self.android_binary() as android_binary:
+        self.set_options(sdk_path=dist, build_tools_version='20.0.0')
+        task = self.create_task(self.context())
+        dx_jar = os.path.join(dist, 'build-tools', '20.0.0', 'lib/dx.jar')
+        self.assertEqual(task.dx_jar_tool(android_binary.build_tools_version),dx_jar)
+

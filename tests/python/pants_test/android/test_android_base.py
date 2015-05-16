@@ -109,4 +109,6 @@ def distribution(installed_sdks=('18', '19'),
         path = os.path.join(sdk, 'build-tools', version, exe)
         touch(path)
         chmod_plus_x(path)
+      dx_path = os.path.join(sdk, 'build-tools', version, 'lib/dx.jar')
+      touch(dx_path)
     yield sdk

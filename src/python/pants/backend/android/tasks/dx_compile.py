@@ -54,7 +54,7 @@ class DxCompile(AndroidTask, NailgunTask):
 
   def __init__(self, *args, **kwargs):
     super(DxCompile, self).__init__(*args, **kwargs)
-    self._forced_build_tools_version = self.get_options().build_tools_version
+    self._forced_build_tools = self.get_options().build_tools_version
     self._forced_jvm_options = self.get_options().jvm_options
 
     self.setup_artifact_cache()
@@ -71,15 +71,11 @@ class DxCompile(AndroidTask, NailgunTask):
     args.extend(['--dex', '--no-strict', '--output={0}'.format(dex_file)])
 
     # classes is a set of class files to be included in the created dex file.
-    args.extend(list(classes))
+    args.extend(classes)
     return args
 
   def _compile_dex(self, args, build_tools_version):
-    if self._forced_build_tools_version:
-      classpath = [self.dx_jar_tool(self._forced_build_tools_version)]
-    else:
-      classpath = [self.dx_jar_tool(build_tools_version)]
-
+    classpath = [self.dx_jar_tool(build_tools_version)]
     jvm_options = self._forced_jvm_options if self._forced_jvm_options else None
     java_main = 'com.android.dx.command.Main'
     return self.runjava(classpath=classpath, jvm_options=jvm_options, main=java_main,
@@ -87,9 +83,10 @@ class DxCompile(AndroidTask, NailgunTask):
 
 
   def _gather_classes(self, target):
-    # Gather relevant classes from walk of AndroidBinary's dependency graph. This includes
-    # any classes found in unpacked AndroidDependency libraries. These unpacked libraries are
-    # filtered by their associated AndroidLibrary include/exclude patterns.
+    # Gather relevant classes from a walk of AndroidBinary's dependency graph. This includes the
+    # target's compiled classes_by_target as well as classes found in unpacked AndroidDependency
+    # libs. These unpacked libraries are filtered by their associated AndroidLibrary
+    # include/exclude patterns and deduped.
     classes_by_target = self.context.products.get_data('classes_by_target')
     unpacked_archives = self.context.products.get('unpacked_libraries')
     classes = set()
@@ -122,11 +119,14 @@ class DxCompile(AndroidTask, NailgunTask):
                 if file_filter(class_file):
                   class_location = os.path.join(root, filename)
 
-                  # Check to see if the class_file ('org/pantsbuild/example/Hello.class') has
-                  # already been added. If so, compare the path. If the path is
-                  # identical then we can ignore it as a duplicate. If the path is different,
-                  # that means that there is probably conflicting version numbers among the
-                  # library dependencies and we want to raise an exception.
+                  # The Dx tool returns failure if more than one copy of a class is packed into the
+                  # dex file and it is very easy to fetch duplicate libraries (as well as
+                  # conflicting versions) from the Android SDK repos.
+
+                  # Check to see if the class_file (e.g. 'a/b/c/Hello.class') has already been
+                  # added. If so, compare the path. If the path is identical then we can ignore it
+                  # as a duplicate. If the path is different, that means that there is probably
+                  # conflicting version numbers among the library deps and so we raise an exception.
 
                   if class_file in class_files:
                     if class_files[class_file] != class_location:
@@ -134,8 +134,7 @@ class DxCompile(AndroidTask, NailgunTask):
                          "Adding duplicate class files from separate libraries into dex file!"
                          "This likely indicates a version conflict in the target's dependencies.\n"
                          "Target: {}\nConflicts\n"
-                         "1: {} \n2: {}".format(target,
-                                                os.path.join(class_location, class_file),
+                         "1: {} \n2: {}".format(target, os.path.join(class_location, class_file),
                                                 os.path.join(class_files[class_file], class_file)))
                   # Keep a dict of class_files and file paths to check for dupes/conflicts.
                   class_files[class_file] = class_location
@@ -143,7 +142,6 @@ class DxCompile(AndroidTask, NailgunTask):
 
     target.walk(get_classes)
     return classes
-
 
   def execute(self):
     targets = self.context.targets(self.is_dextarget)
@@ -169,7 +167,8 @@ class DxCompile(AndroidTask, NailgunTask):
 
     :param string build_tools_version: The Android build-tools version number (e.g. '19.1.0').
     """
-    dx_jar = os.path.join('build-tools', build_tools_version, 'lib', 'dx.jar')
+    build_tools = self._forced_build_tools if self._forced_build_tools else build_tools_version
+    dx_jar = os.path.join('build-tools', build_tools, 'lib', 'dx.jar')
     return self.android_sdk.register_android_tool(dx_jar)
 
   def dx_out(self, target):
