@@ -23,9 +23,7 @@ from pants.fs.archive import ZIP
 class AndroidLibraryFingerprintStrategy(DefaultFingerprintHashingMixin, FingerprintStrategy):
 
   def compute_fingerprint(self, target):
-    """UnpackedJars targets need to be re-unpacked if any of its configuration changes or
-       any of the jars they import have changed.
-    """
+    """AndroidLibrary targets need to be re-unpacked if any of the jars they import have changed."""
     if isinstance(target, AndroidLibrary):
       hasher = sha1()
       for jar_import in sorted(target.imported_jars, key=lambda t: t.id):
@@ -103,9 +101,7 @@ class UnpackLibraries(Task):
 
     """Create an AndroidResources target.
 
-    Every aar file will be unpacked and the contents used to create a new AndroidLibrary
-    target.
-
+    The aar files are unpacked and the contents used to create a new AndroidLibrary target.
     :param AndroidLibrary target: AndroidLibrary that the new AndroidLibrary target derives from.
     :param string archive: An archive name as fetched by ivy, e.g. 'org.pantsbuild.example-1.0.aar'.
     :param string unpacked_aar_location: Full path of dir holding contents of an unpacked aar file.
@@ -170,14 +166,13 @@ class UnpackLibraries(Task):
                   # Unpack .aar files.
                   if archive not in self._unpacked_archives:
                     ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
-                   # import pdb; pdb.set_trace()
                     self._unpacked_archives.update([archive])
 
                     # Create an .aar/classes.jar signature for self._unpacked_archives.
                     archive = os.path.join(archive, 'classes.jar')
                 else:
-                  raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar archives'
-                                                   '(was: {})'.format(archive))
+                  raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar '
+                                                   'archives (was: {})'.format(archive))
                 # Unpack the jar files.
                 if archive not in self._unpacked_archives and os.path.isfile(jar_file):
                   ZIP.extract(jar_file, jar_outdir)
