@@ -6,7 +6,9 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+from hashlib import sha1
 
+from pants.backend.android.targets.android_dependency import AndroidDependency
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.core.tasks.task import Task
@@ -14,8 +16,23 @@ from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
 from pants.base.address import SyntheticAddress
 from pants.base.build_environment import get_buildroot
+from pants.base.fingerprint_strategy import DefaultFingerprintHashingMixin, FingerprintStrategy
 from pants.fs.archive import ZIP
 
+
+class AndroidLibraryFingerprintStrategy(DefaultFingerprintHashingMixin, FingerprintStrategy):
+
+  def compute_fingerprint(self, target):
+    """UnpackedJars targets need to be re-unpacked if any of its configuration changes or
+       any of the jars they import have changed.
+    """
+    if isinstance(target, AndroidLibrary):
+      hasher = sha1()
+      for jar_import in sorted(target.imported_jars, key=lambda t: t.id):
+        hasher.update(jar_import.cache_key())
+      hasher.update(target.payload.fingerprint())
+      return hasher.hexdigest()
+    return None
 
 class UnpackLibraries(Task):
 
@@ -125,43 +142,49 @@ class UnpackLibraries(Task):
     return new_target
 
   def execute(self):
-
-    targets = self.context.targets(self.is_library)
     ivy_imports = self.context.products.get('ivy_imports')
 
-    with self.invalidated(targets) as invalidation_check:
-      invalid_targets = []
-      for vt in invalidation_check.invalid_vts:
-        invalid_targets.extend(vt.targets)
-      for target in invalid_targets:
-        imports = ivy_imports.get(target)
-        if imports:
-          for archive_path in imports:
-            for archive in imports[archive_path]:
-              jar_outdir = self.unpack_jar_location(archive)
-              if archive.endswith('.jar'):
-                jar_file = os.path.join(archive_path, archive)
-              elif archive.endswith('.aar'):
-                unpacked_aar_destination = self.unpack_aar_location(archive)
-                jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
+    addresses = [target.address for target in self.context.targets()]
+    unpacked_jars_list = [t for t in
+                          self.context.build_graph.transitive_subgraph_of_addresses(addresses)
+                          if isinstance(t, AndroidLibrary)]
 
-                # Unpack .aar files.
-                if archive not in self._unpacked_archives:
-                  ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+    unpacked_targets = []
+    with self.invalidated(unpacked_jars_list,
+                          fingerprint_strategy=AndroidLibraryFingerprintStrategy(),
+                          invalidate_dependents=True) as invalidation_check:
+      if invalidation_check.invalid_vts:
+        unpacked_targets.extend([vt.target for vt in invalidation_check.invalid_vts])
+        for target in unpacked_targets:
+          imports = ivy_imports.get(target)
+          if imports:
+            for archive_path in imports:
+              for archive in imports[archive_path]:
+                jar_outdir = self.unpack_jar_location(archive)
+                if archive.endswith('.jar'):
+                  jar_file = os.path.join(archive_path, archive)
+                elif archive.endswith('.aar'):
+                  unpacked_aar_destination = self.unpack_aar_location(archive)
+                  jar_file = os.path.join(unpacked_aar_destination, 'classes.jar')
+
+                  # Unpack .aar files.
+                  if archive not in self._unpacked_archives:
+                    ZIP.extract(os.path.join(archive_path, archive), unpacked_aar_destination)
+                   # import pdb; pdb.set_trace()
+                    self._unpacked_archives.update([archive])
+
+                    # Create an .aar/classes.jar signature for self._unpacked_archives.
+                    archive = os.path.join(archive, 'classes.jar')
+                else:
+                  raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar archives'
+                                                   '(was: {})'.format(archive))
+                # Unpack the jar files.
+                if archive not in self._unpacked_archives and os.path.isfile(jar_file):
+                  ZIP.extract(jar_file, jar_outdir)
                   self._unpacked_archives.update([archive])
 
-                  # Create an .aar/classes.jar signature for self._unpacked_archives.
-                  archive = os.path.join(archive, 'classes.jar')
-              else:
-                raise self.UnexpectedArchiveType('Android dependencies can be .aar or .jar archives'
-                                                 '(was: {})'.format(archive))
-              # Unpack the jar files.
-              if archive not in self._unpacked_archives and os.path.isfile(jar_file):
-                ZIP.extract(jar_file, jar_outdir)
-                self._unpacked_archives.update([archive])
-
     # Create the new targets from the contents of unpacked aar files.
-    for target in targets:
+    for target in self.context.targets(self.is_library):
       imports = ivy_imports.get(target)
       if imports:
         for archives in imports.values():
@@ -171,6 +194,9 @@ class UnpackLibraries(Task):
               # The contents of the unpacked aar file must be made into an AndroidLibrary target.
               if archive not in self._created_targets:
                 unpacked_location = self.unpack_aar_location(archive)
+                if not os.path.isdir(unpacked_location):
+                  raise self.MissingElementException('{}: Expected to unpack {} at {} but did not!'
+                                                     .format(target, archive, unpacked_location))
                 new_target = self.create_android_library_target(target, archive, unpacked_location)
                 self._created_targets[archive] = new_target
               target.inject_dependency(self._created_targets[archive].address)
