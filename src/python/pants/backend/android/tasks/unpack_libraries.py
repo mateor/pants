@@ -8,7 +8,6 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 import os
 from hashlib import sha1
 
-from pants.backend.android.targets.android_dependency import AndroidDependency
 from pants.backend.android.targets.android_library import AndroidLibrary
 from pants.backend.android.targets.android_resources import AndroidResources
 from pants.backend.core.tasks.task import Task

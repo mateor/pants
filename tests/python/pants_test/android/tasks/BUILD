@@ -7,6 +7,7 @@ target(
     ':aapt_builder',
     ':aapt_gen',
     ':aapt_task',
+    ':dx_compile',
     ':sign_apk',
     ':unpack_libraries',
     ':zipalign',
@@ -88,8 +89,9 @@ python_tests(
   ],
   dependencies = [
     'src/python/pants/backend/android/tasks:all',
+    'src/python/pants/base:build_environment',
     'src/python/pants/goal:products',
-    'src/python/pants/util:contextutil',
+    'src/python/pants/util:dirutil',
     'tests/python/pants_test/android:android_base',
   ],
 )
@@ -133,10 +135,11 @@ python_tests(
     'test_unpack_libraries.py',
   ],
   dependencies = [
+    'src/python/pants/backend/android/targets:android',
     'src/python/pants/backend/android/tasks:unpack_libraries',
-    'src/python/pants/backend/jvm/tasks:ivy_imports',
-    'src/python/pants/backend/jvm/tasks:ivy_task_mixin',
     'src/python/pants/backend/core/targets:common',
+    'src/python/pants/backend/jvm/targets:jvm',
+    'src/python/pants/backend/jvm/tasks:ivy_task_mixin',
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/fs:fs',
     'src/python/pants/util:contextutil',

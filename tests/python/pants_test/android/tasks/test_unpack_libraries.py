@@ -17,7 +17,6 @@ from pants.backend.android.tasks.unpack_libraries import UnpackLibraries
 from pants.backend.core.targets.dependencies import Dependencies
 from pants.backend.jvm.targets.jar_dependency import JarDependency
 from pants.backend.jvm.targets.jar_library import JarLibrary
-from pants.backend.jvm.tasks.ivy_imports import IvyImports
 from pants.backend.jvm.tasks.ivy_task_mixin import IvyTaskMixin
 from pants.base.build_file_aliases import BuildFileAliases
 from pants.fs.archive import ZIP

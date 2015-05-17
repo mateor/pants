@@ -7,12 +7,10 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 from collections import defaultdict
-from textwrap import dedent
 
 from pants.backend.android.tasks.dx_compile import DxCompile
 from pants.base.build_environment import get_buildroot
 from pants.goal.products import MultipleRootedProducts
-from pants.util.contextutil import temporary_dir, temporary_file
 from pants.util.dirutil import safe_rmtree, touch
 from pants_test.android.test_android_base import TestAndroidBase, distribution
 
