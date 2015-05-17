@@ -229,7 +229,7 @@ class UnpackLibrariesTest(TestAndroidBase):
     shutil.copy(archive, ivy_mapjar_name)
     return ivy_mapjar_name
 
-  def test_aar_file(self):
+  def test_unpack_libraries_invalidation(self):
     with temporary_dir() as temp:
       with self.sample_aarfile('org.pantsbuild.android.test', temp) as aar:
         self.add_to_build_file('unpack', dedent('''
@@ -241,56 +241,38 @@ class UnpackLibrariesTest(TestAndroidBase):
          )
         '''))
         self._make_android_dependency('test-jar', aar, '1.0')
-        test_target = self.target('unpack:test')
-        task = self.create_task(self.context(target_roots=[test_target]))
-
-        for android_archive in test_target.imported_jars:
-          target_jar = self._approximate_ivy_mapjar_name(aar, android_archive)
-          self._add_dummy_product(test_target, target_jar, task)
-        task.execute()
-
-        # Check output from unpacking this aar file.
-        aar_name = os.path.basename(target_jar)
-        files = []
-        jar_location = task.unpack_jar_location(aar_name)
-        for _, dirname, filename in safe_walk(jar_location):
-          files += filename
+        files = self.run_unpack_libraries(aar)
         self.assertIn('Foo.class', files)
 
         # Reset build graph to dismiss all the targets UnpackLibraries creates.
         self.reset_build_graph()
-        test_target = self.target('unpack:test')
-
         # Add sentinel file to the archive without bumping the version.
         with self.sample_aarfile('org.pantsbuild.android.test', temp,
                                  filenames=['a/b/c/Baz.class']) as aar:
 
-          # Call a 2nd time but the sentinel file is not found because we did not bump version.
-          task = self.create_task(self.context(target_roots=[test_target]))
-
-          for android_archive in test_target.imported_jars:
-            target_jar = self._approximate_ivy_mapjar_name(aar, android_archive)
-            self._add_dummy_product(test_target, target_jar, task)
-          task.execute()
-          files = []
-          for _, dirname, filename in safe_walk(jar_location):
-            files += filename
+          # Call task a 2nd time but the sentinel file is not found because we did not bump version.
+          files = self.run_unpack_libraries(aar)
           self.assertNotIn('Baz.class', files)
 
-          # Now bump version and the jar is now unpacked again and the sentinel is found.
+          # Now bump version and this time the aar is unpacked again and the sentinel is found.
           self.reset_build_graph()
           self._make_android_dependency('test-jar', aar, '2.0')
-          test_target = self.target('unpack:test')
-          task = self.create_task(self.context(target_roots=[test_target]))
-
-          for android_archive in test_target.imported_jars:
-            target_jar = self._approximate_ivy_mapjar_name(aar, android_archive)
-            self._add_dummy_product(test_target, target_jar, task)
-         #   import pdb; pdb.set_trace()
-          task.execute()
-          aar_name = os.path.basename(target_jar)
-          files = []
-          jar_location = task.unpack_jar_location(aar_name)
-          for _, dirname, filename in safe_walk(jar_location):
-            files += filename
+          files = self.run_unpack_libraries(aar)
           self.assertIn('Baz.class', files)
+
+  def run_unpack_libraries(self, aar_file):
+    test_target = self.target('unpack:test')
+    task = self.create_task(self.context(target_roots=[test_target]))
+
+    for android_archive in test_target.imported_jars:
+      target_jar = self._approximate_ivy_mapjar_name(aar_file, android_archive)
+      self._add_dummy_product(test_target, target_jar, task)
+    task.execute()
+
+    # Check output from unpacking this aar file.
+    aar_name = os.path.basename(target_jar)
+    files = []
+    jar_location = task.unpack_jar_location(aar_name)
+    for _, _, filename in safe_walk(jar_location):
+      files.extend(filename)
+    return files
