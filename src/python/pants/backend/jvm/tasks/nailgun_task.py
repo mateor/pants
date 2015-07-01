@@ -16,7 +16,7 @@ from pants.java.executor import SubprocessExecutor
 from pants.java.nailgun_executor import NailgunExecutor
 
 
-class NailgunTaskBase(TaskBase, JvmToolTaskMixin):
+class NailgunTaskBase(JvmToolTaskMixin, TaskBase):
 
   @staticmethod
   def killall(everywhere=False):
@@ -24,7 +24,6 @@ class NailgunTaskBase(TaskBase, JvmToolTaskMixin):
 
     Returns ``True`` if all nailguns were successfully killed, ``False`` otherwise.
 
-    :param logger: a callable that accepts a message string describing the killed nailgun process
     :param bool everywhere: ``True`` to kill all nailguns servers launched by pants on this machine
     """
     if not NailgunExecutor.killall:

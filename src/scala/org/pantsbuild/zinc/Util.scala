@@ -5,34 +5,9 @@
 package org.pantsbuild.zinc
 
 import java.io.File
-import sbt.{ ConsoleLogger, Hash, IO, Level, Logger }
+import sbt.{ Hash, IO }
 
 object Util {
-
-  //
-  // Logging
-  //
-
-  /**
-   * Create a new logger based on quiet, level, and color settings.
-   */
-  def logger(quiet: Boolean, level: Level.Value, color: Boolean): Logger = {
-    if (quiet) {
-      new SilentLogger
-    } else {
-      val log = ConsoleLogger(useColor = ConsoleLogger.formatEnabled && color); log.setLevel(level); log
-    }
-  }
-
-  /**
-   * A logger that does nothing.
-   */
-  class SilentLogger extends Logger {
-    def trace(t: => Throwable): Unit = ()
-    def success(message: => String): Unit = ()
-    def log(level: Level.Value, message: => String): Unit = ()
-  }
-
   //
   // Time
   //

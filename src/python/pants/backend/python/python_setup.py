@@ -17,10 +17,7 @@ from pants.subsystem.subsystem import Subsystem
 
 class PythonSetup(Subsystem):
   """A python environment."""
-
-  @classmethod
-  def scope_qualifier(cls):
-    return 'python-setup'
+  options_scope = 'python-setup'
 
   @classmethod
   def register_options(cls, register):
@@ -33,6 +30,22 @@ class PythonSetup(Subsystem):
              help='The wheel version for this python environment.')
     register('--platforms', advanced=True, type=Options.list, default=['current'],
              help='The wheel version for this python environment.')
+    register('--interpreter-cache-dir', advanced=True, default=None, metavar='<dir>',
+             help='The parent directory for the interpreter cache. '
+                  'If unspecified, a standard path under the workdir is used.')
+    register('--chroot-cache-dir', advanced=True, default=None, metavar='<dir>',
+             help='The parent directory for the chroot cache. '
+                  'If unspecified, a standard path under the workdir is used.')
+    register('--resolver-cache-dir', advanced=True, default=None, metavar='<dir>',
+             help='The parent directory for the requirement resolver cache. '
+                  'If unspecified, a standard path under the workdir is used.')
+    register('--resolver-cache-ttl', advanced=True, type=int, metavar='<seconds>',
+             default=10 * 365 * 86400,  # 10 years.
+             help='The time in seconds before we consider re-resolving an open-ended requirement, '
+                  'e.g. "flask>=0.2" if a matching distribution is available on disk.')
+    register('--artifact-cache-dir', advanced=True, default=None, metavar='<dir>',
+             help='The parent directory for the python artifact cache. '
+                  'If unspecified, a standard path under the workdir is used.')
 
   @property
   def interpreter_requirement(self):
@@ -51,9 +64,32 @@ class PythonSetup(Subsystem):
     return self.get_options().platforms
 
   @property
+  def interpreter_cache_dir(self):
+    return (self.get_options().interpreter_cache_dir or
+            os.path.join(self.scratch_dir, 'interpreters'))
+
+  @property
+  def chroot_cache_dir(self):
+    return (self.get_options().chroot_cache_dir or
+            os.path.join(self.scratch_dir, 'chroots'))
+
+  @property
+  def resolver_cache_dir(self):
+    return (self.get_options().resolver_cache_dir or
+            os.path.join(self.scratch_dir, 'resolved_requirements'))
+
+  @property
+  def resolver_cache_ttl(self):
+    return self.get_options().resolver_cache_ttl
+
+  @property
+  def artifact_cache_dir(self):
+    """Note that this is unrelated to the general pants artifact cache."""
+    return (self.get_options().artifact_cache_dir or
+            os.path.join(self.scratch_dir, 'artifacts'))
+
+  @property
   def scratch_dir(self):
-    # Note that this gives us a separate scratch dir for every instance of this subsystem,
-    # which allows us to have multiple python setups in play in a single pants run.
     return os.path.join(self.get_options().pants_workdir, *self.options_scope.split('.'))
 
   def setuptools_requirement(self):
@@ -77,10 +113,7 @@ class PythonSetup(Subsystem):
 
 class PythonRepos(Subsystem):
   """A python code repository."""
-
-  @classmethod
-  def scope_qualifier(cls):
-    return 'python-repos'
+  options_scope = 'python-repos'
 
   @classmethod
   def register_options(cls, register):

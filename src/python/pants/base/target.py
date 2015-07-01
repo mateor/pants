@@ -5,7 +5,6 @@
 from __future__ import (absolute_import, division, generators, nested_scopes, print_function,
                         unicode_literals, with_statement)
 
-import functools
 import os
 from hashlib import sha1
 
@@ -14,7 +13,6 @@ from six import string_types
 from pants.backend.core.wrapped_globs import FilesetWithSpec
 from pants.base.address import Addresses, SyntheticAddress
 from pants.base.build_environment import get_buildroot
-from pants.base.build_manual import manual
 from pants.base.exceptions import TargetDefinitionException
 from pants.base.fingerprint_strategy import DefaultFingerprintStrategy
 from pants.base.hash_utils import hash_all
@@ -215,8 +213,8 @@ class Target(AbstractTarget):
   def num_chunking_units(self):
     return max(1, len(self.sources_relative_to_buildroot()))
 
-  def assert_list(self, maybe_list, expected_type=string_types):
-    return assert_list(maybe_list, expected_type,
+  def assert_list(self, maybe_list, expected_type=string_types, key_arg=None):
+    return assert_list(maybe_list, expected_type, key_arg=key_arg,
                        raise_type=lambda msg: TargetDefinitionException(self, msg))
 
   def compute_invalidation_hash(self, fingerprint_strategy=None):
@@ -466,7 +464,7 @@ class Target(AbstractTarget):
     addr = self.address if hasattr(self, 'address') else 'address not yet set'
     return "{}({})".format(type(self).__name__, addr)
 
-  def create_sources_field(self, sources, sources_rel_path, address=None):
+  def create_sources_field(self, sources, sources_rel_path, address=None, key_arg=None):
     """Factory method to create a SourcesField appropriate for the type of the sources object.
 
     Note that this method is called before the call to Target.__init__ so don't expect fields to
@@ -488,7 +486,7 @@ class Target(AbstractTarget):
       filespec = sources.filespec
     else:
       sources = sources or []
-      assert_list(sources)
+      assert_list(sources, key_arg=key_arg)
       filespec = {'globs' : [os.path.join(sources_rel_path, src) for src in (sources or [])]}
 
     return SourcesField(sources=sources, sources_rel_path=sources_rel_path, filespec=filespec)

@@ -150,7 +150,7 @@ class JunitTestsIntegrationTest(PantsRunIntegrationTest):
         'testprojects/tests/java/org/pantsbuild/testproject/cwdexample',
         '--interpreter=CPython>=2.6,<3',
         '--interpreter=CPython>=3.3',
-        '--test-junit-jvm-options=-Dcwd.test.enabled=true'])
+        '--jvm-test-junit-options=-Dcwd.test.enabled=true'])
     self.assert_failure(pants_run)
 
   def test_junit_test_requiring_cwd_passes_with_option_with_value_specified(self):
@@ -159,7 +159,7 @@ class JunitTestsIntegrationTest(PantsRunIntegrationTest):
         'testprojects/tests/java/org/pantsbuild/testproject/cwdexample',
         '--interpreter=CPython>=2.6,<3',
         '--interpreter=CPython>=3.3',
-        '--test-junit-jvm-options=-Dcwd.test.enabled=true',
+        '--jvm-test-junit-options=-Dcwd.test.enabled=true',
         '--test-junit-cwd=testprojects/src/java/org/pantsbuild/testproject/cwdexample/subdir'])
     self.assert_success(pants_run)
 
@@ -169,7 +169,7 @@ class JunitTestsIntegrationTest(PantsRunIntegrationTest):
         'testprojects/tests/java/org/pantsbuild/testproject/cwdexample',
         '--interpreter=CPython>=2.6,<3',
         '--interpreter=CPython>=3.3',
-        '--test-junit-jvm-options=-Dcwd.test.enabled=true',
+        '--jvm-test-junit-options=-Dcwd.test.enabled=true',
         '--test-junit-cwd',])
     self.assert_success(pants_run)
 
@@ -180,13 +180,15 @@ class JunitTestsIntegrationTest(PantsRunIntegrationTest):
         'testprojects/tests/java/org/pantsbuild/testproject/cwdexample',
         '--interpreter=CPython>=2.6,<3',
         '--interpreter=CPython>=3.3',
-        '--test-junit-jvm-options=-Dcwd.test.enabled=true',
+        '--jvm-test-junit-options=-Dcwd.test.enabled=true',
         '--test-junit-cwd',])
     self.assert_failure(pants_run)
 
+  @unittest.skip("junit-runner-0.0.7 is not published yet")
   def test_junit_test_suppress_output_flag(self):
     pants_run = self.run_pants([
         'test.junit',
         '--no-suppress-output',
         'testprojects/tests/java/org/pantsbuild/testproject/dummies:passing_target'])
-    self.assertTrue('Hello from test!' in pants_run.stdout_data)
+    self.assertIn('Hello from test1!', pants_run.stdout_data)
+    self.assertIn('Hello from test2!', pants_run.stdout_data)

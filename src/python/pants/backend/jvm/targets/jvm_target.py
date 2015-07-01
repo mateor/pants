@@ -12,6 +12,7 @@ from pants.backend.jvm.targets.jarable import Jarable
 from pants.base.payload import Payload
 from pants.base.payload_field import ConfigurationsField, ExcludesField
 from pants.base.target import Target
+from pants.util.memo import memoized_property
 
 
 class JvmTarget(Target, Jarable):
@@ -27,6 +28,7 @@ class JvmTarget(Target, Jarable):
                resources=None,
                configurations=None,
                no_cache=False,
+               services=None,
                **kwargs):
     """
     :param configurations: One or more ivy configurations to resolve for this target.
@@ -38,34 +40,42 @@ class JvmTarget(Target, Jarable):
        file's directory.
     :type sources: ``Fileset`` (from globs or rglobs) or list of strings
     :param no_cache: If True, this should not be stored in the artifact cache
+    :param services: A dict mapping service interface names to the classes owned by this target
+                     that implement them.  Keys are fully qualified service class names, values are
+                     lists of strings, each string the fully qualified class name of a class owned
+                     by this target that implements the service interface and should be
+                     discoverable by the jvm service provider discovery mechanism described here:
+                     https://docs.oracle.com/javase/6/docs/api/java/util/ServiceLoader.html
     """
     self.address = address  # Set in case a TargetDefinitionException is thrown early
     if sources_rel_path is None:
       sources_rel_path = address.spec_path
     payload = payload or Payload()
     payload.add_fields({
-      'sources': self.create_sources_field(sources, sources_rel_path, address),
+      'sources': self.create_sources_field(sources, sources_rel_path, address, key_arg='sources'),
       'provides': provides,
-      'excludes': ExcludesField(self.assert_list(excludes, expected_type=Exclude)),
-      'configurations': ConfigurationsField(self.assert_list(configurations)),
+      'excludes': ExcludesField(self.assert_list(excludes, expected_type=Exclude, key_arg='excludes')),
+      'configurations': ConfigurationsField(self.assert_list(configurations, key_arg='configurations')),
     })
-    self._resource_specs = self.assert_list(resources)
+    self._resource_specs = self.assert_list(resources, key_arg='resources')
 
     super(JvmTarget, self).__init__(address=address, payload=payload,
                                     **kwargs)
+
+    # Service info is only used when generating resources, it should not affect, for example, a
+    # compile fingerprint or javadoc fingerprint.  As such, its not a payload field.
+    self._services = services or {}
+
     self.add_labels('jvm')
     if no_cache:
       self.add_labels('no_cache')
 
-  _jar_dependencies = None
-  @property
+  @memoized_property
   def jar_dependencies(self):
-    if self._jar_dependencies is None:
-      self._jar_dependencies = set(self.get_jar_dependencies())
-    return self._jar_dependencies
+    return set(self.get_jar_dependencies())
 
   def mark_extra_invalidation_hash_dirty(self):
-    self._jar_dependencies = None
+    del self.jar_dependencies
 
   def get_jar_dependencies(self):
     jar_deps = set()
@@ -101,3 +111,7 @@ class JvmTarget(Target, Jarable):
   @property
   def excludes(self):
     return self.payload.excludes
+
+  @property
+  def services(self):
+    return self._services

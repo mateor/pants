@@ -39,43 +39,25 @@ def register_global_options(register):
                 "are used.  Multiple constraints may be added.  They will be ORed together.")
   register('--colors', action='store_true', default=True, recursive=True,
            help='Set whether log messages are displayed in color.')
-  register('--spec-excludes', action='append', default=[register.bootstrap.pants_workdir],
-           help='Exclude these paths when computing the command-line target specs.')
-  register('--exclude-target-regexp', action='append', default=[], metavar='<regexp>',
-           help='Regex pattern to exclude from the target list (useful in conjunction with ::). '
-                'Multiple patterns may be specified by setting this flag multiple times.',
-           recursive=True)
 
-  # TODO: When we have a model for 'subsystems', create one for artifact caching and move these
-  # options to there. When we do that, also drop the cumbersome word 'artifact' from these
-  # option names. There's only one cache concept that users care about.
-  register('--read-from-artifact-cache', action='store_true', default=True, recursive=True,
-           help='Read build artifacts from cache, if available.')
-  register('--read-artifact-caches', type=Options.list, recursive=True,
-           help='The URIs of artifact caches to read from. Each entry is a URL of a RESTful cache, '
-                'a path of a filesystem cache, or a pipe-separated list of alternate caches to '
-                'choose from.')
-  register('--write-to-artifact-cache', action='store_true', default=True, recursive=True,
-           help='Write build artifacts to cache, if possible.')
-  register('--write-artifact-caches', type=Options.list, recursive=True,
-           help='The URIs of artifact caches to write to. Each entry is a URL of a RESTful cache, '
-                'a path of a filesystem cache, or a pipe-separated list of alternate caches to '
-                'choose from.')
-  register('--overwrite-cache-artifacts', action='store_true', recursive=True,
-           help='If writing to build artifacts to cache, overwrite (instead of skip) existing.')
+  register('--spec-excludes', action='append', default=[register.bootstrap.pants_workdir],
+           help='Ignore these paths when evaluating the command-line target specs.  Useful with '
+                '::, to avoid descending into unneeded directories.')
+  register('--exclude-target-regexp', action='append', default=[], metavar='<regexp>',
+           help='Exclude targets that match these regexes. Useful with ::, to ignore broken '
+                'BUILD files.',
+           recursive=True)  # TODO: Does this need to be recursive? What does that even mean?
+  register('--tag', action='append', metavar='[+-]tag1,tag2,...',
+           help="Include only targets with these tags (optional '+' prefix) or without these "
+                "tags ('-' prefix).  Useful with ::, to find subsets of targets "
+                "(e.g., integration tests.)")
   register('--cache-key-gen-version', advanced=True, default='200', recursive=True,
            help='The cache key generation. Bump this to invalidate every artifact for a scope.')
-  register('--cache-compression', advanced=True, type=int, default=5, recursive=True,
-           help='The gzip compression level for created artifacts.')
   register('--print-exception-stacktrace', action='store_true',
            help='Print to console the full exception stack trace if encountered.')
   register('--fail-fast', action='store_true',
            help='When parsing specs, will stop on the first erronous BUILD file encountered. '
                 'Otherwise, will parse all builds in a spec and then throw an Exception.')
-  register('--python-chroot-requirements-ttl', type=int, metavar='<seconds>',
-           default=10 * 365 * 86400,  # 10 years.
-           help='the time in seconds before we consider re-resolving an open-ended '
-                'requirement, e.g. "flask>=0.2" if a matching distribution is available on disk.')
   register('--pants-support-baseurls', type=Options.list, advanced=True, recursive=True,
            default = [ 'https://dl.bintray.com/pantsbuild/bin/build-support' ],
            help='List of urls from which binary tools are downloaded.  Urls are searched in order'
@@ -89,11 +71,3 @@ def register_global_options(register):
   register('--build-file-rev',
            help='Read BUILD files from this scm rev instead of from the working tree.  This is '
            'useful for implementing pants-aware sparse checkouts.')
-
-  # The following options are specific to java_thrift_library targets.
-  register('--thrift-default-compiler', type=str, advanced=True, default='thrift',
-           help='The default compiler to use for java_thrift_library targets.')
-  register('--thrift-default-language', type=str, advanced=True, default='java',
-           help='The default language to generate for java_thrift_library targets.')
-  register('--thrift-default-rpc-style', type=str, advanced=True, default='sync',
-           help='The default rpc-style to generate for java_thrift_library targets.')

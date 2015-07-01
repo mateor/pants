@@ -10,9 +10,11 @@ import re
 
 from pants.backend.jvm.tasks.jvm_tool_task_mixin import JvmToolTaskMixin
 from pants.backend.jvm.tasks.nailgun_task import NailgunTask
+from pants.base.cache_manager import VersionedTargetSet
 from pants.base.exceptions import TaskError
 from pants.base.target import Target
 from pants.process.xargs import Xargs
+from pants.util.dirutil import touch
 
 
 # TODO: Move somewhere more general?
@@ -38,7 +40,7 @@ class FileExcluder(object):
     return True
 
 
-class Scalastyle(NailgunTask, JvmToolTaskMixin):
+class Scalastyle(NailgunTask):
   """Checks scala source files to ensure they're stylish.
 
   Scalastyle only checks scala sources in non-synthetic targets.
@@ -67,6 +69,8 @@ class Scalastyle(NailgunTask, JvmToolTaskMixin):
              help='Path to optional scalastyle excludes file. Each line is a regex. (Blank lines '
                   'and lines starting with \'#\' are ignored.) A file is skipped if its path '
                   '(relative to the repo root) matches any of these regexes.')
+    register('--jvm-options', action='append', metavar='<option>...', advanced=True,
+             help='Run scalastyle with these extra jvm options.')
     cls.register_jvm_tool(register, 'scalastyle')
 
   @classmethod
@@ -94,6 +98,15 @@ class Scalastyle(NailgunTask, JvmToolTaskMixin):
 
     return scala_sources
 
+  def __init__(self, *args, **kwargs):
+    super(Scalastyle, self).__init__(*args, **kwargs)
+
+    self._results_dir = os.path.join(self.workdir, 'results')
+
+  def _create_result_file(self, target):
+    result_file = os.path.join(self._results_dir, target.id)
+    touch(result_file)
+    return result_file
 
   def execute(self):
     if self.get_options().skip:
@@ -105,28 +118,40 @@ class Scalastyle(NailgunTask, JvmToolTaskMixin):
     if not targets:
       return
 
-    scalastyle_config = self.validate_scalastyle_config()
-    scalastyle_excluder = self.create_file_excluder()
+    with self.invalidated(targets) as invalidation_check:
+      invalid_targets = []
+      for vt in invalidation_check.invalid_vts:
+        invalid_targets.extend(vt.targets)
 
-    self.context.log.debug('Non synthetic scala targets to be checked:')
-    for target in targets:
-      self.context.log.debug('  {address_spec}'.format(address_spec=target.address.spec))
+      scalastyle_config = self.validate_scalastyle_config()
+      scalastyle_excluder = self.create_file_excluder()
 
-    scala_sources = self.get_non_excluded_scala_sources(scalastyle_excluder, targets)
-    self.context.log.debug('Non excluded scala sources to be checked:')
-    for source in scala_sources:
-      self.context.log.debug('  {source}'.format(source=source))
+      self.context.log.debug('Non synthetic scala targets to be checked:')
+      for target in invalid_targets:
+        self.context.log.debug('  {address_spec}'.format(address_spec=target.address.spec))
 
-    if scala_sources:
-      def call(srcs):
-        cp = self.tool_classpath('scalastyle')
-        return self.runjava(classpath=cp,
-                            main=self._MAIN,
-                            args=['-c', scalastyle_config] + srcs)
-      result = Xargs(call).execute(scala_sources)
-      if result != 0:
-        raise TaskError('java {entry} ... exited non-zero ({exit_code})'.format(
-          entry=Scalastyle._MAIN, exit_code=result))
+      scala_sources = self.get_non_excluded_scala_sources(scalastyle_excluder, invalid_targets)
+      self.context.log.debug('Non excluded scala sources to be checked:')
+      for source in scala_sources:
+        self.context.log.debug('  {source}'.format(source=source))
+
+      if scala_sources:
+        def call(srcs):
+          cp = self.tool_classpath('scalastyle')
+          return self.runjava(classpath=cp,
+                              main=self._MAIN,
+                              jvm_options=self.get_options().jvm_options,
+                              args=['-c', scalastyle_config] + srcs)
+
+        result = Xargs(call).execute(scala_sources)
+        if result != 0:
+          raise TaskError('java {entry} ... exited non-zero ({exit_code})'.format(
+            entry=Scalastyle._MAIN, exit_code=result))
+
+        if self.artifact_cache_writes_enabled():
+          result_files = lambda vt: map(lambda t: self._create_result_file(t), vt.targets)
+          pairs = [(vt, result_files(vt)) for vt in invalidation_check.invalid_vts]
+          self.update_artifact_cache(pairs)
 
   def validate_scalastyle_config(self):
     scalastyle_config = self.get_options().config

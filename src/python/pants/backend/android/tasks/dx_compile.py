@@ -57,8 +57,6 @@ class DxCompile(AndroidTask, NailgunTask):
     self._forced_build_tools = self.get_options().build_tools_version
     self._forced_jvm_options = self.get_options().jvm_options
 
-    self.setup_artifact_cache()
-
   def _render_args(self, outdir, classes):
     dex_file = os.path.join(outdir, self.DEX_NAME)
     args = []

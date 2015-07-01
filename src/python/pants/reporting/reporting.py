@@ -17,13 +17,11 @@ from pants.reporting.quiet_reporter import QuietReporter
 from pants.reporting.report import Report, ReportingError
 from pants.reporting.reporting_server import ReportingServerManager
 from pants.subsystem.subsystem import Subsystem
-from pants.util.dirutil import safe_mkdir, safe_rmtree
+from pants.util.dirutil import relative_symlink, safe_mkdir, safe_rmtree
 
 
 class Reporting(Subsystem):
-  @classmethod
-  def scope_qualifier(cls):
-    return 'reporting'
+  options_scope = 'reporting'
 
   @classmethod
   def register_options(cls, register):
@@ -50,14 +48,7 @@ class Reporting(Subsystem):
     html_dir = os.path.join(run_dir, 'html')
     safe_mkdir(html_dir)
 
-    try:
-      if os.path.lexists(link_to_latest):
-        os.unlink(link_to_latest)
-      os.symlink(run_dir, link_to_latest)
-    except OSError as e:
-      # Another run may beat us to deletion or creation.
-      if not (e.errno == errno.EEXIST or e.errno == errno.ENOENT):
-        raise
+    relative_symlink(run_dir, link_to_latest)
 
     report = Report()
 

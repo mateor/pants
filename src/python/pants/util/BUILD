@@ -11,6 +11,11 @@ python_library(
 )
 
 python_library(
+  name = 'memo',
+  sources = ['memo.py'],
+)
+
+python_library(
   name = 'dirutil',
   sources = ['dirutil.py'],
   dependencies = [
@@ -24,6 +29,12 @@ python_library(
   dependencies = [
     ':contextutil',
   ],
+)
+
+python_library(
+  name = 'filtering',
+  sources = ['filtering.py'],
+  dependencies = [],
 )
 
 python_library(

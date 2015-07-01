@@ -7,8 +7,6 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import logging
 import os
-import shutil
-import uuid
 from contextlib import contextmanager
 
 from pants.cache.artifact import TarballArtifact
@@ -112,8 +110,8 @@ class LocalArtifactCache(BaseLocalArtifactCache):
 class TempLocalArtifactCache(BaseLocalArtifactCache):
   """A local cache that does not actually store any files between calls.
 
-    This implementation does not have a backing _cache_root, and never
-    actually stores files between calls, but is useful for handling file IO for a remote cache.
+  This implementation does not have a backing _cache_root, and never
+  actually stores files between calls, but is useful for handling file IO for a remote cache.
   """
   def __init__(self, artifact_root, compression):
     """

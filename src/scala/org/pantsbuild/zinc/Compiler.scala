@@ -7,12 +7,11 @@ package org.pantsbuild.zinc
 import java.io.File
 import java.net.URLClassLoader
 import sbt.compiler.javac
-import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, LoggerReporter, ScalaInstance }
+import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, Logger, LoggerReporter, ScalaInstance }
 import sbt.compiler.{ AggressiveCompile, AnalyzingCompiler, CompilerCache, CompileOutput, IC }
 import sbt.inc.{ Analysis, AnalysisStore, FileBasedStore }
 import sbt.Path._
 import xsbti.compile.{ JavaCompiler, GlobalsCache }
-import xsbti.Logger
 
 import org.pantsbuild.zinc.Cache.Implicits
 
@@ -57,7 +56,7 @@ object Compiler {
     val interfaceJar = compilerInterface(setup, instance, log)
     val scalac       = newScalaCompiler(instance, interfaceJar)
     val javac        = newJavaCompiler(instance, setup.javaHome, setup.forkJava)
-    new Compiler(scalac, javac)
+    new Compiler(scalac, javac, setup)
   }
 
   /**
@@ -172,7 +171,7 @@ object Compiler {
 /**
  * A zinc compiler for incremental recompilation.
  */
-class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
+class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler, setup: Setup) {
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
@@ -192,11 +191,12 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
-   * 
+   *
    *  Note: This variant does not report progress updates
    */
   def compile(inputs: Inputs, cwd: Option[File], reporter: xsbti.Reporter)(log: Logger): Analysis = {
-    compile(inputs, cwd, reporter, progress = None)(log)
+    val progress = Some(new SimpleCompileProgress(setup.consoleLog.logPhases, setup.consoleLog.printProgress, setup.consoleLog.heartbeatSecs)(log))
+    compile(inputs, cwd, reporter, progress)(log)
   }
 
   /**
@@ -214,12 +214,8 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
     val incOpts       = incOptions.options
     val compileSetup  = new CompileSetup(compileOutput, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder, incOpts.nameHashing)
     val analysisStore = Compiler.analysisStore(cacheFile)
-    val analysis      = aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache, incOpts)(log)
-    if (mirrorAnalysis) {
-      SbtAnalysis.printRelations(analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
-    }
-    SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
-    analysis
+
+    aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache, incOpts)(log)
   }
 
   /**

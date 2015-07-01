@@ -104,6 +104,7 @@ python_library(
     'src/python/pants/base:target',
     'src/python/pants/base:worker_pool',
     'src/python/pants/util:dirutil',
+    'src/python/pants/util:fileutil',
   ],
 )
 
@@ -176,6 +177,7 @@ python_library(
     'src/python/pants/base:exceptions',
     'src/python/pants/base:hash_utils',
     'src/python/pants/base:workunit',
+    'src/python/pants/java/jar:shader',
     'src/python/pants/option',
     'src/python/pants/util:contextutil',
     'src/python/pants/util:dirutil',

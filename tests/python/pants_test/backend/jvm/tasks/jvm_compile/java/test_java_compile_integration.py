@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import os
 
+from pants.backend.jvm.tasks.jvm_compile.java.java_compile import JavaCompile
 from pants.backend.jvm.tasks.jvm_compile.java.jmake_analysis_parser import JMakeAnalysisParser
 from pants.fs.archive import TarArchiver
 from pants.util.contextutil import temporary_dir
@@ -51,7 +52,7 @@ class JavaCompileIntegrationTest(PantsRunIntegrationTest):
     resources_by_targets (see jvm_compile.py).
     """
     with temporary_dir() as cache_dir:
-      config = {'compile.java': {'write_artifact_caches': [cache_dir]}}
+      config = {'cache.compile.java': {'write_to': [cache_dir]}}
 
       with temporary_dir(root_dir=self.workdir_root()) as workdir:
         pants_run = self.run_pants_with_workdir(
@@ -64,11 +65,13 @@ class JavaCompileIntegrationTest(PantsRunIntegrationTest):
   @provide_compile_strategies
   def test_nocache(self, strategy):
     with temporary_dir() as cache_dir:
-      bad_artifact_dir = os.path.join(cache_dir, 'JavaCompile',
-                                  'testprojects.src.java.org.pantsbuild.testproject.nocache.nocache')
-      good_artifact_dir = os.path.join(cache_dir, 'JavaCompile',
-                                  'testprojects.src.java.org.pantsbuild.testproject.nocache.cache_me')
-      config = {'compile.java': {'write_artifact_caches': [cache_dir]}}
+      bad_artifact_dir = os.path.join(cache_dir,
+          JavaCompile.stable_name(),
+          'testprojects.src.java.org.pantsbuild.testproject.nocache.nocache')
+      good_artifact_dir = os.path.join(cache_dir,
+          JavaCompile.stable_name(),
+          'testprojects.src.java.org.pantsbuild.testproject.nocache.cache_me')
+      config = {'cache.compile.java': {'write_to': [cache_dir]}}
 
       pants_run = self.run_pants(['compile.java',
                                   '--strategy={}'.format(strategy),
@@ -88,9 +91,9 @@ class JavaCompileIntegrationTest(PantsRunIntegrationTest):
     # produces two different artifacts.
 
     with temporary_dir() as cache_dir:
-      artifact_dir = os.path.join(cache_dir, 'JavaCompile',
-                                  'testprojects.src.java.org.pantsbuild.testproject.unicode.main.main')
-      config = {'compile.java': {'write_artifact_caches': [cache_dir]}}
+      artifact_dir = os.path.join(cache_dir, JavaCompile.stable_name(),
+          'testprojects.src.java.org.pantsbuild.testproject.unicode.main.main')
+      config = {'cache.compile.java': {'write_to': [cache_dir]}}
 
       pants_run = self.run_pants(['compile.java',
                                   '--strategy={}'.format(strategy),
@@ -118,9 +121,10 @@ class JavaCompileIntegrationTest(PantsRunIntegrationTest):
     # the artifact contains that resource mapping.
 
     with temporary_dir() as cache_dir:
-      artifact_dir = os.path.join(cache_dir, 'JavaCompile',
-                                  'testprojects.src.java.org.pantsbuild.testproject.annotation.main.main')
-      config = {'compile.java': {'write_artifact_caches': [cache_dir]}}
+      artifact_dir = os.path.join(cache_dir,
+          JavaCompile.stable_name(),
+          'testprojects.src.java.org.pantsbuild.testproject.annotation.main.main')
+      config = {'cache.compile.java': {'write_to': [cache_dir]}}
 
       pants_run = self.run_pants(['compile.java',
                                   '--strategy={}'.format(strategy),

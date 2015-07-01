@@ -13,6 +13,7 @@ from pants.backend.core.targets.dependencies import Dependencies, DeprecatedDepe
 from pants.backend.core.targets.doc import Page, Wiki, WikiArtifact
 from pants.backend.core.targets.prep_command import PrepCommand
 from pants.backend.core.targets.resources import Resources
+from pants.backend.core.tasks.bash_completion import BashCompletionTask
 from pants.backend.core.tasks.builddictionary import BuildBuildDictionary
 from pants.backend.core.tasks.changed_target_goals import CompileChanged, TestChanged
 from pants.backend.core.tasks.clean import Cleaner, Invalidator
@@ -28,7 +29,6 @@ from pants.backend.core.tasks.minimal_cover import MinimalCover
 from pants.backend.core.tasks.noop import NoopCompile, NoopTest
 from pants.backend.core.tasks.pathdeps import PathDeps
 from pants.backend.core.tasks.paths import Path, Paths
-from pants.backend.core.tasks.prepare_resources import PrepareResources
 from pants.backend.core.tasks.reporting_server import KillServer, RunServer
 from pants.backend.core.tasks.roots import ListRoots
 from pants.backend.core.tasks.run_prep_command import RunPrepCommand
@@ -95,6 +95,9 @@ def build_file_aliases():
 
 
 def register_goals():
+  # TODO: Most of these (and most tasks in other backends) can probably have their
+  # with_description() removed, as their docstring will be used instead.
+
   # Getting help.
   task(name='goals', action=ListGoals).install().with_description('List all documented goals.')
 
@@ -128,9 +131,6 @@ def register_goals():
   task(name='killserver', action=KillServer, serialize=False).install().with_description(
       'Kill the reporting server.')
 
-  # Bootstrapping.
-  task(name='prepare', action=PrepareResources).install('resources')
-
   task(name='markdown', action=MarkdownToHtml).install('markdown').with_description(
       'Generate html from markdown docs.')
 
@@ -157,8 +157,7 @@ def register_goals():
   task(name='minimize', action=MinimalCover).install().with_description(
       'Print the minimal cover of the given targets.')
 
-  task(name='filter', action=Filter).install().with_description(
-      'Filter the input targets based on various criteria.')
+  task(name='filter', action=Filter).install()
 
   task(name='sort', action=SortTargets).install().with_description(
       'Topologically sort the targets.')
@@ -184,3 +183,6 @@ def register_goals():
 
   task(name='deferred-sources', action=DeferredSourcesMapper).install().with_description(
     'Map unpacked sources from archives.')
+
+  task(name='bash-completion', action=BashCompletionTask).install().with_description(
+    'Dump bash shell script for autocompletion of pants command lines.')

@@ -9,13 +9,13 @@ import os
 
 from twitter.common.collections import OrderedSet
 
-from pants.backend.jvm.tasks.jvm_tool_task_mixin import JvmToolTaskMixin
 from pants.backend.jvm.tasks.nailgun_task import NailgunTask
+from pants.base.cache_manager import VersionedTargetSet
 from pants.base.exceptions import TaskError
 from pants.base.target import Target
 from pants.option.options import Options
 from pants.process.xargs import Xargs
-from pants.util.dirutil import safe_open
+from pants.util.dirutil import safe_open, touch
 
 
 class Checkstyle(NailgunTask):
@@ -36,6 +36,8 @@ class Checkstyle(NailgunTask):
     register('--confs', default=['default'],
              help='One or more ivy configurations to resolve for this target. This parameter is '
                   'not intended for general use. ')
+    register('--jvm-options', action='append', metavar='<option>...', advanced=True,
+             help='Run checkstyle with these extra jvm options.')
     cls.register_jvm_tool(register, 'checkstyle')
 
   @classmethod
@@ -43,10 +45,20 @@ class Checkstyle(NailgunTask):
     super(Checkstyle, cls).prepare(options, round_manager)
     round_manager.require_data('compile_classpath')
 
+  def __init__(self, *args, **kwargs):
+    super(Checkstyle, self).__init__(*args, **kwargs)
+
+    self._results_dir = os.path.join(self.workdir, 'results')
+
   def _is_checked(self, target):
     return (isinstance(target, Target) and
             target.has_sources(self._JAVA_SOURCE_EXTENSION) and
             (not target.is_synthetic))
+
+  def _create_result_file(self, target):
+    result_file = os.path.join(self._results_dir, target.id)
+    touch(result_file)
+    return result_file
 
   def execute(self):
     if self.get_options().skip:
@@ -62,6 +74,11 @@ class Checkstyle(NailgunTask):
         if result != 0:
           raise TaskError('java {main} ... exited non-zero ({result})'.format(
             main=self._CHECKSTYLE_MAIN, result=result))
+
+        if self.artifact_cache_writes_enabled():
+          result_files = lambda vt: map(lambda t: self._create_result_file(t), vt.targets)
+          pairs = [(vt, result_files(vt)) for vt in invalidation_check.invalid_vts]
+          self.update_artifact_cache(pairs)
 
   def calculate_sources(self, targets):
     sources = set()
@@ -92,6 +109,7 @@ class Checkstyle(NailgunTask):
     # with Xargs since checkstyle does not accept, for example, @argfile style arguments.
     def call(xargs):
       return self.runjava(classpath=union_classpath, main=self._CHECKSTYLE_MAIN,
+                          jvm_options=self.get_options().jvm_options,
                           args=args + xargs, workunit_name='checkstyle')
     checks = Xargs(call)
 

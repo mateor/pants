@@ -121,11 +121,14 @@ class IvyTaskMixin(object):
       # targets up to date... See https://rbcommons.com/s/twitter/r/2015
       report_missing = False
       report_confs = confs or ['default']
+      report_paths = []
       for conf in report_confs:
         report_path = IvyUtils.xml_report_path(global_vts.targets, conf)
         if not os.path.exists(report_path):
           report_missing = True
           break
+        else:
+          report_paths.append(report_path)
 
       target_workdir = os.path.join(ivy_workdir, global_vts.cache_key.hash)
       target_classpath_file = os.path.join(target_workdir, 'classpath')
@@ -149,7 +152,8 @@ class IvyTaskMixin(object):
             executor=executor,
             ivy=ivy,
             workunit_name=workunit_name,
-            confs=confs)
+            confs=confs,
+            use_soft_excludes=self.get_options().soft_excludes)
 
         if not os.path.exists(raw_target_classpath_file_tmp):
           raise TaskError('Ivy failed to create classpath file at {}'
@@ -159,6 +163,8 @@ class IvyTaskMixin(object):
 
         if self.artifact_cache_writes_enabled():
           self.update_artifact_cache([(global_vts, [raw_target_classpath_file])])
+      else:
+        logger.debug("Using previously resolved reports: {}".format(report_paths))
 
     # Make our actual classpath be symlinks, so that the paths are uniform across systems.
     # Note that we must do this even if we read the raw_target_classpath_file from the artifact
@@ -226,7 +232,8 @@ class IvyTaskMixin(object):
                   confs=confs,
                   ivy=Bootstrapper.default_ivy(),
                   workunit_name='map-jars',
-                  jars=jars)
+                  jars=jars,
+                  use_soft_excludes=False)
 
     for org in os.listdir(mapdir):
       orgdir = os.path.join(mapdir, org)
@@ -254,7 +261,8 @@ class IvyTaskMixin(object):
                confs=None,
                ivy=None,
                workunit_name='ivy',
-               jars=None):
+               jars=None,
+               use_soft_excludes=False):
     ivy_jvm_options = copy.copy(self.get_options().jvm_options)
     # Disable cache in File.getCanonicalPath(), makes Ivy work with -symlink option properly on ng.
     ivy_jvm_options.append('-Dsun.io.useCanonCaches=false')
@@ -263,9 +271,10 @@ class IvyTaskMixin(object):
     ivyxml = os.path.join(target_workdir, 'ivy.xml')
 
     if not jars:
-      jars, excludes = IvyUtils.calculate_classpath(targets, self.get_options().automatic_excludes)
-      if self.get_options().soft_excludes:
-        excludes = filter(self._exclude_is_not_contained_in_jars(jars), excludes)
+      automatic_excludes = self.get_options().automatic_excludes
+      jars, excludes = IvyUtils.calculate_classpath(targets,
+                                                    gather_excludes=not use_soft_excludes,
+                                                    automatic_excludes=automatic_excludes)
     else:
       excludes = set()
 
@@ -311,3 +320,4 @@ class IvyTaskMixin(object):
       '-symlink',
       ]
     return ivy_args
+

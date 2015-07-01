@@ -4,6 +4,7 @@
 target(
   name = 'all',
   dependencies = [
+    ':bash_completion',
     ':builddictionary',
     ':changed_target_goals',
     ':clean',
@@ -22,7 +23,6 @@ target(
     ':noop',
     ':pathdeps',
     ':paths',
-    ':prepare_resources',
     ':reporting_server',
     ':roots',
     ':run_prep_command',
@@ -41,6 +41,19 @@ target(
     'src/python/pants/base:exceptions',
   ]
 )
+
+python_library(
+  name = 'bash_completion',
+  sources = ['bash_completion.py'],
+  resources = globs('templates/bash_completion/*.mustache'),
+  dependencies = [
+    ':console_task',
+    'src/python/pants/base:exceptions',
+    'src/python/pants/base:generator',
+    'src/python/pants/goal',
+    'src/python/pants/option',
+    ],
+  )
 
 python_library(
   name = 'builddictionary',
@@ -136,6 +149,7 @@ python_library(
     'src/python/pants/base:build_environment',
     'src/python/pants/base:cmd_line_spec_parser',
     'src/python/pants/base:target',
+    'src/python/pants/util:filtering',
   ],
 )
 
@@ -178,12 +192,13 @@ python_library(
     '3rdparty/python:Pygments',
     '3rdparty/python:docutils',
     '3rdparty/python:six',
-    ':common',
+    ':task',
     'src/python/pants/backend/core/targets:common',
     'src/python/pants/base:address',
     'src/python/pants/base:build_environment',
+    'src/python/pants/base:exceptions',
     'src/python/pants/base:generator',
-    'src/python/pants/base:target',
+    'src/python/pants/base:workunit',
     'src/python/pants/util:dirutil',
     'src/python/pants:binary_util',
   ],
@@ -219,17 +234,6 @@ python_library(
   dependencies = [
     ':console_task',
     'src/python/pants/base:exceptions',
-  ],
-)
-
-python_library(
-  name = 'prepare_resources',
-  sources = ['prepare_resources.py'],
-  dependencies = [
-    ':common',
-    'src/python/pants/goal:products',
-    'src/python/pants/option',
-    'src/python/pants/util:dirutil',
   ],
 )
 
@@ -325,6 +329,7 @@ python_library(
     'src/python/pants/cache',
     'src/python/pants/ivy',
     'src/python/pants/java:executor',
+    'src/python/pants/option',
     'src/python/pants/reporting',
     'src/python/pants/util:meta',
   ],

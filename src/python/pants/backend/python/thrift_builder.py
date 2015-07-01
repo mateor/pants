@@ -18,32 +18,22 @@ from pants.util.dirutil import safe_mkdir, safe_walk
 
 
 class PythonThriftBuilder(CodeGenerator):
-  """Code Generator a  Python code from thrift IDL files."""
+  """Generate Python code from thrift IDL files."""
   class UnknownPlatformException(CodeGenerator.Error):
     def __init__(self, platform):
       super(PythonThriftBuilder.UnknownPlatformException, self).__init__(
           'Unknown platform: {}!'.format(str(platform)))
 
-  def __init__(self, target, root_dir, options, target_suffix=None):
+  def __init__(self, target, root_dir, options, target_suffix):
     super(PythonThriftBuilder, self).__init__(target, root_dir, options, target_suffix)
     self._workdir = os.path.join(options.for_global_scope().pants_workdir, 'thrift', 'py-thrift')
-
-  @classmethod
-  def register_options(cls, register):
-    """Register options for this task.
-
-    Note that this task uses options from scope 'gen.thrift' to determine the settings for
-    finding the thrift binary.
-    """
-    super(PythonThriftBuilder, cls).register_options(register)
 
   @property
   def install_requires(self):
     return ['thrift']
 
   def run_thrifts(self):
-    """
-    Generate Python thrift code.
+    """Generate Python thrift code.
 
     Thrift fields conflicting with Python keywords are suffixed with a trailing
     underscore (e.g.: from_).

@@ -6,9 +6,11 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
                         unicode_literals, with_statement)
 
 import os
+import re
 import subprocess
 
 from pants.base.build_environment import get_buildroot
+from pants.util.contextutil import open_zip
 from pants_test.pants_run_integration_test import PantsRunIntegrationTest
 
 
@@ -24,14 +26,20 @@ class WireIntegrationTest(PantsRunIntegrationTest):
                                 'examples/src/java/org/pantsbuild/example/wire/temperature'])
     self.assert_success(pants_run)
 
+    expected_patterns = [
+      '/gen/wire/{subdir}/org/pantsbuild/example/temperature/Temperature.java'.format(
+          subdir=r'((global)|(isolated/[a-zA-Z0-9._-]+))'),
+    ]
     expected_outputs = [
       'Compiling proto source file',
       'Created output directory',
       'Writing generated code',
-      '/gen/wire/gen-java/org/pantsbuild/example/temperature/Temperature.java',
     ]
     for expected_output in expected_outputs:
       self.assertIn(expected_output, pants_run.stdout_data)
+    for pattern in expected_patterns:
+      self.assertTrue(re.search(pattern, pants_run.stdout_data) is not None, 'Expected pattern: '
+                      '{0}'.format(pattern))
 
   def test_bundle_wire_normal(self):
     pants_run = self.run_pants(['bundle',
@@ -66,3 +74,26 @@ class WireIntegrationTest(PantsRunIntegrationTest):
     self.assertIn('Element{symbol=Hg, name=Mercury, atomic_number=80, '
                   'melting_point=Temperature{unit=celsius, number=-39}, '
                   'boiling_point=Temperature{unit=celsius, number=357}}', java_out)
+    self.assertIn('Compound{name=Water, primary_element=Element{symbol=O, name=Oxygen, '
+                  'atomic_number=8}, secondary_element=Element{symbol=H, name=Hydrogen, '
+                  'atomic_number=1}}', java_out)
+
+  def test_compile_wire_roots(self):
+    pants_run = self.run_pants(['bundle', '--deployjar',
+                                'examples/src/java/org/pantsbuild/example/wire/roots'])
+    self.assert_success(pants_run)
+    out_path = os.path.join(get_buildroot(), 'dist', 'wire-roots-example.jar')
+    with open_zip(out_path) as zipfile:
+      jar_entries = zipfile.namelist()
+
+    def is_relevant(entry):
+      return (entry.startswith('org/pantsbuild/example/roots/') and entry.endswith('.class')
+              and '$' not in entry)
+
+    expected_classes = {
+      'org/pantsbuild/example/roots/Bar.class',
+      'org/pantsbuild/example/roots/Foobar.class',
+      'org/pantsbuild/example/roots/Fooboo.class',
+    }
+    received_classes = {entry for entry in jar_entries if is_relevant(entry)}
+    self.assertEqual(expected_classes, received_classes)

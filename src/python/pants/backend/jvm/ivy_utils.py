@@ -122,6 +122,8 @@ class IvyInfo(object):
 
     :param jar_library A JarLibrary to collect the transitive artifacts for.
     :param memo see `traverse_dependency_graph`
+    :returns: all the artifacts for all of the jars in this library, including transitive deps
+    :rtype: list of IvyArtifact
     """
     artifacts = OrderedSet()
     def create_collection(dep):
@@ -282,7 +284,7 @@ class IvyUtils(object):
   def _parse_xml_report(cls, path):
     if not os.path.exists(path):
       return None
-
+    logger.debug("Parsing ivy report {}".format(path))
     ret = IvyInfo()
     etree = xml.etree.ElementTree.parse(path)
     doc = etree.getroot()
@@ -369,7 +371,7 @@ class IvyUtils(object):
       generator.write(output)
 
   @classmethod
-  def calculate_classpath(cls, targets, automatic_excludes=True):
+  def calculate_classpath(cls, targets, gather_excludes=True, automatic_excludes=True):
     jars = OrderedDict()
     excludes = set()
     targets_processed = set()
@@ -385,32 +387,41 @@ class IvyUtils(object):
       )
 
     def collect_jars(target):
-      targets_processed.add(target)
-      if isinstance(target, JarLibrary):
-        # Combine together requests for jars with different classifiers from the same jar_library
-        # TODO(Eric Ayers) This is a short-term fix for dealing with the same ivy module that
-        # wants to download multiple jar files with different classifiers as binary dependencies.
-        # I am trying to work out a better long-term solution in this design doc:
-        # https://docs.google.com/document/d/1sEMXUmj7v-YCBZ_wHLpCFjkHOeWjsc1NR1hRIJ9uCZ8
-        target_jars = []
-        for jar in target.jar_dependencies:
-          target_jars.append(jar)
-        for jar in cls._combine_jars(target_jars):
-          if jar.rev:
-            add_jar(jar)
+      if not isinstance(target, JarLibrary):
+        return
+      # Combine together requests for jars with different classifiers from the same jar_library
+      # TODO(Eric Ayers) This is a short-term fix for dealing with the same ivy module that
+      # wants to download multiple jar files with different classifiers as binary dependencies.
+      # I am trying to work out a better long-term solution in this design doc:
+      # https://docs.google.com/document/d/1sEMXUmj7v-YCBZ_wHLpCFjkHOeWjsc1NR1hRIJ9uCZ8
+      for jar in cls._combine_jars(target.jar_dependencies):
+        if jar.rev:
+          add_jar(jar)
 
+    def collect_excludes(target):
       target_excludes = target.payload.get_field_value('excludes')
       if target_excludes:
         excludes.update(target_excludes)
-      if target.is_exported and automatic_excludes:
-        # if a source dep is exported, it should always override remote/binary versions
-        # of itself, ie "round trip" dependencies
-        logger.debug('Automatically excluding jar {}.{}, which is provided by {}'.format(
-          target.provides.org, target.provides.name, target))
-        excludes.add(Exclude(org=target.provides.org, name=target.provides.name))
+
+    def collect_automatic_excludes(target):
+      if not target.is_exported:
+        return
+      # if a source dep is exported, it should always override remote/binary versions
+      # of itself, ie "round trip" dependencies
+      logger.debug('Automatically excluding jar {}.{}, which is provided by {}'.format(
+        target.provides.org, target.provides.name, target))
+      excludes.add(Exclude(org=target.provides.org, name=target.provides.name))
+
+    def collect_elements(target):
+      targets_processed.add(target)
+      collect_jars(target)
+      if gather_excludes:
+        collect_excludes(target)
+        if automatic_excludes:
+          collect_automatic_excludes(target)
 
     for target in targets:
-      target.walk(collect_jars, predicate=lambda target: target not in targets_processed)
+      target.walk(collect_elements, predicate=lambda target: target not in targets_processed)
 
     return jars.values(), excludes
 

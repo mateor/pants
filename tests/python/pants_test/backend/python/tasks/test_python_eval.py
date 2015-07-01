@@ -10,7 +10,6 @@ from textwrap import dedent
 from pants.backend.python.targets.python_binary import PythonBinary
 from pants.backend.python.targets.python_library import PythonLibrary
 from pants.backend.python.tasks.python_eval import PythonEval
-from pants.base.exceptions import TaskError
 from pants.base.source_root import SourceRoot
 from pants_test.backend.python.tasks.python_task_test import PythonTaskTest
 
@@ -22,8 +21,15 @@ class PythonEvalTest(PythonTaskTest):
 
   def setUp(self):
     super(PythonEvalTest, self).setUp()
-
     SourceRoot.register('src', PythonBinary, PythonLibrary)
+    self._create_graph(broken_b_library=True)
+
+  def tearDown(self):
+    super(PythonEvalTest, self).tearDown()
+    SourceRoot.reset()
+
+  def _create_graph(self, broken_b_library):
+    self.reset_build_graph()
 
     self.a_library = self.create_python_library('src/a', 'a', {'a.py': dedent("""
     import inspect
@@ -44,25 +50,16 @@ class PythonEvalTest(PythonTaskTest):
       pass
     """)})
 
+    # TODO: Presumably this was supposed to be c_library, not override b_library. Unravel and fix.
     self.b_library = self.create_python_library('src/c', 'c', {'c.py': dedent("""
     from a.a import compile_time_check_decorator
 
 
     @compile_time_check_decorator
-    def baz_c():
+    {}:
       pass
-    """)}, dependencies=['//src/a'])
-
-    def fix_c_source():
-      self.create_file('src/c/c.py', contents=dedent("""
-      from a.a import compile_time_check_decorator
-
-      # Change from decorated function baz_c to decorated class BazC.
-      @compile_time_check_decorator
-      class BazC(object):
-        pass
-      """))
-    self.fix_c_source = fix_c_source
+    """.format('def baz_c()' if broken_b_library else 'class BazC(object)')
+    )}, dependencies=['//src/a'])
 
     self.d_library = self.create_python_library('src/d', 'd', { 'd.py': dedent("""
     from a.a import compile_time_check_decorator
@@ -79,10 +76,6 @@ class PythonEvalTest(PythonTaskTest):
     self.g_binary = self.create_python_binary('src/g', 'g', 'a.a:does_not_exist',
                                               dependencies=['//src/a'])
     self.h_binary = self.create_python_binary('src/h', 'h', 'a.a')
-
-  def tearDown(self):
-    super(PythonEvalTest, self).tearDown()
-    SourceRoot.reset()
 
   def _create_task(self, target_roots, options=None):
     if options:
@@ -116,7 +109,7 @@ class PythonEvalTest(PythonTaskTest):
   def test_compile_fail_closure(self):
     python_eval = self._create_task(target_roots=[self.b_library], options={'closure': True})
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual([self.a_library], e.exception.compiled)
     self.assertEqual([self.b_library], e.exception.failed)
@@ -124,12 +117,12 @@ class PythonEvalTest(PythonTaskTest):
   def test_compile_incremental_progress(self):
     python_eval = self._create_task(target_roots=[self.b_library], options={'closure': True})
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual([self.a_library], e.exception.compiled)
     self.assertEqual([self.b_library], e.exception.failed)
 
-    self.fix_c_source()
+    self._create_graph(broken_b_library=False)
     python_eval = self._create_task(target_roots=[self.b_library], options={'closure': True})
 
     compiled = python_eval.execute()
@@ -146,7 +139,7 @@ class PythonEvalTest(PythonTaskTest):
   def test_compile_fail_compile_time_check_decorator(self):
     python_eval = self._create_task(target_roots=[self.b_library])
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual([], e.exception.compiled)
     self.assertEqual([self.b_library], e.exception.failed)
@@ -155,7 +148,7 @@ class PythonEvalTest(PythonTaskTest):
     python_eval = self._create_task(target_roots=[self.a_library, self.b_library, self.d_library],
                                     options={'fail_slow': True})
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual({self.a_library, self.d_library}, set(e.exception.compiled))
     self.assertEqual([self.b_library], e.exception.failed)
@@ -175,7 +168,7 @@ class PythonEvalTest(PythonTaskTest):
   def test_entry_point_does_not_exist(self):
     python_eval = self._create_task(target_roots=[self.g_binary])
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual([], e.exception.compiled)
     self.assertEqual([self.g_binary], e.exception.failed)
@@ -183,7 +176,7 @@ class PythonEvalTest(PythonTaskTest):
   def test_entry_point_missing_build_dep(self):
     python_eval = self._create_task(target_roots=[self.h_binary])
 
-    with self.assertRaises(TaskError) as e:
+    with self.assertRaises(PythonEval.Error) as e:
       python_eval.execute()
     self.assertEqual([], e.exception.compiled)
     self.assertEqual([self.h_binary], e.exception.failed)

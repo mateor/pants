@@ -14,45 +14,11 @@ Running from sources
 As pants is implemented in python it can be run directly from sources.
 
     :::bash
-    $ PANTS_DEV=1 ./pants goals
-    *** running pants in dev mode from ./src/python/pants/bin/pants_exe.py ***
+    $ ./pants goals
     <remainder of output omitted for brevity>
 
 Notice this invocation specifies the `PANTS_DEV` environment variable.
 By defining `PANTS_DEV` pants will be run from sources.
-
-Building a Pants PEX for Testing
---------------------------------
-
-The `./pants` wrapper provides a convenient way to produce a `.pex` file for testing pants on
-your local workstation. If you call it without the `PANTS_DEV=1` environment described above, it
-
-+   Checks the source tree's top directory for a `pants.pex` and runs
-    it if it exists. Otherwise `./pants`...
-+   Builds a new `pants.pex`, moves it to the source tree's top
-    directory, and runs that.
-
-It looks something like
-
-    :::bash
-    $ rm pants.pex
-    $ ./pants my-new-feature
-    Building pants.pex to /Users/zundel/Src/Pants/pants.pex...
-    ...
-    Build operating on top level addresses: set([BuildFileAddress(/Users/pantsdev/Src/pants/src/python/pants/bin/BUILD, pants_local_binary)])
-    Building PythonBinary PythonBinary(BuildFileAddress(/Users/pantsdev/Src/pants/src/python/pants/bin/BUILD, pants_local_binary)):
-    Wrote /Users/pantsdev/Src/pants/dist/pants_local_binary.pex
-    /Users/pantsdev/Src/Pants/dist/pants_local_binary.pex -> /Users/pantsdev/Src/Pants/pants.pex
-    AMAZING NEW FEATURE PRINTS HERE
-    $ ls pants.pex # gets moved here, though originally "Wrote" to ./dist/
-    pants.pex
-    $ ./pants my-new-feature
-    AMAZING NEW FEATURE PRINTS HERE
-
-Using `./pants` to launch Pants thus gives a handy workflow: generate `pants.pex`.
-Go back and forth between trying the generated `pants.pex` and fixing source code as inspired by
-its misbehaviors. When the fixed source code is in a consistent state, remove `pants.pex` so
-that it will get replaced on the next `./pants` run.
 
 Building a Pants PEX for Production
 -----------------------------------
@@ -63,12 +29,62 @@ What if you want to create a custom build of pants with some unpublished patches
 In that case, you want to build a production ready version of pants including dependencies for
 all platforms, not just your development environment.
 
-The following command will create a locally built `pants.pex` for all platforms:
+In the following examples, you'll be using 2 local repos.  The path to the pantsbuild/pants clone
+will be `/tmp/pantsbuild` and the path to your repo `/your/repo` in all the examples below; make
+sure to substitute your own paths when adapting this recipe to your environment.
+
+You'll need to setup some files one-time in your own repo:
 
     :::bash
-    $ ./pants binary src/python/pants/bin:pants
-    ...
-    SUCCESS
+    $ cat pants-production.requirements.txt
+    # Replace this path with the path to your pantsbuild.pants clone.
+    -f /tmp/pantsbuild/dist/
+    pantsbuild.pants
+
+    $ cat BUILD.pants-production
+    python_requirements('pants-production.requirements.txt')
+
+    python_binary(
+      name='pants',
+      entry_point='pants.bin.pants_exe:main',
+      # You may want to tweak the list of supported platforms to match your environment.
+      platforms=[
+        'current',
+        'linux-x86_64',
+        'macosx-10.4-x86_64',
+      ],
+      # You may want to adjust the python interpreter constraints, but note that pants requires
+      # python2.7 currently.
+      compatibility='CPython>=2.7,<3',
+      dependencies=[
+        ':pantsbuild.pants',
+        # List any other pants backend local or remote deps here, ie:
+        # ':pantsbuild.pants.contrib.spindle' or 'src/python/your/pants/plugin'
+      ]
+    )
+
+    $ cat pants-production.ini
+    [python-repos]
+    # You should replace these repos with your own housing pre-built eggs or wheels for the
+    # platforms you support.
+    repos: [
+        "https://pantsbuild.github.io/cheeseshop/third_party/python/dist/index.html",
+        "https://pantsbuild.github.io/cheeseshop/third_party/python/index.html"
+      ]
+
+    indexes: ["https://pypi.python.org/simple/"]
+
+To (re-)generate a `pants.pex` you then run these 2 commands:
+
+1. In your pantsbuild/pants clone, create a local pants release from master:
+
+        :::bash
+        $ rm -rf dist && ./build-support/bin/release.sh -n
+
+2. In your own repo the following command will create a locally built `pants.pex` for all platforms:
+
+        :::bash
+        $ /tmp/pantsbuild/pants --config-override=pants-production.ini clean-all binary //:pants
 
 The resulting `pants.pex` will be in the `dist/` directory:
 
@@ -87,13 +103,6 @@ A user can just copy this pex to the top of their Pants workspace and use it:
     :::bash
     $ cp /mnt/fd0/pants.pex .
     $ ./pants.pex goal test examples/tests/java/org/pantsbuild/example/hello/greet:
-
-There are some parameters in `src/python/pants/bin/BUILD` that you may want to tweak for your
-production distribution. For example, you may want to force the Python interpreter to be a
-specific version:
-
-    :::python
-    PANTS_COMPATIBILITY = 'CPython>=2.7,<2.8'
 
 Testing
 -------
@@ -194,32 +203,83 @@ depends on) the modules you want:
     >>> from pants.backend.core.targets import repository
     >>>
 
-Debugging a JVM Tool
---------------------
+Developing and Debugging a JVM Tool
+-----------------------------------
 
-Some Pants tools are imported as external JVM dependencies. If you need
-to debug one of these tools and change code, see
+Some Pants tools are written in Java and Scala. If you need
+to debug one of these tools and change code, keep in mind that these tools don't
+run straight from the Pants source tree.  They expect their jar dependencies to be
+resolved through external jar dependencies.  This means that to use a development
+version of a tool you will need to adjust the external dependency information
+in `BUILD.tools` to point Pants at a development version of your jar file.
+
+First, create a jar file for the tool with the `binary` goal.
+
+    :::bash
+    $ ./pants binary src/scala/org/pantsbuild/zinc::
+
+The above command will create `dist/main.jar` according to the _jvm_binary_
+target defined in `src/scala/org/pantsbuild/zinc/BUILD`
+
+
+You'll need to update the jar dependency that this tool uses for Pants to see the
+development version.  See
 <a pantsref="test_3rdparty_jvm_snapshot">Using a SNAPSHOT JVM Dependency</a>
 which describes how to specify the `url` and `mutable` attributes of a `jar`
 dependency found on the local filesystem:
 
     :::python
-    jar_library(name='jmake',
+    jar_library(name='zinc',
         jars=[
-          jar(org='com.sun.tools', name='jmake', rev='1.3.8-4-SNAPSHOT',
-              url='file://squarepants/lib/jmake.jar', mutable=True),
+          jar(org='org.pantsbuild', name='zinc', rev='1.2.3-SNAPSHOT',
+              url='file:///Users/squarepants/Src/pants/dist/main.jar', mutable=True),
       ],
     )
 
-Append JVM args to turn on the debugger for the appropriate tool in
+For debugging, append JVM args to turn on the debugger for the appropriate tool in
 `pants.ini`:
 
     :::ini
-    [jar-tool]
-    jvm_args: ['-Xmx300m', '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=%(debug_port)s']
+    [compile.zinc-java]
+    jvm_options: ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005']
 
-Note that some tools run under nailgun by default. The easiest way to
+Note that most tools run under nailgun by default. The easiest way to
 debug them is to disable nailgun by specifying the command line option
-`--no-ng-daemons`. If you need to debug the tool under nailgun, make
-sure you run `pants goal ng-killall` or `pants goal clean-all` so that
-any running nailgun servers are restarted.
+`--no-use-nailgun` or setting `use_nailgun: False` in the specific tool section or in the
+`[DEFAULT]` section of `pants.ini`.
+
+    :::ini
+    [DEFAULT]
+    use_nailgun: False
+
+###JVM Tool Development Tips
+
+If you need to debug the tool under nailgun, make
+sure you run `pants goal ng-killall` or `pants goal clean-all` after you update the
+jar file so that any running nailgun servers are restarted on the next invocation
+of Pants.
+
+Also, you may need to clean up some additional state when testing a tool. Some tools
+cache a shaded version under `~/.cache/pants/artifact_cache/`.  Clear out the cache
+before testing a new version of the tool as follows:
+
+    :::bash
+    $ rm -rf ~/.cache.pants/artifact_cache
+
+If you have trouble resolving the file with Ivy after making the
+above changes to `BUILD.tools`:
+
+  - Make sure your url is absolute and contains three slashes (`///`) at the start
+of the path.
+  - If your repo has an `ivysettings.xml` file (the pants repo currently does not),
+try adding a minimal `<filesystem>` resolver that doesn't enforce a pom being
+present as follows:
+
+        :::xml
+        <resolvers>
+          <chain name="chain-repos" returnFirst="true">
+            <filesystem name="internal"></filesystem>
+            ...
+          </chain>
+        </resolvers>
+
