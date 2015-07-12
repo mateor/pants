@@ -1,40 +1,7 @@
 <?xml version="1.0"?>
-<!--
-Copyright 2015 Pants project contributors (see CONTRIBUTORS.md).
-Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 <ivysettings>
-  <property name="ivy.cache.dir" value="${user.home}/.ivy2/pants" override="false"/>
-  <properties environment="env" />
-  <property name="env.ANDROID_HOME" value="/please-export-your-ANDROID_HOME" override="false"/>
-  <property name="android.repo.dir" value="${env.ANDROID_HOME}/extras/android/m2repository"/>
-  <property name="google.repo.dir" value="${env.ANDROID_HOME}/extras/google/m2repository"/>
-  <settings defaultResolver="chain-repos"/>
 
-  <resolvers>
-    <chain name="chain-repos" returnFirst="true">
-      <ibiblio name="maven2" m2compatible="true"/>
-
-      <ibiblio name="local.android"
-               m2compatible="true"
-               usepoms="true"
-               root="file://${android.repo.dir}/"/>
-
-      <ibiblio name="local.google"
-               m2compatible="true"
-               usepoms="true"
-               root="file://${google.repo.dir}/"/>
-    </chain>
-  </resolvers>
-  <caches default="default" lockStrategy="no-lock" useOrigin="true">
-    <cache name="default" basedir="${ivy.cache.dir}"/>
-  </caches>
-</ivysettings>
-
--->
-
-<!-- Attempts to use default ivy settings, with the exception of local .m2 resolution -->
-<ivysettings>
   <include url="${ivy.default.settings.dir}/ivysettings.xml"/>
   <properties environment="env" />
   <property name="env.ANDROID_HOME" value="/please-export-your-ANDROID_HOME" override="false"/>
@@ -50,10 +17,13 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 
   <resolvers>
     <chain name="pants-chain-repos" returnFirst="true">
-      <!-- the default resolver shipped with ivy -->
-      <resolver ref="default"/>
+      <!-- By default ivy does not require metadata (or successful metadata downloads).
+           This can lead to jars downloading without their transitive deps which leads
+           to confusing failures later when classpaths are constructed and used.
+           We setup the maven central resolver to require successful pom downloads here. -->
+      <ibiblio name="maven-central" m2compatible="true" descriptor="required"/>
 
-      <!-- mvn standard -->
+      <!-- The mvn standard local filesystem repo/cache -->
       <filesystem name="local.m2" m2compatible="true" local="true" checkmodified="true">
         <ivy pattern="${m2.repo.dir}/${m2.repo.pom}"/>
         <artifact pattern="${m2.repo.dir}/${m2.repo.artifact}"/>

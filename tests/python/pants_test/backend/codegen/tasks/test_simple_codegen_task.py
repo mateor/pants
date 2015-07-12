@@ -14,6 +14,7 @@ from pants.backend.core.register import build_file_aliases as register_core
 from pants.backend.jvm.targets.java_library import JavaLibrary
 from pants.backend.jvm.targets.jvm_target import JvmTarget
 from pants.base.build_file_aliases import BuildFileAliases
+from pants.base.exceptions import TaskError
 from pants_test.tasks.task_test_base import TaskTestBase
 
 
@@ -24,9 +25,9 @@ class SimpleCodegenTaskTest(TaskTestBase):
 
   @property
   def alias_groups(self):
-      return register_core().merge(register_codegen()).merge(BuildFileAliases.create({
-        'dummy_library': SimpleCodegenTaskTest.DummyLibrary
-      }))
+    return register_core().merge(register_codegen()).merge(BuildFileAliases.create({
+      'dummy_library': SimpleCodegenTaskTest.DummyLibrary
+    }))
 
   def _create_dummy_task(self, target_roots=None, forced_codegen_strategy=None,
                          hard_strategy_force=False, **options):
@@ -44,7 +45,6 @@ class SimpleCodegenTaskTest(TaskTestBase):
           )
         '''.format(name=spec_name)))
     return set([self.target(spec) for spec in target_specs])
-
 
   def test_codegen_strategy(self):
     self.set_options(strategy='global')
@@ -119,6 +119,15 @@ class SimpleCodegenTaskTest(TaskTestBase):
                                found=', '.join(t.id for t in found_targets)))
       task.execute()
 
+  def test_execute_fail(self):
+    # Ensure whichever strategy is selected, it actually call execute_codegen to trigger our
+    # DummyTask `should_fail` logic.  The isolated strategy, for example, short circuits that call
+    # if there are no targets.
+    dummy = self.make_target(spec='dummy', target_type=self.DummyLibrary)
+    task = self._create_dummy_task(target_roots=[dummy])
+    task.should_fail = True
+    self.assertRaisesRegexp(TaskError, r'Failed to generate target\(s\)', task.execute)
+
   def _get_duplication_test_targets(self):
     self.add_to_build_file('gen-parent', dedent('''
       dummy_library(name='gen-parent',
@@ -187,7 +196,6 @@ class SimpleCodegenTaskTest(TaskTestBase):
     with self.assertRaises(SimpleCodegenTask.UnsupportedStrategyError):
       task.codegen_strategy
 
-
   class DummyLibrary(JvmTarget):
     """Library of .dummy files, which are just text files which generate empty java files.
 
@@ -206,7 +214,6 @@ class SimpleCodegenTaskTest(TaskTestBase):
     Which would compile, but do nothing.
     """
 
-
   class DummyGen(SimpleCodegenTask):
     """Task which generates .java files for DummyLibraries.
 
@@ -221,7 +228,8 @@ class SimpleCodegenTaskTest(TaskTestBase):
       super(SimpleCodegenTaskTest.DummyGen, self).__init__(*vargs, **kwargs)
       self._test_case = None
       self._all_targets = None
-      self.setup_for_testing(None, None, None)
+      self.setup_for_testing(None, None)
+      self.should_fail = False
 
     def setup_for_testing(self, test_case, all_targets, forced_codegen_strategy=None,
                           hard_strategy_force=False):
@@ -238,7 +246,7 @@ class SimpleCodegenTaskTest(TaskTestBase):
       """
       self._test_case = test_case
       self._all_targets = all_targets
-      cls = SimpleCodegenTaskTest.DummyGen
+      cls = type(self)
       cls._forced_codegen_strategy = forced_codegen_strategy
       cls._hard_forced_codegen_strategy = forced_codegen_strategy if hard_strategy_force else None
 
@@ -263,6 +271,7 @@ class SimpleCodegenTaskTest(TaskTestBase):
       return isinstance(target, SimpleCodegenTaskTest.DummyLibrary)
 
     def execute_codegen(self, invalid_targets):
+      if self.should_fail: raise TaskError('Failed to generate target(s)')
       if self.codegen_strategy.name() == 'isolated':
         self._test_case.assertEqual(1, len(invalid_targets),
                                     'Codegen should execute individually in isolated mode.')

@@ -13,6 +13,7 @@ target(
     ':ivy_resolve',
     ':ivy_utils',
     ':junit_run',
+    ':jvm_run',
     ':resources_task',
     ':prepare_resources',
     ':prepare_services',
@@ -69,6 +70,7 @@ python_tests(
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/base:exceptions',
     'tests/python/pants_test/jvm:nailgun_task_test_base',
+    'tests/python/pants_test/tasks:task_test_base',
   ]
 )
 
@@ -118,6 +120,7 @@ python_tests(
     'src/python/pants/backend/core:plugin',
     'src/python/pants/backend/jvm:plugin',
     'src/python/pants/backend/jvm:ivy_utils',
+    'src/python/pants/ivy',
     'src/python/pants/util:contextutil',
     'tests/python/pants_test:base_test',
     'tests/python/pants_test/base:context_utils',
@@ -139,6 +142,17 @@ python_tests(
     'src/python/pants/java/distribution:distribution',
     'src/python/pants/java:executor',
     'tests/python/pants_test/jvm:jvm_tool_task_test_base',
+  ]
+)
+
+python_tests(
+  name = 'jvm_run',
+  sources = ['test_jvm_run.py'],
+  dependencies = [
+    'src/python/pants/backend/jvm/targets:jvm',
+    'src/python/pants/backend/jvm/tasks:jvm_run',
+    'src/python/pants/util:contextutil',
+    'tests/python/pants_test/tasks:task_test_base',
   ]
 )
 
@@ -203,6 +217,7 @@ python_tests(
     'src/python/pants/base:build_file_aliases',
     'src/python/pants/base:exceptions',
     'tests/python/pants_test/jvm:nailgun_task_test_base',
+    'tests/python/pants_test/tasks:task_test_base',
   ]
 )
 

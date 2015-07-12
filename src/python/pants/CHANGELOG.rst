@@ -1,6 +1,237 @@
 RELEASE HISTORY
 ===============
 
+0.0.35 (7/10/2015)
+------------------
+
+Release Notes
+~~~~~~~~~~~~~
+
+With this release, if you use the
+`isolated jvm compile strategy <https://github.com/pantsbuild/pants/blob/0acdf8d8ab49a0a6bdf5084a99e0c1bca0231cf6/pants.ini.isolated>`_,
+java annotation processers that emit java sourcefiles or classfiles will be
+handled correctly and the generated code will be bundled appropriately in jars.
+In particular, this makes libraries like Google's AutoValue useable in a pants
+build. See: `RB #2451 <https://rbcommons.com/s/twitter/r/2451>`_.
+
+API Changes
+~~~~~~~~~~~
+
+* Deprecate with_description.
+  `RB #2444 <https://rbcommons.com/s/twitter/r/2444>`_
+
+Bugfixes
+~~~~~~~~
+
+* Fixup BuildFile must_exist logic.
+  `RB #2441 <https://rbcommons.com/s/twitter/r/2441>`_
+
+* Upgrade to pex 1.0.1.
+  `Issue #1658 <https://github.com/pantsbuild/pants/issues/1658>`_
+  `RB #2438 <https://rbcommons.com/s/twitter/r/2438>`_
+
+New Features
+~~~~~~~~~~~~
+
+* Add an option --main to the run.jvm task to override the specification of 'main' on a jvm_binary() target.
+  `RB #2442 <https://rbcommons.com/s/twitter/r/2442>`_
+
+* Add jvm_options for thrift-linter.
+  `RB #2445 <https://rbcommons.com/s/twitter/r/2445>`_
+
+* Added cwd argument to allow JavaTest targets to require particular working directories.
+  `RB #2440 <https://rbcommons.com/s/twitter/r/2440>`_
+
+Small improvements, Refactoring and Tooling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Record all output classes for the jvm isolated compile strategy.
+  `RB #2451 <https://rbcommons.com/s/twitter/r/2451>`_
+
+* Robustify the pants ivy configuration.
+  `Issue #1779 <https://github.com/pantsbuild/pants/issues/1779>`_
+  `RB #2450 <https://rbcommons.com/s/twitter/r/2450>`_
+
+* Some refactoring of global options.
+  `RB #2446 <https://rbcommons.com/s/twitter/r/2446>`_
+
+* Improved error messaging for unknown Target kwargs.
+  `RB #2443 <https://rbcommons.com/s/twitter/r/2443>`_
+
+* Remove Nailgun specific classes from zinc, since pants invokes Main directly.
+  `RB #2439 <https://rbcommons.com/s/twitter/r/2439>`_
+
+0.0.34 (7/6/2015)
+-----------------
+
+Release Notes
+~~~~~~~~~~~~~
+
+Configuration for specifying cache settings and jvm options for some
+tools have changed in this release.
+
+The `migrate_config` tool will help you migrate your pants.ini settings
+for this new release.  Download the pants source code and run:
+
+.. code::
+
+  ./pants run migrations/options/src/python:migrate_config --  <path
+  to your pants.ini>
+
+API Changes
+~~~~~~~~~~~
+
+* Added flags for jar sources and javadocs to export goal because Foursquare got rid of ivy goal.
+  `RB #2432 <https://rbcommons.com/s/twitter/r/2432>`_
+
+* A JVM subsystem.
+  `RB #2423 <https://rbcommons.com/s/twitter/r/2423>`_
+
+* An artifact cache subsystem.
+  `RB #2405 <https://rbcommons.com/s/twitter/r/2405>`_
+
+Bugfixes
+~~~~~~~~
+
+* Change the xml report to use the fingerprint of the targets, not just their names.
+  `RB #2435 <https://rbcommons.com/s/twitter/r/2435>`_
+
+* Using linear-time BFS to sort targets topologically and group them
+  by the type.
+  `RB #2413 <https://rbcommons.com/s/twitter/r/2413>`_
+
+* Fix isort in git hook context.
+  `RB #2430 <https://rbcommons.com/s/twitter/r/2430>`_
+
+* When using soft-excludes, ignore all target defined excludes
+  `RB #2340 <https://rbcommons.com/s/twitter/r/2340>`_
+
+* Fix bash-completion goal when run from sdist/pex. Also add tests, and beef up ci.sh & release.sh.
+  `RB #2403 <https://rbcommons.com/s/twitter/r/2403>`_
+
+* [junit tool] fix suppress output emits jibberish on console.
+  `Issue #1657 <https://github.com/pantsbuild/pants/issues/1657>`_
+  `RB #2183 <https://rbcommons.com/s/twitter/r/2183>`_
+
+* In junit-runner, fix an NPE in testFailure() for different scenarios
+  `RB #2385 <https://rbcommons.com/s/twitter/r/2385>`_
+  `RB #2398 <https://rbcommons.com/s/twitter/r/2398>`_
+  `RB #2396 <https://rbcommons.com/s/twitter/r/2396>`_
+
+* Scrub timestamp from antlr generated files to have stable fp for cache
+  `RB #2382 <https://rbcommons.com/s/twitter/r/2382>`_
+
+* JVM checkstyle should obey jvm_options
+  `RB #2391 <https://rbcommons.com/s/twitter/r/2391>`_
+
+* Fix bad logger.debug call in artifact_cache.py
+  `RB #2386 <https://rbcommons.com/s/twitter/r/2386>`_
+
+* Fixed a bug where codegen would crash due to a missing flag.
+  `RB #2368 <https://rbcommons.com/s/twitter/r/2368>`_
+
+* Fixup the Git Scm detection of server_url.
+  `RB #2379 <https://rbcommons.com/s/twitter/r/2379>`_
+
+* Repair depmap --graph
+  `RB #2345 <https://rbcommons.com/s/twitter/r/2345>`_
+
+Documentation
+~~~~~~~~~~~~~
+
+* Documented how to enable caching for tasks.
+  `RB #2420 <https://rbcommons.com/s/twitter/r/2420>`_
+
+* Remove comments that said these classes returned something.
+  `RB #2419 <https://rbcommons.com/s/twitter/r/2419>`_
+
+* Publishing doc fixes
+  `RB #2407 <https://rbcommons.com/s/twitter/r/2407>`_
+
+* Bad rst now fails the MarkdownToHtml task.
+  `RB #2394 <https://rbcommons.com/s/twitter/r/2394>`_
+
+* Add a CONTRIBUTORS maintenance script.
+  `RB #2377 <https://rbcommons.com/s/twitter/r/2377>`_
+  `RB #2378 <https://rbcommons.com/s/twitter/r/2378>`_
+
+* typo in the changelog for 0.0.33 release,  fixed formatting of globs and rglobs
+  `RB #2376 <https://rbcommons.com/s/twitter/r/2376>`_
+
+* Documentation update for debugging a JVM tool
+  `RB #2365 <https://rbcommons.com/s/twitter/r/2365>`_
+
+New Features
+~~~~~~~~~~~~
+* Add log capture to isolated zinc compiles
+  `RB #2404 <https://rbcommons.com/s/twitter/r/2404>`_
+  `RB #2415 <https://rbcommons.com/s/twitter/r/2415>`_
+
+* Add support for restricting push remotes.
+  `RB #2383 <https://rbcommons.com/s/twitter/r/2383>`_
+
+* Ensure caliper is shaded in bench, add bench desc, use RUN so that output is printed
+  `RB #2353 <https://rbcommons.com/s/twitter/r/2353>`_
+
+
+Small improvements, Refactoring and Tooling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Enhance the error output in simple_codegen_task.py when unable to generate target(s)
+  `RB #2427 <https://rbcommons.com/s/twitter/r/2427>`_
+
+* Add a get_rank() method to OptionValueContainer.
+  `RB #2431 <https://rbcommons.com/s/twitter/r/2431>`_
+
+* Pass jvm_options to scalastyle
+  `RB #2428 <https://rbcommons.com/s/twitter/r/2428>`_
+
+* Kill custom repos and cross-platform pex setup.
+  `RB #2402 <https://rbcommons.com/s/twitter/r/2402>`_
+
+* Add debugging for problem with invalidation and using stale report file in ivy resolve.
+  `Issue #1747 <https://github.com/pantsbuild/pants/issues/1747>`_
+  `RB #2424 <https://rbcommons.com/s/twitter/r/2424>`_
+
+* Enabled caching for scalastyle and checkstyle
+  `RB #2416 <https://rbcommons.com/s/twitter/r/2416>`_
+  `RB #2414 <https://rbcommons.com/s/twitter/r/2414>`_
+
+* Make sure all Task mixins are on the left.
+  `RB #2421 <https://rbcommons.com/s/twitter/r/2421>`_
+
+* Adds a more verbose description of tests when running
+  the -per-test-timer command. (Junit)
+  `RB #2418 <https://rbcommons.com/s/twitter/r/2418>`_
+  `RB #2408 <https://rbcommons.com/s/twitter/r/2408>`_
+
+* Re-add support for reading from a local .m2 directory
+  `RB #2409 <https://rbcommons.com/s/twitter/r/2409>`_
+
+* Replace a few references to basestring with six.
+  `RB #2410 <https://rbcommons.com/s/twitter/r/2410>`_
+
+* Promote PANTS_DEV=1 to the only ./pants mode.
+  `RB #2401 <https://rbcommons.com/s/twitter/r/2401>`_
+
+* Add task meter to protoc step in codegen
+  `RB #2392 <https://rbcommons.com/s/twitter/r/2392>`_
+
+* Simplify known scopes computation.
+  `RB #2389 <https://rbcommons.com/s/twitter/r/2389>`_
+
+* Robustify the release process.
+  `RB #2388 <https://rbcommons.com/s/twitter/r/2388>`_
+
+* A common base class for things that can register options.
+  `RB #2387 <https://rbcommons.com/s/twitter/r/2387>`_
+
+* Fixed the error messages in assert_list().
+  `RB #2370 <https://rbcommons.com/s/twitter/r/2370>`_
+
+* Simplify subsystem option scoping.
+  `RB #2380 <https://rbcommons.com/s/twitter/r/2380>`_
+
 0.0.33 (6/13/2015)
 ------------------
 
@@ -104,6 +335,7 @@ API Changes
 
 Bugfixes
 ~~~~~~~~
+
 * Fixed errors in how arguments are passed to wire_gen.
   `RB #2354 <https://rbcommons.com/s/twitter/r/2354>`_
 
@@ -275,6 +507,7 @@ Documentation
 
 New Features
 ~~~~~~~~~~~~
+
 * Add a global --tag option to filter targets based on their tags.
   `RB #2362 <https://rbcommons.com/s/twitter/r/2362/>`_
 
