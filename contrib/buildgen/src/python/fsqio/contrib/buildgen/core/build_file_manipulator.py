@@ -1,15 +1,22 @@
 # coding=utf-8
-# Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
-# Licensed under the Apache License, Version 2.0 (see LICENSE).
+# Copyright 2016 Foursquare Labs Inc. All Rights Reserved.
 
-from __future__ import (absolute_import, division, generators, nested_scopes, print_function,
-                        unicode_literals, with_statement)
+from __future__ import (
+  absolute_import,
+  division,
+  generators,
+  nested_scopes,
+  print_function,
+  unicode_literals,
+  with_statement,
+)
 
 import ast
+import colors
+from difflib import unified_diff
 import logging
 import re
 import sys
-from difflib import unified_diff
 
 from pants.build_graph.address import Address, BuildFileAddress
 
@@ -348,6 +355,9 @@ class BuildFileManipulator(object):
                                             build_file=build_file))
       self._dependencies_by_address[dep_address] = dep
 
+  def get_dependency_addresses(self):
+    return self._dependencies_by_address.keys()
+
   def add_dependency(self, address):
     """Add a dependency to this target.  This will deduplicate existing dependencies."""
     if address in self._dependencies_by_address:
@@ -415,32 +425,40 @@ class BuildFileManipulator(object):
                                   lineterm='')
     return list(diff_generator)
 
-  def write(self, dry_run=True):
+  def write(self, dry_run=True, use_colors=True):
     """Write out the changes made to the BUILD file, and print the diff to stderr.
 
     :param dry_run: Don't actually write out the BUILD file, but do print the diff to stderr.
+    :param colors: If False, no colors will be used in the terminal output.
     """
-    start_lines = self._build_file_source_lines[:]
-    end_lines = self.build_file_lines()
-    diff_generator = unified_diff(start_lines,
-                                  end_lines,
-                                  fromfile=self.build_file.relpath,
-                                  tofile=self.build_file.relpath,
-                                  lineterm='')
-    if dry_run:
-      msg = 'DRY RUN, would have written this diff:'
-    else:
-      msg = 'REAL RUN, about to write the following diff:'
-    sys.stderr.write(msg + '\n')
-    sys.stderr.write('*' * 40 + '\n')
-    sys.stderr.write('target at: ')
-    sys.stderr.write(str(self.target_address) + '\n')
 
-    for line in diff_generator:
-      sys.stderr.write(line + '\n')
+    def terminal_msg(diff_lines):
 
-    sys.stderr.write('*' * 40 + '\n')
-    if not dry_run:
-      with open(self.build_file.full_path, 'w') as bf:
-        bf.write('\n'.join(end_lines))
-      sys.stderr.write('WROTE to {full_path}\n'.format(full_path=self.build_file.full_path))
+      def maybe_color(color_fn, msg):
+        return color_fn(msg) if use_colors else msg
+
+      msg = ('\n\n')
+      if dry_run:
+        msg += maybe_color(colors.yellow, 'DRY RUN, would have written this diff:')
+      else:
+        msg += maybe_color(colors.blue, 'REAL RUN, wrote the following diff:')
+      msg += maybe_color(colors.yellow, ('\n' + '*' * 40 + '\n'))
+      msg += 'target at: '
+      msg += str(self.target_address) + '\n'
+
+      for line in diff_lines:
+        color_fn = str
+        if line.startswith('+') and not line.startswith('+++'):
+          color_fn = colors.green
+        elif line.startswith('-') and not line.startswith('---'):
+          color_fn = colors.red
+        msg += maybe_color(color_fn, (line + '\n'))
+      msg += maybe_color(colors.yellow, ('*' * 40 + '\n'))
+      return msg
+
+    diff_lines = self.diff_lines()
+    if diff_lines:
+      sys.stderr.write(terminal_msg(diff_lines))
+      if not dry_run:
+        with open(self.build_file.full_path, 'w') as f:
+          f.write('\n'.join(self.build_file_lines()))
