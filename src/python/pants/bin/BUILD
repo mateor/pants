@@ -1,6 +1,7 @@
 # Copyright 2014 Pants project contributors (see CONTRIBUTORS.md).
 # Licensed under the Apache License, Version 2.0 (see LICENSE).
 
+
 python_library(
   name='bin',
   sources=globs('*.py'),
@@ -52,6 +53,7 @@ target(
     'src/python/pants/backend/jvm:plugin',
     'src/python/pants/backend/project_info:plugin',
     'src/python/pants/backend/python:plugin',
+    'src/python/pants/core_tasks:core_tasks',
   ],
 )
 
