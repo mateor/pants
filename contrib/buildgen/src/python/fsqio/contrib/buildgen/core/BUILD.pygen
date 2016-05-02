@@ -3,6 +3,10 @@
 python_library(
   name = 'build_file_manipulator',
   sources = ['build_file_manipulator.py', '__init__.py'],
+  dependencies = [
+    '3rdparty/python:ansicolors',
+    'src/python/pants/build_graph',
+  ],
 )
 
 python_library(
@@ -10,6 +14,9 @@ python_library(
   sources = ['buildgen.py', '__init__.py'],
   dependencies = [
     ':buildgen_task',
+    'src/python/pants/base:build_environment',
+    'src/python/pants/base:cmd_line_spec_parser',
+    'src/python/pants/base:specs',
   ],
 )
 
@@ -19,6 +26,9 @@ python_library(
   dependencies = [
     ':buildgen_target_bag',
     ':buildgen_task',
+    'src/python/pants/base:exceptions',
+    'src/python/pants/base:specs',
+    'src/python/pants/build_graph',
   ],
 )
 
@@ -27,12 +37,17 @@ python_library(
   sources = ['buildgen_base.py', '__init__.py'],
   dependencies = [
     'contrib/buildgen/src/python/fsqio/contrib/buildgen/core/subsystems:buildgen_subsystem',
+    'src/python/pants/task',
+    'src/python/pants/util:memo',
   ],
 )
 
 python_library(
   name = 'buildgen_target_bag',
   sources = ['buildgen_target_bag.py', '__init__.py'],
+  dependencies = [
+    'src/python/pants/build_graph',
+  ],
 )
 
 python_library(
@@ -42,27 +57,43 @@ python_library(
     ':build_file_manipulator',
     ':buildgen_base',
     'contrib/buildgen/src/python/fsqio/contrib/buildgen/core/subsystems:buildgen_subsystem',
+    'src/python/pants/util:memo',
   ],
 )
 
 python_library(
   name = 'buildgen_timestamp',
   sources = ['buildgen_timestamp.py', '__init__.py'],
+  dependencies = [
+    'src/python/pants/base:build_environment',
+    'src/python/pants/task',
+  ],
 )
 
 python_library(
   name = 'map_derived_targets',
   sources = ['map_derived_targets.py', '__init__.py'],
+  dependencies = [
+    'src/python/pants/task',
+  ],
 )
 
 python_library(
   name = 'map_sources_to_addresses_mapper',
   sources = ['map_sources_to_addresses_mapper.py', '__init__.py'],
+  dependencies = [
+    'src/python/pants/build_graph',
+    'src/python/pants/task',
+  ],
 )
 
 python_library(
   name = 'source_analysis_task',
   sources = ['source_analysis_task.py', '__init__.py'],
+  dependencies = [
+    'src/python/pants/base:build_environment',
+    'src/python/pants/task',
+  ],
 )
 
 python_library(
