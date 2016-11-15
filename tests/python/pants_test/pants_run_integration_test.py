@@ -322,6 +322,40 @@ class PantsRunIntegrationTest(unittest.TestCase):
     finally:
       os.unlink(path)
 
+  @contextmanager
+  def mock_buildroot(self):
+    """Construct a mock buildroot and return a helper object for interacting with it."""
+    Manager = namedtuple('Manager', 'write_file pushd dir')
+    # N.B. BUILD.tools, contrib, 3rdparty needs to be copied vs symlinked to avoid
+    # symlink prefix check error in v1 and v2 engine.
+    files_to_copy = ('BUILD.tools',)
+    files_to_link = ('pants', 'pants.ini', 'pants.travis-ci.ini', '.pants.d',
+                     'build-support', 'pants-plugins', 'src')
+    dirs_to_copy = ('contrib', '3rdparty')
+
+    with self.temporary_workdir() as tmp_dir:
+      for filename in files_to_copy:
+        shutil.copy(os.path.join(get_buildroot(), filename), os.path.join(tmp_dir, filename))
+
+      for dirname in dirs_to_copy:
+        shutil.copytree(os.path.join(get_buildroot(), dirname), os.path.join(tmp_dir, dirname))
+
+      for filename in files_to_link:
+        os.symlink(os.path.join(get_buildroot(), filename), os.path.join(tmp_dir, filename))
+
+      def write_file(file_path, contents):
+        full_file_path = os.path.join(tmp_dir, *file_path.split(os.pathsep))
+        safe_mkdir_for(full_file_path)
+        with open(full_file_path, 'wb') as fh:
+          fh.write(contents)
+
+      @contextmanager
+      def dir_context():
+        with pushd(tmp_dir):
+          yield
+
+      yield Manager(write_file, dir_context, tmp_dir)
+
   def do_command(self, *args, **kwargs):
     """Wrapper around run_pants method.
 
