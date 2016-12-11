@@ -39,9 +39,8 @@ class VersionedTargetSet(object):
     for versioned_target in versioned_targets:
       if versioned_target._cache_manager != cache_manager:
         raise ValueError("Attempting to combine versioned targets {} and {} with different"
-                         " CacheManager instances: {} and {}".format(first_target, versioned_target,
-                                                                 cache_manager,
-                                                                 versioned_target._cache_manager))
+                         " CacheManager instances: {} and {}".format(first_target, versioned_target, cache_manager,
+                                                                     versioned_target._cache_manager))
     return VersionedTargetSet(cache_manager, versioned_targets)
 
   def __init__(self, cache_manager, versioned_targets):
@@ -60,8 +59,8 @@ class VersionedTargetSet(object):
       cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key,
                                                 self.valid, phase='init')
 
-    self._results_dir = None
-    self._current_results_dir = None
+    self._stable_results_dir = None
+    self._unique_results_dir = None
     self._previous_results_dir = None
     # True if the results_dir for this VT was created incrementally via clone of the
     # previous results_dir.
@@ -79,7 +78,7 @@ class VersionedTargetSet(object):
 
   @property
   def has_results_dir(self):
-    return self._results_dir is not None
+    return self._stable_results_dir is not None
 
   @property
   def has_previous_results_dir(self):
@@ -89,20 +88,20 @@ class VersionedTargetSet(object):
   def results_dir(self):
     """The directory that stores results for these targets.
 
-    The results_dir is represented by a stable symlink to the current_results_dir: consumers
+    The results_dir is represented by a stable symlink to the unique_results_dir: consumers
     should generally prefer to access the stable directory.
     """
-    if self._results_dir is None:
+    if self._stable_results_dir is None:
       raise ValueError('No results_dir was created for {}'.format(self))
-    return self._results_dir
+    return self._stable_results_dir
 
   @property
-  def current_results_dir(self):
+  def unique_results_dir(self):
     """A unique directory that stores results for this version of these targets.
     """
-    if self._current_results_dir is None:
+    if self._unique_results_dir is None:
       raise ValueError('No results_dir was created for {}'.format(self))
-    return self._current_results_dir
+    return self._unique_results_dir
 
   @property
   def previous_results_dir(self):
@@ -120,8 +119,8 @@ class VersionedTargetSet(object):
   def live_dirs(self):
     """Yields directories that must exist for this VersionedTarget to function."""
     if self.has_results_dir:
-      yield self.results_dir
-      yield self.current_results_dir
+      yield self.stable_results_dir
+      yield self.unique_results_dir
       if self.has_previous_results_dir:
         yield self.previous_results_dir
 
@@ -132,7 +131,7 @@ class VersionedTargetSet(object):
 
 class VersionedTarget(VersionedTargetSet):
   """This class represents a singleton VersionedTargetSet, and has links to VersionedTargets that
-  the wrapped target depends on (after having resolved through any "alias" targets.
+  the wrapped target depends on (after having resolved through any "alias" targets).
 
   :API: public
   """
@@ -160,12 +159,13 @@ class VersionedTarget(VersionedTargetSet):
       generate a path unique to the key.
     """
     task_version = self._cache_manager.task_version
+    dir_name = self._STABLE_DIR_NAME if stable else sha1(key.hash).hexdigest()[:12]
     # TODO: Shorten cache_key hashes in general?
     return os.path.join(
         root_dir,
         sha1(task_version).hexdigest()[:12],
         key.id,
-        self._STABLE_DIR_NAME if stable else sha1(key.hash).hexdigest()[:12]
+        dir_name,
     )
 
   def create_results_dir(self, root_dir, allow_incremental):
@@ -175,32 +175,32 @@ class VersionedTarget(VersionedTargetSet):
     to the new results dir. Otherwise, simply ensures that the results dir exists.
     """
     # Generate unique and stable directory paths for this cache key.
-    current_dir = self._results_dir_path(root_dir, self.cache_key, stable=False)
-    self._current_results_dir = current_dir
+    unique_dir = self._results_dir_path(root_dir, self.cache_key, stable=False)
+    self._unique_results_dir = unique_dir
     stable_dir = self._results_dir_path(root_dir, self.cache_key, stable=True)
-    self._results_dir = stable_dir
+    self._stable_results_dir = stable_dir
     if self.valid:
       # If the target is valid, both directories can be assumed to exist.
       return
 
     # Clone from the previous results_dir if incremental, or initialize.
-    previous_dir = self._use_previous_dir(allow_incremental, root_dir, current_dir)
+    previous_dir = self._use_previous_dir(allow_incremental, root_dir, unique_dir)
     if previous_dir is not None:
       self.is_incremental = True
       self._previous_results_dir = previous_dir
-      shutil.copytree(previous_dir, current_dir)
+      shutil.copytree(previous_dir, unique_dir)
     else:
-      safe_mkdir(current_dir)
+      safe_mkdir(unique_dir)
 
     # Finally, create the stable symlink.
-    relative_symlink(current_dir, stable_dir)
+    relative_symlink(unique_dir, stable_dir)
 
-  def _use_previous_dir(self, allow_incremental, root_dir, current_dir):
+  def _use_previous_dir(self, allow_incremental, root_dir, unique_dir):
     if not allow_incremental or not self.previous_cache_key:
       # Not incremental.
       return None
     previous_dir = self._results_dir_path(root_dir, self.previous_cache_key, stable=False)
-    if not os.path.isdir(previous_dir) or os.path.isdir(current_dir):
+    if not os.path.isdir(previous_dir) or os.path.isdir(unique_dir):
       # Could be useful, but no previous results are present.
       return None
     return previous_dir
