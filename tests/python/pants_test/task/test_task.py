@@ -42,11 +42,10 @@ class DummyTask(Task):
     return str(cls._implementation_version)
 
   def execute(self):
+
     with self.invalidated(self.context.targets()) as invalidation:
       assert len(invalidation.invalid_vts) == 1
       vt = invalidation.invalid_vts[0]
-      if vt.is_incremental:
-        assert os.path.isdir(vt.previous_results_dir)
       with open(os.path.join(get_buildroot(), vt.target.source), 'r') as infile:
         outfile_name = os.path.join(vt.results_dir, os.path.basename(vt.target.source))
         with open(outfile_name, 'a') as outfile:
@@ -64,7 +63,8 @@ class TaskTest(TaskTestBase):
     return DummyTask
 
   def assertContent(self, vt, content):
-    with open(os.path.join(vt.current_results_dir, self._filename), 'r') as f:
+    my_file = os.path.join(vt.unique_results_dir, self._filename)
+    with open(my_file, 'r') as f:
       self.assertEquals(f.read(), content)
 
   def _fixture(self, incremental):
@@ -95,17 +95,22 @@ class TaskTest(TaskTestBase):
     vtB = task.execute()
     self.assertContent(vtB, one + two)
 
-    # Incremental atop existing directory for vtA.
+    # vtC.previous_cache_key == vtB.cache_key so the results are incremental and the task appends to vtB's results.
     self._create_clean_file(target, one)
     vtC = task.execute()
-    self.assertContent(vtC, one + one)
+    self.assertEqual(vtC.previous_cache_key, vtB.cache_key)
+    self.assertContent(vtC, one + two + one)
 
-    # Confirm that there were two unique results dirs, and that the second was cloned.
-    self.assertContent(vtA, one + one)
+    # Confirm that there were two unique results dirs, and that the first was overwritten by the results of the last.
+    self.assertContent(vtA, one + two + one)
     self.assertContent(vtB, one + two)
-    self.assertContent(vtC, one + one)
-    self.assertNotEqual(vtA.current_results_dir, vtB.current_results_dir)
-    self.assertEqual(vtA.current_results_dir, vtC.current_results_dir)
+    self.assertContent(vtC, one + two + one)
+    self.assertNotEqual(vtA.unique_results_dir, vtB.unique_results_dir)
+    self.assertEqual(vtA.unique_results_dir, vtC.unique_results_dir)
+
+    # Show that each run is using the results from the most recent run of the target.
+    self.assertEqual(vtA.cache_key, vtB.previous_cache_key)
+    self.assertEqual(vtB.unique_results_dir, vtC.previous_results_dir)
 
     # And that the results_dir was stable throughout.
     self.assertEqual(vtA.results_dir, vtB.results_dir)
@@ -128,9 +133,13 @@ class TaskTest(TaskTestBase):
     # Confirm two unassociated current directories with a stable results_dir.
     self.assertContent(vtA, one)
     self.assertContent(vtB, two)
-    self.assertNotEqual(vtA.current_results_dir, vtB.current_results_dir)
+    self.assertNotEqual(vtA.unique_results_dir, vtB.unique_results_dir)
     self.assertEqual(vtA.results_dir, vtB.results_dir)
 
+  # test is failing because the previous_results_dir is not matching the created directory from the first run.
+  # unclear how the test was passing originally or what I broke.
+  # debugging for tomorrow would be stepping throught the test in the master branch, and/or buikding two example
+  # targets and examinignt the file names for results_dir before/after my changes.
   def test_implementation_version(self):
     """When the implementation version changes, previous artifacts are not available."""
 
@@ -147,12 +156,12 @@ class TaskTest(TaskTestBase):
     self._create_clean_file(target, two)
     vtB = task.execute()
 
-    # No incrementalism.
-    self.assertFalse(vtA.is_incremental)
-    self.assertFalse(vtB.is_incremental)
+    # No incrementalism was used, even though the task enabled it.
+    self.assertTrue(task.incremental)
+    self.assertIsNone(vtA.previous_results_dir)
 
     # Confirm two unassociated current directories, and unassociated stable directories.
     self.assertContent(vtA, one)
     self.assertContent(vtB, two)
-    self.assertNotEqual(vtA.current_results_dir, vtB.current_results_dir)
+    self.assertNotEqual(vtA.unique_results_dir, vtB.unique_results_dir)
     self.assertNotEqual(vtA.results_dir, vtB.results_dir)

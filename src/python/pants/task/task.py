@@ -279,6 +279,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
                                     invalidation_report=self.context.invalidation_report,
                                     task_name=type(self).__name__,
                                     task_version=self.implementation_version_str(),
+                                    task_workdir=self.workdir,
                                     artifact_write_callback=self.maybe_write_artifact)
 
   @property
@@ -419,7 +420,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
 
   def maybe_write_artifact(self, vt):
     if self._should_cache_target_dir(vt):
-      self.update_artifact_cache([(vt, [vt.current_results_dir])])
+      self.update_artifact_cache([(vt, [vt.unique_results_dir])])
 
   def _launch_background_workdir_cleanup(self, vts):
     workdir_build_cleanup_job = Work(self._cleanup_workdir_stale_builds, [(vts,)], 'workdir_build_cleanup')
@@ -440,7 +441,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     return (
       self.cache_target_dirs and
       not vt.target.has_label('no_cache') and
-      (not vt.is_incremental or self.cache_incremental) and
+      (not self.incremental or self.cache_incremental) and
       self.artifact_cache_writes_enabled()
     )
 
@@ -448,7 +449,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     """If `cache_target_dirs`, create results_dirs for the given versioned targets."""
     if self.create_target_dirs:
       for vt in vts:
-        vt.create_results_dir(self.workdir, allow_incremental=self.incremental)
+        vt.create_results_dir(allow_incremental=self.incremental)
 
   def check_artifact_cache_for(self, invalidation_check):
     """Decides which VTS to check the artifact cache for.
@@ -478,7 +479,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
       return [], [], []
 
     read_cache = self._cache_factory.get_read_cache()
-    items = [(read_cache, vt.cache_key, vt.current_results_dir if self.cache_target_dirs else None)
+    items = [(read_cache, vt.cache_key, vt.unique_results_dir if self.cache_target_dirs else None)
              for vt in vts]
 
     res = self.context.subproc_map(call_use_cached_files, items)

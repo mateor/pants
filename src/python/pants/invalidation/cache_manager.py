@@ -8,12 +8,12 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 import os
 import shutil
 import sys
-from hashlib import sha1
 
 from pants.build_graph.build_graph import sort_targets
 from pants.build_graph.target import Target
 from pants.invalidation.build_invalidator import BuildInvalidator, CacheKeyGenerator
-from pants.util.dirutil import relative_symlink, safe_mkdir
+from pants.util.dirutil import relative_symlink, safe_mkdir, safe_rmtree
+from pants.util.memo import memoized_property
 
 
 class VersionedTargetSet(object):
@@ -24,6 +24,7 @@ class VersionedTargetSet(object):
   When checking the artifact cache, this can also be used to represent a list of targets that are
   built together into a single artifact.
   """
+  _STABLE_DIR_NAME = 'current'
 
   @staticmethod
   def from_versioned_targets(versioned_targets):
@@ -49,80 +50,108 @@ class VersionedTargetSet(object):
     self.targets = [vt.target for vt in versioned_targets]
 
     # The following line is a no-op if cache_key was set in the VersionedTarget __init__ method.
-    self.cache_key = CacheKeyGenerator.combine_cache_keys([vt.cache_key
-                                                           for vt in versioned_targets])
+    self.cache_key = CacheKeyGenerator.combine_cache_keys([vt.cache_key for vt in versioned_targets])
     # NB: previous_cache_key may be None on the first build of a target.
-    self.previous_cache_key = cache_manager.previous_key(self.cache_key)
+    self.previous_cache_key = self._cache_manager.previous_key(self.cache_key)
+
+    # NOTE: A VT can be forced invalid, which currently involves resetting 'self.valid' to False.
     self.valid = self.previous_cache_key == self.cache_key
-
     if cache_manager.invalidation_report:
-      cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key,
-                                                self.valid, phase='init')
+      cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key, self.valid, phase='init')
 
-    self._stable_results_dir = None
-    self._unique_results_dir = None
-    self._previous_results_dir = None
-    # True if the results_dir for this VT was created incrementally via clone of the
-    # previous results_dir.
-    self.is_incremental = False
+  @memoized_property
+  def _root_dir(self):
+    # Corresponds to the task.workdir under the current contract.
+    return self._cache_manager.task_workdir
+
+  @memoized_property
+  def results_dir(self):
+    """Return file path that represents the stable output location for these targets.
+
+    The results_dir is represented by a stable symlink to the unique_results_dir: consumers
+    should generally prefer to access this stable directory.
+    """
+    if not os.path.isdir(self._stable_results_path):
+      raise ValueError('No results_dir was created for {}'.format(self))
+    return self._stable_results_path
+
+  @memoized_property
+  def unique_results_dir(self):
+    """Return unique file path to use as an output directory by these targets.
+
+    The unique_results_dir is derived from the VTS cache_key(s). The results_dir is a symlink to the unique_results_dir:
+    consumers should generally prefer that stable location as referenced by results_dir.
+    """
+    if not os.path.isdir(self._unique_results_path):
+      raise ValueError('No results_dir was created for {}'.format(self))
+    return self._unique_results_path
+
+  @memoized_property
+  def previous_results_dir(self):
+    """Return file path that corresponds to the unique_results_dir for the previous VT of these targets.
+
+    Returns None if directory does not exist. The previous_results_dir differs from results_dir and unique_results_dir
+    since it is not required iin order for the task to function, even when the task enables incremental results.
+    """
+    # Only used by tasks that enable incremental results.
+    # TODO: Exposing old results is a bit of an abstraction leak, because ill-behaved Tasks could mutate them.
+    if self._previous_results_path and os.path.isdir(self._previous_results_path):
+      return self._previous_results_path
+    return None
+
+  @memoized_property
+  def _stable_results_path(self):
+    # Path designated for the stable results_dir, always holds "current" results. Not guaranteed to exist at this time.
+    return self._results_dir_path(self.cache_key, stable=True)
+
+  @memoized_property
+  def _unique_results_path(self):
+    # Path designated for the canonical unique_results_dir, unique per cache_key. Not guaranteed to exist at this time.
+    return self._results_dir_path(self.cache_key, stable=False)
+
+  @memoized_property
+  def _previous_results_path(self):
+    # Path that should point to the unique_results_dir of a target's previous VT. Used when incremental results enabled.
+    if not self.previous_cache_key:
+      return None
+    return self._results_dir_path(self.previous_cache_key, stable=False)
 
   def update(self):
     self._cache_manager.update(self)
 
   def force_invalidate(self):
-    # Note: This method isn't exposted as Public because the api is not yet
+    # Note: This method isn't exposed as Public because the api is not yet
     # finalized, however it is currently used by Square for plugins.  There is
     # an open OSS issue to finalize this API.  Please take care when changing
     # until https://github.com/pantsbuild/pants/issues/2532 is resolved.
     self._cache_manager.force_invalidate(self)
 
-  @property
-  def has_results_dir(self):
-    return self._stable_results_dir is not None
-
-  @property
-  def has_previous_results_dir(self):
-    return self._previous_results_dir is not None
-
-  @property
-  def results_dir(self):
-    """The directory that stores results for these targets.
-
-    The results_dir is represented by a stable symlink to the unique_results_dir: consumers
-    should generally prefer to access the stable directory.
-    """
-    if self._stable_results_dir is None:
-      raise ValueError('No results_dir was created for {}'.format(self))
-    return self._stable_results_dir
-
-  @property
-  def unique_results_dir(self):
-    """A unique directory that stores results for this version of these targets.
-    """
-    if self._unique_results_dir is None:
-      raise ValueError('No results_dir was created for {}'.format(self))
-    return self._unique_results_dir
-
-  @property
-  def previous_results_dir(self):
-    """The directory that stores results for the previous version of these targets.
-
-    Only valid if is_incremental is true.
-
-    TODO: Exposing old results is a bit of an abstraction leak, because ill-behaved Tasks could
-    mutate them.
-    """
-    if self._previous_results_dir is None:
-      raise ValueError('There is no previous_results_dir for: {}'.format(self))
-    return self._previous_results_dir
-
   def live_dirs(self):
-    """Yields directories that must exist for this VersionedTarget to function."""
-    if self.has_results_dir:
-      yield self.stable_results_dir
-      yield self.unique_results_dir
-      if self.has_previous_results_dir:
-        yield self.previous_results_dir
+    """Yield directories that should be preserved in order for this VersionedTarget to fully function.
+
+    These file paths are not guaranteed to exist at any point.
+    """
+    yield self._results_dir_path
+    yield self._unique_results_path
+    if self.previous_results_dir:
+      yield self.previous_results_dir
+
+  def _results_dir_path(self, key, stable):
+    """Return a results directory path for the given key.
+
+    :param key: A CacheKey to generate an id for.
+    :param stable: True to use a stable subdirectory, false to use a portion of the cache key to
+      generate a path unique to the key.
+    """
+    # TODO: Shorten cache_key hashes in general?
+    task_hash = CacheKeyGenerator.hash_value(self._cache_manager.task_version)
+    dir_name = self._STABLE_DIR_NAME if stable else CacheKeyGenerator.hash_value(key.hash)
+    return os.path.join(
+        self._root_dir,
+        task_hash,
+        key.id,
+        dir_name,
+    )
 
   def __repr__(self):
     return 'VTS({}, {})'.format(','.join(target.address.spec for target in self.targets),
@@ -135,8 +164,6 @@ class VersionedTarget(VersionedTargetSet):
 
   :API: public
   """
-
-  _STABLE_DIR_NAME = 'current'
 
   def __init__(self, cache_manager, target, cache_key):
     """
@@ -151,59 +178,25 @@ class VersionedTarget(VersionedTargetSet):
     super(VersionedTarget, self).__init__(cache_manager, [self])
     self.id = target.id
 
-  def _results_dir_path(self, root_dir, key, stable):
-    """Return a results directory path for the given key.
+  def create_results_dir(self, allow_incremental=False):
+    """Ensures that a cleaned results_dir exists for invalid versioned targets.
 
-    :param key: A CacheKey to generate an id for.
-    :param stable: True to use a stable subdirectory, false to use a portion of the cache key to
-      generate a path unique to the key.
+    If allow_incremental=True, attempts to clone the results_dir from the previous VT of the target.
+    The results_dirs are rooted under the cache_manager's root_dir, which corresponds to the workdir of the task that
+    created the cache_manager.
+
+    This method only guarantees results_dirs for invalid VTs, pertinent result_dirs are assumed to exist for valid VTs.
     """
-    task_version = self._cache_manager.task_version
-    dir_name = self._STABLE_DIR_NAME if stable else sha1(key.hash).hexdigest()[:12]
-    # TODO: Shorten cache_key hashes in general?
-    return os.path.join(
-        root_dir,
-        sha1(task_version).hexdigest()[:12],
-        key.id,
-        dir_name,
-    )
-
-  def create_results_dir(self, root_dir, allow_incremental):
-    """Ensures that a results_dir exists under the given root_dir for this versioned target.
-
-    If incremental=True, attempts to clone the results_dir for the previous version of this target
-    to the new results dir. Otherwise, simply ensures that the results dir exists.
-    """
-    # Generate unique and stable directory paths for this cache key.
-    unique_dir = self._results_dir_path(root_dir, self.cache_key, stable=False)
-    self._unique_results_dir = unique_dir
-    stable_dir = self._results_dir_path(root_dir, self.cache_key, stable=True)
-    self._stable_results_dir = stable_dir
     if self.valid:
-      # If the target is valid, both directories can be assumed to exist.
       return
+    # If the vt is invalid, anything in the results_dir is also invalid (e.g. cruft from a failed resolve or a ctrl-C).
+    safe_rmtree(self._unique_results_path)
 
-    # Clone from the previous results_dir if incremental, or initialize.
-    previous_dir = self._use_previous_dir(allow_incremental, root_dir, unique_dir)
-    if previous_dir is not None:
-      self.is_incremental = True
-      self._previous_results_dir = previous_dir
-      shutil.copytree(previous_dir, unique_dir)
-    else:
-      safe_mkdir(unique_dir)
+    if allow_incremental and self.previous_results_dir:
+      shutil.copytree(self.previous_results_dir, self._unique_results_path)
 
-    # Finally, create the stable symlink.
-    relative_symlink(unique_dir, stable_dir)
-
-  def _use_previous_dir(self, allow_incremental, root_dir, unique_dir):
-    if not allow_incremental or not self.previous_cache_key:
-      # Not incremental.
-      return None
-    previous_dir = self._results_dir_path(root_dir, self.previous_cache_key, stable=False)
-    if not os.path.isdir(previous_dir) or os.path.isdir(unique_dir):
-      # Could be useful, but no previous results are present.
-      return None
-    return previous_dir
+    safe_mkdir(self._unique_results_path)
+    relative_symlink(self._unique_results_path, self._stable_results_path)
 
   def __repr__(self):
     return 'VT({}, {})'.format(self.target.id, 'valid' if self.valid else 'invalid')
@@ -248,6 +241,7 @@ class InvalidationCacheManager(object):
                invalidation_report=None,
                task_name=None,
                task_version=None,
+               task_workdir=None,
                artifact_write_callback=lambda _: None):
     """
     :API: public
@@ -255,6 +249,8 @@ class InvalidationCacheManager(object):
     self._cache_key_generator = cache_key_generator
     self._task_name = task_name or 'UNKNOWN'
     self._task_version = task_version or 'Unknown_0'
+    # No default for the workdir, since a unique value is guaranteed to be set through the Task ctor.
+    self._task_workdir = task_workdir
     self._invalidate_dependents = invalidate_dependents
     self._invalidator = BuildInvalidator(build_invalidator_dir)
     self._fingerprint_strategy = fingerprint_strategy
@@ -304,6 +300,10 @@ class InvalidationCacheManager(object):
   @property
   def task_version(self):
     return self._task_version
+
+  @property
+  def task_workdir(self):
+    return self._task_workdir
 
   def wrap_targets(self, targets, topological_order=False):
     """Wrap targets and their computed cache keys in VersionedTargets.
