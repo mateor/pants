@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, generators, nested_scopes, pr
 
 import ConfigParser
 import os
+import shutil
 import subprocess
 import unittest
 from collections import namedtuple
@@ -18,8 +19,9 @@ from colors import strip_color
 from pants.base.build_environment import get_buildroot
 from pants.base.build_file import BuildFile
 from pants.fs.archive import ZIP
+from pants.util.dirutil import safe_mkdir_for
 from pants.subsystem.subsystem import Subsystem
-from pants.util.contextutil import environment_as, temporary_dir
+from pants.util.contextutil import environment_as, pushd, temporary_dir
 from pants.util.dirutil import safe_mkdir, safe_open
 from pants_test.testutils.file_test_util import check_symlinks, contains_exact_files
 
