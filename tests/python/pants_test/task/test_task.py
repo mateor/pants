@@ -165,3 +165,13 @@ class TaskTest(TaskTestBase):
     self.assertContent(vtB, two)
     self.assertNotEqual(vtA.unique_results_dir, vtB.unique_results_dir)
     self.assertNotEqual(vtA.results_dir, vtB.results_dir)
+
+  def test_non_empty_results_dir(self):
+
+    # Run twice, once to get a handle for the VT and drop an out-of-band file, the second time to verify that the file
+    # has been cleaned.
+    target, task = self._fixture(incremental=True)
+    self._create_clean_file(target, 'partial results\n')
+    self._create_clean_file(target, 'partial results\n')
+    vtA = task.execute()
+    import pdb; pdb.set_trace()

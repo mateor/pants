@@ -112,17 +112,29 @@ class CacheCompileIntegrationTest(BaseCompileIT):
       srcfile = os.path.join(src_dir, 'org', 'pantsbuild', 'cachetest', 'A.java')
       buildfile = os.path.join(src_dir, 'org', 'pantsbuild', 'cachetest', 'BUILD')
 
-      self.create_file(srcfile,
-                       dedent("""package org.pantsbuild.cachetest;
-                          class A {}
-                          class Main {}"""))
-      self.create_file(buildfile,
-                       dedent("""java_library(name='cachetest',
-                                       sources=['A.java']
-                          )"""))
+      self.create_file(
+        srcfile,
+        dedent(
+          """
+          package org.pantsbuild.cachetest;
+          class A {}
+          class Main {}
+          """
+        )
+      )
 
-      cachetest_spec = os.path.join(os.path.basename(src_dir), 'org', 'pantsbuild',
-                                    'cachetest:cachetest')
+      self.create_file(
+        buildfile,
+        dedent(
+          """
+          java_library(name='cachetest',
+            sources=['A.java'],
+          )
+          """
+        )
+      )
+
+      cachetest_spec = os.path.join(os.path.basename(src_dir), 'org', 'pantsbuild', 'cachetest:cachetest')
 
       # Caches values A.class, Main.class
       self.run_compile(cachetest_spec, config, workdir)
@@ -160,6 +172,7 @@ class CacheCompileIntegrationTest(BaseCompileIT):
         return sorted(os.listdir(cd))
 
       # One workdir should contain NotMain, and the other should contain Main.
+      import pdb; pdb.set_trace()
       self.assertEquals(sorted(classfiles(w) for w in target_workdirs if w != 'current'),
                         sorted([['A.class', 'Main.class'], ['A.class', 'NotMain.class']]))
 

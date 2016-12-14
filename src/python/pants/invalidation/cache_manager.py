@@ -185,7 +185,7 @@ class VersionedTarget(VersionedTargetSet):
     The results_dirs are rooted under the cache_manager's root_dir, which corresponds to the workdir of the task that
     created the cache_manager.
 
-    This method only guarantees results_dirs for invalid VTs, pertinent result_dirs are assumed to exist for valid VTs.
+    Only guarantees results_dirs for invalid VTs, pertinent result_dirs are assumed to exist for valid VTs.
     """
     if self.valid:
       return
