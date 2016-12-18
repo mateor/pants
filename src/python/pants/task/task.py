@@ -275,6 +275,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     return InvalidationCacheManager(self._cache_key_generator,
                                     self._build_invalidator_dir,
                                     invalidate_dependents,
+                                    as_target_set=False,
                                     fingerprint_strategy=fingerprint_strategy,
                                     invalidation_report=self.context.invalidation_report,
                                     task_name=type(self).__name__,
@@ -336,7 +337,6 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
   def invalidated(self,
                   targets,
                   invalidate_dependents=False,
-                  invalidate_as_set=False,
                   silent=False,
                   fingerprint_strategy=None,
                   topological_order=False):
@@ -463,6 +463,8 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     By default we check for each invalid target. Can be overridden, e.g., to
     instead check only for a single artifact for the entire target set.
     """
+    if invalidation_check.as_target_set:
+      return VersionedTargetSet.from_invalidation_check(invalidation_check)
     return invalidation_check.invalid_vts
 
   def check_artifact_cache(self, vts):

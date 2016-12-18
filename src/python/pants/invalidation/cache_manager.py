@@ -16,8 +16,6 @@ from pants.util.dirutil import relative_symlink, safe_mkdir, safe_rmtree
 from pants.util.memo import memoized_property
 
 
-
-
 class VersionedTarget(object):
   """This class represents a singleton VersionedTargetSet, and has links to VersionedTargets that
   the wrapped target depends on (after having resolved through any "alias" targets).
@@ -34,27 +32,27 @@ class VersionedTarget(object):
     """
     :API: public
     """
-    # if not isinstance(target, Target):
-    #   raise ValueError("The target {} must be an instance of Target but is not.".format(target.id))
     self.targets = targets
-
     self.target = self.targets[0]
+    self.versioned_targets = [self]
+    if not isinstance(self.target, Target):
+      raise ValueError("The target {} must be an instance of Target but is not.".format(self.target.id))
     self.id = self.target.id
+
     self.cache_key = cache_key
-    # Must come after the assignments above, as they are used in the parent's __init__.
-    # super(VersionedTarget, self).__init__(cache_manager, [self])
     self._cache_manager = cache_manager
     self.previous_cache_key = cache_manager.previous_key(self.cache_key)
+
     # NOTE: VTs can be forced invalid, which currently involves resetting 'self.valid' to False.
     self.valid = self.previous_cache_key == self.cache_key
-    self.versioned_targets = [self]
-
+    if cache_manager.invalidation_report:
+      cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key, self.valid, phase='init')
 
   @memoized_property
   def _task_workdir(self):
     return self._cache_manager.task_workdir
 
-  def _generate_results_path(self, key, stable=False):
+  def _calculate_results_path(self, key, stable=False):
     """Return a results directory path for the given key.
 
     :param key: A CacheKey to generate an id for.
@@ -74,19 +72,17 @@ class VersionedTarget(object):
   @memoized_property
   def _stable_results_path(self):
     # Return the path for the stable results_dir without relying on it existing.
-    return self._generate_results_path(self.cache_key, stable=True)
+    return self._calculate_results_path(self.cache_key, stable=True)
 
   @memoized_property
   def _unique_results_path(self):
     # Return the path for the namespaced unique_results_dir without relying on it existing.
-    return self._generate_results_path(self.cache_key)
+    return self._calculate_results_path(self.cache_key)
 
   @memoized_property
   def _previous_results_path(self):
-    # File ath that would hold the previous VT.unique_results_dir. This can be None if no previous runs are known.
-    if not self.previous_cache_key:
-      return None
-    return self._generate_results_path(self.previous_cache_key)
+    # File path that would hold the previous VT.unique_results_dir. This can be None if no previous_cache_key is found.
+    return self._calculate_results_path(self.previous_cache_key) if self.previous_cache_key else None
 
   @memoized_property
   def results_dir(self):
@@ -99,6 +95,7 @@ class VersionedTarget(object):
       raise ValueError('No results_dir was created for {}'.format(self))
     return self._stable_results_path
 
+  # TODO(mateo): Deprecation cycle for the 'current_results_dir'?
   @memoized_property
   def unique_results_dir(self):
     """Return unique file path to use as an output directory by these targets.
@@ -164,7 +161,7 @@ class VersionedTarget(object):
 
     These file paths are not guaranteed to exist through this method, use _ensure_legal() as needed.
     """
-    yield self._generate_results_path
+    yield self._stable_results_path
     yield self._unique_results_path
     if self.previous_results_dir:
       yield self.previous_results_dir
@@ -183,6 +180,7 @@ class VersionedTarget(object):
   def __repr__(self):
     return 'VT({}, {})'.format(self.target.id, 'valid' if self.valid else 'invalid')
 
+
 class VersionedTargetSet(VersionedTarget):
   """Represents a list of targets, a corresponding CacheKey, and a flag determining whether the
   list of targets is currently valid.
@@ -192,46 +190,36 @@ class VersionedTargetSet(VersionedTarget):
   built together into a single artifact.
   """
 
-
   @staticmethod
   def from_versioned_targets(versioned_targets):
     """
     :API: public
     """
+    # This should be protected against being passed an empty list.
 
-    if versioned_targets:
-      # Quick sanity check; all the versioned targets should have the same cache manager.
-      # TODO(ryan): the way VersionedTargets store their own links to a single CacheManager instance
-      # feels hacky; see if there's a cleaner way for callers to handle awareness of the CacheManager.
-      first_target = versioned_targets[0]
-      cache_manager = first_target._cache_manager
-      for versioned_target in versioned_targets:
-        if versioned_target._cache_manager != cache_manager:
-          raise ValueError(
-            "Attempting to combine versioned targets {} and {} with different CacheManager instances: {} and {}"
-            .format(first_target, versioned_target, cache_manager, versioned_target._cache_manager)
-          )
-
-
+    # Quick sanity check; all the versioned targets should have the same cache manager.
+    # TODO(ryan): the way VersionedTargets store their own links to a single CacheManager instance
+    # feels hacky; see if there's a cleaner way for callers to handle awareness of the CacheManager.
+    first_target = versioned_targets[0]
+    cache_manager = first_target._cache_manager
+    for versioned_target in versioned_targets:
+      if versioned_target._cache_manager != cache_manager:
+        raise ValueError(
+          "Attempting to combine versioned targets {} and {} with different CacheManager instances: {} and {}"
+          .format(first_target, versioned_target, cache_manager, versioned_target._cache_manager)
+        )
     return VersionedTargetSet(cache_manager, versioned_targets)
 
   @staticmethod
-  def from_invalidation_check(cache_manager, invalidation_check):
-    return VersionedTargetSet(cache_manager, invalidation_check.all_vts)
-
-
+  def from_invalidation_check(invalidation_check):
+    return VersionedTargetSet(invalidation_check.cache_manager, invalidation_check.all_vts)
 
   def __init__(self, cache_manager, versioned_targets):
     self.versioned_targets = versioned_targets
     self.targets = [vt.target for vt in versioned_targets]
 
-    # The following line is a no-op if cache_key was set in the VersionedTarget __init__ method.
     self.cache_key = CacheKeyGenerator.combine_cache_keys([vt.cache_key for vt in versioned_targets])
-
-    if cache_manager.invalidation_report:
-      cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key, self.valid, phase='init')
     super(VersionedTargetSet, self).__init__(cache_manager, self.targets, self.cache_key)
-
 
   def __repr__(self):
     return 'VTS({}, {})'.format(','.join(target.address.spec for target in self.targets),
@@ -241,26 +229,26 @@ class VersionedTargetSet(VersionedTarget):
 class InvalidationCheck(object):
   """The result of calling check() on a CacheManager.
 
-  Each member is a list of VersionedTargetSet objects.  Sorting of the targets depends
+  The vts members are lists of VersionedTargets.  Sorting of the targets depends
   on how you order the InvalidationCheck from the InvalidationCacheManager.
 
-  Tasks may need to perform no, some or all operations on either of these, depending on how they
+  Tasks may need to perform no, some or all operations on either of those, depending on how they
   are implemented.
   """
 
-  def __init__(self, all_vts, invalid_vts, cache_manager=None):
+  def __init__(self, all_vts, invalid_vts, cache_manager=None, as_target_set=False):
     """
     :API: public
     """
 
     # All the targets, valid and invalid.
     self.all_vts = all_vts
-
     # Just the invalid targets.
     self.invalid_vts = invalid_vts
 
     # Reference to the InvalidationCacheManager that owns these vts.
-    self.cache_manager = cache_manager
+    self.cache_manager = cache_manager or all_vts[0]._cache_manager if all_vts else None
+    self.as_target_set = as_target_set
 
 class InvalidationCacheManager(object):
   """Manages cache checks, updates and invalidation keeping track of basic change
@@ -275,7 +263,7 @@ class InvalidationCacheManager(object):
                cache_key_generator,
                build_invalidator_dir,
                invalidate_dependents,
-               invalidate_as_set=False,
+               as_target_set=False,
                fingerprint_strategy=None,
                invalidation_report=None,
                task_name=None,
@@ -292,11 +280,11 @@ class InvalidationCacheManager(object):
     self._task_name = task_name or 'UNKNOWN'
     self._task_version = task_version or 'Unknown_0'
 
-    self.invalidate_as_set = invalidate_as_set
-
     # The workdir should at least become a required param, if the API is unable to be migrated for reasons.
     self._task_workdir = task_workdir
     self._invalidate_dependents = invalidate_dependents
+
+    self.as_target_set = as_target_set
     self._invalidator = BuildInvalidator(build_invalidator_dir)
     self._fingerprint_strategy = fingerprint_strategy
     self._artifact_write_callback = artifact_write_callback
@@ -305,12 +293,11 @@ class InvalidationCacheManager(object):
   def update(self, vts):
     """Mark a changed or invalidated VersionedTargetSet as successfully processed."""
     for vt in vts.versioned_targets:
-        if not vt.valid:
-          self._invalidator.update(vt.cache_key)
-          vt.valid = True
-          self._artifact_write_callback(vt)
+      if not vt.valid:
+        self._invalidator.update(vt.cache_key)
+        vt.valid = True
+        self._artifact_write_callback(vt)
 
-    # Check if it is a VTS wrapper.
     if not vts.valid:
       self._invalidator.update(vts.cache_key)
       vts.valid = True
@@ -338,7 +325,7 @@ class InvalidationCacheManager(object):
     """
     all_vts = self.wrap_targets(targets, topological_order=topological_order)
     invalid_vts = filter(lambda vt: not vt.valid, all_vts)
-    return InvalidationCheck(all_vts, invalid_vts, cache_manager=self)
+    return InvalidationCheck(all_vts, invalid_vts, cache_manager=self, as_target_set=self.as_target_set)
 
   @property
   def task_name(self):

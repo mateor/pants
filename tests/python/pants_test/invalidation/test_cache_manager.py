@@ -30,9 +30,10 @@ class InvalidationCacheManagerTest(BaseTest):
   def tearDown(self):
     super(InvalidationCacheManagerTest, self).tearDown()
 
-  def make_vt(self, invalid=False):
-    # Create an arbitrary VT. If invalid is False, it will mimic the state of the VT handed back by a task.
-    a_target = self.make_target(':a', dependencies=[])
+  def make_vt(self, target_name=None, content=None, invalid=False):
+    # Create a VT. If invalid is False, it will mimic the state of the VT handed back by a task.
+    target = target_name or 'a'
+    a_target = self.make_target(':{}'.format(target), dependencies=[])
     ic = self.cache_manager.check([a_target])
     vt = ic.all_vts[0]
     if not invalid:
@@ -40,10 +41,12 @@ class InvalidationCacheManagerTest(BaseTest):
       vt.update()
     return vt
 
-  def task_execute(self, vt):
+  def task_execute(self, vt, content=None):
+    # Drops a file named after the target into the results_dir.
     vt.create_results_dir()
-    task_output = os.path.join(vt.results_dir, 'a_file')
-    self.create_file(task_output, 'foo')
+    content = content or vt.target.name
+    task_output = os.path.join(vt.results_dir, vt.target.name)
+    self.create_file(task_output, '{}'.format(vt.target.name))
 
   def is_empty(self, dirname):
     return not os.listdir(dirname)
@@ -93,7 +96,7 @@ class InvalidationCacheManagerTest(BaseTest):
     vt.create_results_dir()
     self.assertTrue(self.is_empty(vt.results_dir))
     self.assertTrue(self.matching_result_dirs(vt))
-    vt.ensure_legal()
+    vt._ensure_legal()
 
   def test_valid_vts_are_not_cleaned(self):
     # No cleaning of results_dir occurs, since create_results_dir short-circuits if the VT is valid.
@@ -142,13 +145,13 @@ class InvalidationCacheManagerTest(BaseTest):
     vt = self.make_vt()
     self.clobber_symlink(vt)
     with self.assertRaisesRegexp(VersionedTargetSet.IllegalResultsDir, r'{}'.format(vt.results_dir)):
-      vt.ensure_legal()
+      vt._ensure_legal()
 
   def test_raises_missing_unique_results_dir(self):
     vt = self.make_vt()
     safe_rmtree(vt.unique_results_dir)
     with self.assertRaisesRegexp(VersionedTargetSet.IllegalResultsDir, r'{}'.format(vt.unique_results_dir)):
-      vt.ensure_legal()
+      vt._ensure_legal()
 
   def test_raises_both_clobbered_symlink_and_missing_unique_results_dir(self):
     # If multiple results_dirs are in illegal state, the error should list all the problems at once.
@@ -156,16 +159,39 @@ class InvalidationCacheManagerTest(BaseTest):
     self.clobber_symlink(vt)
     safe_rmtree(vt.unique_results_dir)
     with self.assertRaisesRegexp(VersionedTargetSet.IllegalResultsDir, r'{}'.format(vt.results_dir)):
-      vt.ensure_legal()
+      vt._ensure_legal()
     with self.assertRaisesRegexp(VersionedTargetSet.IllegalResultsDir, r'{}'.format(vt.unique_results_dir)):
-      vt.ensure_legal()
+      vt._ensure_legal()
 
   def test_for_illegal_vts(self):
-    # The update() checks this through vts.ensure_legal, checked here since those checks are on different branches.
+    # The update() checks this through vts._ensure_legal, checked here since those checks are on different branches.
     with self.assertRaises(VersionedTargetSet.IllegalResultsDir):
       vt = self.make_vt()
       self.clobber_symlink(vt)
       vts = VersionedTargetSet.from_versioned_targets([vt])
       vts.update()
-  # def munge-test_copy_previous_results(self):
-  #   pass
+
+  def munge_test_copy_previous_results(self):
+    # Show that copy_previous_results indeed copies the previous results_dir to the current results_dir.
+
+    # Generate a VT and run the mocked execute. Then change the VT's cache key so that it is invalidated.
+    once = 'twice'
+    three = 'times a lady'
+    vtA = self.make_vt('a', content=once)
+    vtB = self.make_vt('a', invalid=True)
+
+    # Qualify the relationship between the valid and invalid VTs.
+    self.assertTrue(vtA.valid)
+    self.assertFalse(vtB.valid)
+    self.assertFalse(self.is_empty(vtA.results_dir))
+    self.assertTrue(self.is_empty(vtB.results_dir))
+    self.assertNotEqual(vtA.cache_key, vtB.cache_key)
+    self.assertEqual(vtB.previous_cache_key, vtA.cache_key)
+
+    # Run the copy and show that the contents of the previous Vt have been moved into the current VT.
+    vtB.copy_previous_results()
+    self.assertFalse(self.is_empty(vtB.results_dir))
+    self.assertEqual(os.listdir(vtA.results_dir), os.listdir(vtB.results_dir))
+
+    with open(os.path.join(vtB.unique_results_dir, vtA.target.name), 'rb') as f:
+      self.assertEquals(f.read(), once)
