@@ -336,6 +336,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
   def invalidated(self,
                   targets,
                   invalidate_dependents=False,
+                  invalidate_as_set=False,
                   silent=False,
                   fingerprint_strategy=None,
                   topological_order=False):
@@ -347,6 +348,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
 
     :param targets:               The targets to check for changes.
     :param invalidate_dependents: If True then any targets depending on changed targets are invalidated.
+    :param invalidate_as_set: If True, the targets will be cached as a group
     :param fingerprint_strategy:   A FingerprintStrategy instance, which can do per task, finer grained
                                   fingerprinting of a given Target.
 
@@ -404,9 +406,9 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
                                     phase='pre-check')
 
     # Cache has been checked to create the full list of invalid VTs. Only copy previous_results for this subset of VTs.
-    for vts in invalidation_check.invalid_vts:
+    for vt in invalidation_check.invalid_vts:
       if self.incremental:
-        vts.copy_previous_results()
+        vt.copy_previous_results()
 
     # Yield the result, and then mark the targets as up to date.
     yield invalidation_check

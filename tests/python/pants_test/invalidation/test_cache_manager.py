@@ -167,3 +167,5 @@ class InvalidationCacheManagerTest(BaseTest):
       self.clobber_symlink(vt)
       vts = VersionedTargetSet.from_versioned_targets([vt])
       vts.update()
+  # def munge-test_copy_previous_results(self):
+  #   pass

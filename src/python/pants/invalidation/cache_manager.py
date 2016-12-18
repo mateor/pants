@@ -16,7 +16,7 @@ from pants.util.dirutil import relative_symlink, safe_mkdir, safe_rmtree
 from pants.util.memo import memoized_property
 
 
-class VersionedTargetSet(object):
+class VersionedTargetSet(VersionedTarget):
   """Represents a list of targets, a corresponding CacheKey, and a flag determining whether the
   list of targets is currently valid.
 
@@ -25,29 +25,34 @@ class VersionedTargetSet(object):
   built together into a single artifact.
   """
 
-  _STABLE_DIR_NAME = 'current'
-
-  class IllegalResultsDir(Exception):
-    """Indicate a problem interacting with a versioned target results directory."""
 
   @staticmethod
   def from_versioned_targets(versioned_targets):
     """
     :API: public
     """
-    first_target = versioned_targets[0]
-    cache_manager = first_target._cache_manager
 
-    # Quick sanity check; all the versioned targets should have the same cache manager.
-    # TODO(ryan): the way VersionedTargets store their own links to a single CacheManager instance
-    # feels hacky; see if there's a cleaner way for callers to handle awareness of the CacheManager.
-    for versioned_target in versioned_targets:
-      if versioned_target._cache_manager != cache_manager:
-        raise ValueError(
-          "Attempting to combine versioned targets {} and {} with different CacheManager instances: {} and {}"
-          .format(first_target, versioned_target, cache_manager, versioned_target._cache_manager)
-        )
+    if versioned_targets:
+      # Quick sanity check; all the versioned targets should have the same cache manager.
+      # TODO(ryan): the way VersionedTargets store their own links to a single CacheManager instance
+      # feels hacky; see if there's a cleaner way for callers to handle awareness of the CacheManager.
+      first_target = versioned_targets[0]
+      cache_manager = first_target._cache_manager
+      for versioned_target in versioned_targets:
+        if versioned_target._cache_manager != cache_manager:
+          raise ValueError(
+            "Attempting to combine versioned targets {} and {} with different CacheManager instances: {} and {}"
+            .format(first_target, versioned_target, cache_manager, versioned_target._cache_manager)
+          )
+
+
     return VersionedTargetSet(cache_manager, versioned_targets)
+
+  @staticmethod
+  def from_invalidation_check(cache_manager, invalidation_check):
+    return VersionedTargetSet(cache_manager, invalidation_check.all_vts)
+
+
 
   def __init__(self, cache_manager, versioned_targets):
     self._cache_manager = cache_manager
@@ -68,8 +73,38 @@ class VersionedTargetSet(object):
 
   @memoized_property
   def _task_workdir(self):
-    # Corresponds to the task.workdir under the current contract.
     return self._cache_manager.task_workdir
+
+  def __repr__(self):
+    return 'VTS({}, {})'.format(','.join(target.address.spec for target in self.targets),
+                                'valid' if self.valid else 'invalid')
+
+
+class VersionedTarget(object):
+  """This class represents a singleton VersionedTargetSet, and has links to VersionedTargets that
+  the wrapped target depends on (after having resolved through any "alias" targets).
+
+  :API: public
+  """
+
+  class IllegalResultsDir(Exception):
+    """Indicate a problem interacting with a versioned target results directory."""
+
+  _STABLE_DIR_NAME = 'current'
+
+  def __init__(self, cache_manager, target, cache_key):
+    """
+    :API: public
+    """
+    if not isinstance(target, Target):
+      raise ValueError("The target {} must be an instance of Target but is not.".format(target.id))
+
+    self.cache_manager = cache_manager
+    self.targets = targets
+    self.cache_key = cache_key
+    # Must come after the assignments above, as they are used in the parent's __init__.
+    super(VersionedTarget, self).__init__(cache_manager, [self])
+    self.id = target.id
 
   def _generate_results_path(self, key, stable=False):
     """Return a results directory path for the given key.
@@ -141,17 +176,7 @@ class VersionedTargetSet(object):
       return self._previous_results_path
     return None
 
-  def update(self):
-    self._cache_manager.update(self)
-
-  def force_invalidate(self):
-    # Note: This method isn't exposted as Public because the api is not yet
-    # finalized, however it is currently used by Square for plugins.  There is
-    # an open OSS issue to finalize this API.  Please take care when changing
-    # until https://github.com/pantsbuild/pants/issues/2532 is resolved.
-    self._cache_manager.force_invalidate(self)
-
-  def ensure_legal(self):
+  def _ensure_legal(self):
     """Return True as long as the state does not break any internal contracts.
 
     Does not guarantee that the results directories exist - but if they do they must conform to the expected state.
@@ -175,7 +200,7 @@ class VersionedTargetSet(object):
       # Clean the workspace for invalid vts.
       safe_mkdir(self._unique_results_path, clean=True)
       relative_symlink(self._unique_results_path, self._stable_results_path)
-    self.ensure_legal()
+    self._ensure_legal()
 
   def copy_previous_results(self):
     """Use the latest valid results_dir as the starting contents of the current results_dir.
@@ -189,37 +214,23 @@ class VersionedTargetSet(object):
   def live_dirs(self):
     """Yield directories that should be preserved in order for this VersionedTarget to fully function.
 
-    These file paths are not guaranteed to exist through this method, use ensure_legal() as needed.
+    These file paths are not guaranteed to exist through this method, use _ensure_legal() as needed.
     """
     yield self._generate_results_path
     yield self._unique_results_path
     if self.previous_results_dir:
       yield self.previous_results_dir
 
-  def __repr__(self):
-    return 'VTS({}, {})'.format(','.join(target.address.spec for target in self.targets),
-                                'valid' if self.valid else 'invalid')
+  def force_invalidate(self):
+    # Note: This method isn't exposted as Public because the api is not yet
+    # finalized, however it is currently used by Square for plugins.  There is
+    # an open OSS issue to finalize this API.  Please take care when changing
+    # until https://github.com/pantsbuild/pants/issues/2532 is resolved.
+    self._cache_manager.force_invalidate(self)
 
-
-class VersionedTarget(VersionedTargetSet):
-  """This class represents a singleton VersionedTargetSet, and has links to VersionedTargets that
-  the wrapped target depends on (after having resolved through any "alias" targets).
-
-  :API: public
-  """
-
-  def __init__(self, cache_manager, target, cache_key):
-    """
-    :API: public
-    """
-    if not isinstance(target, Target):
-      raise ValueError("The target {} must be an instance of Target but is not.".format(target.id))
-
-    self.target = target
-    self.cache_key = cache_key
-    # Must come after the assignments above, as they are used in the parent's __init__.
-    super(VersionedTarget, self).__init__(cache_manager, [self])
-    self.id = target.id
+  def update(self):
+    self._ensure_legal()
+    self._cache_manager.update(self)
 
   def __repr__(self):
     return 'VT({}, {})'.format(self.target.id, 'valid' if self.valid else 'invalid')
@@ -235,7 +246,7 @@ class InvalidationCheck(object):
   are implemented.
   """
 
-  def __init__(self, all_vts, invalid_vts):
+  def __init__(self, all_vts, invalid_vts, cache_manager=None):
     """
     :API: public
     """
@@ -246,6 +257,8 @@ class InvalidationCheck(object):
     # Just the invalid targets.
     self.invalid_vts = invalid_vts
 
+    # Reference to the InvalidationCacheManager that owns these vts.
+    self.cache_manager = cache_manager
 
 class InvalidationCacheManager(object):
   """Manages cache checks, updates and invalidation keeping track of basic change
@@ -260,6 +273,7 @@ class InvalidationCacheManager(object):
                cache_key_generator,
                build_invalidator_dir,
                invalidate_dependents,
+               invalidate_as_set=False,
                fingerprint_strategy=None,
                invalidation_report=None,
                task_name=None,
@@ -269,12 +283,14 @@ class InvalidationCacheManager(object):
     """
     :API: public
     """
-    # IMHO, most of these params should just be removed in favor of the task instance. If this needs to be public, the
-    # API would become much simpler, and the only levers surfaced to the task are invalidate_deps and fp_strategy.
+    # NOTE(mateo): IMHO, most of these params should just be removed in favor of the task instance.
+    # The API would become much simpler and the only levers used by tasks are invalidate_deps and fp_strategy.
     # Every other param is a task attribute/option/callback.
     self._cache_key_generator = cache_key_generator
     self._task_name = task_name or 'UNKNOWN'
     self._task_version = task_version or 'Unknown_0'
+
+    self.invalidate_as_set = invalidate_as_set
 
     # The workdir should at least become a required param, if the API is unable to be migrated for reasons.
     self._task_workdir = task_workdir
@@ -286,14 +302,13 @@ class InvalidationCacheManager(object):
 
   def update(self, vts):
     """Mark a changed or invalidated VersionedTargetSet as successfully processed."""
-    for vt in vts.versioned_targets:
-      vt.ensure_legal()
+    if isinstance(vts, VersionedTargetSet): # maybe just default to None or add itself.
+      for vt in vts.versioned_targets:
       if not vt.valid:
         self._invalidator.update(vt.cache_key)
         vt.valid = True
         self._artifact_write_callback(vt)
     if not vts.valid:
-      vts.ensure_legal()
       self._invalidator.update(vts.cache_key)
       vts.valid = True
       self._artifact_write_callback(vts)
@@ -320,7 +335,7 @@ class InvalidationCacheManager(object):
     """
     all_vts = self.wrap_targets(targets, topological_order=topological_order)
     invalid_vts = filter(lambda vt: not vt.valid, all_vts)
-    return InvalidationCheck(all_vts, invalid_vts)
+    return InvalidationCheck(all_vts, invalid_vts, cache_manager=self)
 
   @property
   def task_name(self):
