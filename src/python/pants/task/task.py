@@ -447,7 +447,7 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     return (
       self.cache_target_dirs and
       not vt.target.has_label('no_cache') and
-      (not vt.previous_results_dir or self.cache_incremental) and
+      (not self.incremental or self.cache_incremental) and
       self.artifact_cache_writes_enabled()
     )
 

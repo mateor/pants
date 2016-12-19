@@ -140,15 +140,13 @@ class VersionedTarget(object):
     return os.path.lexists(self._stable_results_path)
 
   def live_dirs(self):
-    """Return directories that should be preserved in order for this VersionedTarget to fully function."""
+    """Return directories that must be preserved in order for this VersionedTarget to function."""
     # Returning paths instead of verified dirs since the only current caller subsumes errors in a background process.
+    # Not including previous_dir, since when this is called the contents of the previous dir have been copied as needed.
     live = []
     if self._has_results_dir():
       live.append(self._stable_results_path)
       live.append(self._unique_results_path)
-    # Since a previous_dir could exist separately.
-    if self.previous_results_dir:
-      live.append(self.previous_results_dir)
     return live
 
   def create_results_dir(self):
@@ -299,7 +297,6 @@ class InvalidationCacheManager(object):
         self._invalidator.update(vt.cache_key)
         vt.valid = True
         self._artifact_write_callback(vt)
-
     if not vts.valid:
       self._invalidator.update(vts.cache_key)
       vts.valid = True
