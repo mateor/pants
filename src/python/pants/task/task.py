@@ -424,6 +424,12 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     if self.context.options.for_global_scope().workdir_max_build_entries is not None:
       self._launch_background_workdir_cleanup(invalidation_check.all_vts)
 
+  def is_incremental(self, vt):
+    """True if the task is set to implement incremental results and the VT had previous_results available."""
+    # This implies that the previous_results were copied - but does not guarantee it happened. Perhaps we should drop
+    # a sentinel to the destination directory trim along with the analysis file?
+    return self.incremental and vt.previous_results_dir
+
   def maybe_write_artifact(self, vt):
     if self._should_cache_target_dir(vt):
       self.update_artifact_cache([(vt, [vt.unique_results_dir])])
@@ -444,10 +450,11 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
 
   def _should_cache_target_dir(self, vt):
     """True if the given vt should be written to a cache."""
+    # self.artifact_cache_writes_enabled returns the cache object, from cac
     return (
       self.cache_target_dirs and
       not vt.target.has_label('no_cache') and
-      (not self.incremental or self.cache_incremental) and
+      (not self.is_incremental(vt) or self.cache_incremental) and
       self.artifact_cache_writes_enabled()
     )
 
