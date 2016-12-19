@@ -18,7 +18,7 @@ from pants.base.worker_pool import Work
 from pants.cache.artifact_cache import UnreadableArtifact, call_insert, call_use_cached_files
 from pants.cache.cache_setup import CacheSetup
 from pants.invalidation.build_invalidator import BuildInvalidator, CacheKeyGenerator
-from pants.invalidation.cache_manager import InvalidationCacheManager, InvalidationCheck
+from pants.invalidation.cache_manager import InvalidationCacheManager, InvalidationCheck, VersionedTargetSet
 from pants.option.optionable import Optionable
 from pants.option.options_fingerprinter import OptionsFingerprinter
 from pants.option.scope import ScopeInfo
@@ -275,12 +275,12 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     return InvalidationCacheManager(self._cache_key_generator,
                                     self._build_invalidator_dir,
                                     invalidate_dependents,
+                                    root_dir=self.workdir,
                                     as_target_set=False,
                                     fingerprint_strategy=fingerprint_strategy,
                                     invalidation_report=self.context.invalidation_report,
                                     task_name=type(self).__name__,
                                     task_version=self.implementation_version_str(),
-                                    task_workdir=self.workdir,
                                     artifact_write_callback=self.maybe_write_artifact)
 
   @property
@@ -436,10 +436,10 @@ class TaskBase(SubsystemClientMixin, Optionable, AbstractClass):
     # workdir_max_build_entries has been assured of not None before invoking this method.
     max_entries_per_target = max(2, self.context.options.for_global_scope().workdir_max_build_entries)
     for vt in vts:
-      live_dirs = list(vt.live_dirs())
+      live_dirs = vt.live_dirs()
       if not live_dirs:
         continue
-      root_dir = os.path.dirname(vt.results_dir)
+      root_dir = os.path.dirname(live_dirs[0])
       safe_rm_oldest_items_in_dir(root_dir, max_entries_per_target, excludes=live_dirs)
 
   def _should_cache_target_dir(self, vt):

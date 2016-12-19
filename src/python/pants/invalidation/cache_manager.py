@@ -49,8 +49,8 @@ class VersionedTarget(object):
       cache_manager.invalidation_report.add_vts(cache_manager, self.targets, self.cache_key, self.valid, phase='init')
 
   @memoized_property
-  def _task_workdir(self):
-    return self._cache_manager.task_workdir
+  def root_dir(self):
+    return self._cache_manager.root_dir
 
   def _calculate_results_path(self, key, stable=False):
     """Return a results directory path for the given key.
@@ -63,7 +63,7 @@ class VersionedTarget(object):
     task_hash = CacheKeyGenerator.hash_value(self._cache_manager.task_version)
     dir_name = self._STABLE_DIR_NAME if stable else CacheKeyGenerator.hash_value(key.hash)
     return os.path.join(
-        self._task_workdir,
+        self.root_dir,
         task_hash,
         key.id,
         dir_name,
@@ -122,12 +122,9 @@ class VersionedTarget(object):
     return None
 
   def _ensure_legal(self):
-    """Return True as long as the state does not break any internal contracts.
-
-    Does not guarantee that the results directories exist - but if they do they must conform to the expected state.
-    """
+    """Return True as long as the state does not break any internal contracts."""
     # Do our best to provide complete feedback, it's easy to imagine the frustration of flipping between error states.
-    if os.path.lexists(self._stable_results_path):
+    if self._has_results_dir():
       errors = ''
       if not os.path.islink(self.results_dir):
         errors += '\nThe results_dir is no longer a symlink:\n\t* {}'.format(self.results_dir)
@@ -138,6 +135,21 @@ class VersionedTarget(object):
           '\nThe results_dirs should not be manually cleaned or recreated by tasks.\n{}'.format(errors)
         )
     return True
+
+  def _has_results_dir(self):
+    return os.path.lexists(self._stable_results_path)
+
+  def live_dirs(self):
+    """Return directories that should be preserved in order for this VersionedTarget to fully function."""
+    # Returning paths instead of verified dirs since the only current caller subsumes errors in a background process.
+    live = []
+    if self._has_results_dir():
+      live.append(self._stable_results_path)
+      live.append(self._unique_results_path)
+    # Since a previous_dir could exist separately.
+    if self.previous_results_dir:
+      live.append(self.previous_results_dir)
+    return live
 
   def create_results_dir(self):
     """Ensure that the empty results directory and a stable symlink exist for these versioned targets."""
@@ -155,16 +167,6 @@ class VersionedTarget(object):
     if self.previous_results_dir:
       safe_rmtree(self.unique_results_dir)
       shutil.copytree(self.previous_results_dir, self.unique_results_dir)
-
-  def live_dirs(self):
-    """Yield directories that should be preserved in order for this VersionedTarget to fully function.
-
-    These file paths are not guaranteed to exist through this method, use _ensure_legal() as needed.
-    """
-    yield self._stable_results_path
-    yield self._unique_results_path
-    if self.previous_results_dir:
-      yield self.previous_results_dir
 
   def force_invalidate(self):
     # Note: This method isn't exposted as Public because the api is not yet
@@ -250,6 +252,7 @@ class InvalidationCheck(object):
     self.cache_manager = cache_manager or all_vts[0]._cache_manager if all_vts else None
     self.as_target_set = as_target_set
 
+
 class InvalidationCacheManager(object):
   """Manages cache checks, updates and invalidation keeping track of basic change
   and invalidation statistics.
@@ -264,11 +267,11 @@ class InvalidationCacheManager(object):
                build_invalidator_dir,
                invalidate_dependents,
                as_target_set=False,
+               root_dir=None,
                fingerprint_strategy=None,
                invalidation_report=None,
                task_name=None,
                task_version=None,
-               task_workdir=None,
                artifact_write_callback=lambda _: None):
     """
     :API: public
@@ -277,14 +280,13 @@ class InvalidationCacheManager(object):
     # The API would become much simpler and the only levers used by tasks are invalidate_deps and fp_strategy.
     # Every other param is a task attribute/option/callback.
     self._cache_key_generator = cache_key_generator
-    self._task_name = task_name or 'UNKNOWN'
-    self._task_version = task_version or 'Unknown_0'
+    self.task_name = task_name or 'UNKNOWN'
+    self.task_version = task_version or 'Unknown_0'
 
-    # The workdir should at least become a required param, if the API is unable to be migrated for reasons.
-    self._task_workdir = task_workdir
+    self.root_dir = root_dir
     self._invalidate_dependents = invalidate_dependents
-
     self.as_target_set = as_target_set
+
     self._invalidator = BuildInvalidator(build_invalidator_dir)
     self._fingerprint_strategy = fingerprint_strategy
     self._artifact_write_callback = artifact_write_callback
@@ -326,18 +328,6 @@ class InvalidationCacheManager(object):
     all_vts = self.wrap_targets(targets, topological_order=topological_order)
     invalid_vts = filter(lambda vt: not vt.valid, all_vts)
     return InvalidationCheck(all_vts, invalid_vts, cache_manager=self, as_target_set=self.as_target_set)
-
-  @property
-  def task_name(self):
-    return self._task_name
-
-  @property
-  def task_version(self):
-    return self._task_version
-
-  @property
-  def task_workdir(self):
-    return self._task_workdir
 
   def wrap_targets(self, targets, topological_order=False):
     """Wrap targets and their computed cache keys in VersionedTargets.

@@ -24,7 +24,7 @@ class InvalidationCacheManagerTest(BaseTest):
       cache_key_generator=CacheKeyGenerator(),
       build_invalidator_dir=self._dir,
       invalidate_dependents=True,
-      task_workdir=self._task_workdir,
+      root_dir=self._task_workdir,
     )
 
   def tearDown(self):
@@ -37,7 +37,7 @@ class InvalidationCacheManagerTest(BaseTest):
     ic = self.cache_manager.check([a_target])
     vt = ic.all_vts[0]
     if not invalid:
-      self.task_execute(vt)
+      self.task_execute(vt, content=content)
       vt.update()
     return vt
 
@@ -171,27 +171,55 @@ class InvalidationCacheManagerTest(BaseTest):
       vts = VersionedTargetSet.from_versioned_targets([vt])
       vts.update()
 
-  def munge_test_copy_previous_results(self):
-    # Show that copy_previous_results indeed copies the previous results_dir to the current results_dir.
+  # def test_copy_previous_results(self):
+  #   # Show that copy_previous_results indeed copies the previous results_dir to the current results_dir.
+#
+  #   # Generate a VT and run the mocked execute. Then change the VT's cache key so that it is invalidated.
+  #   once = '1'
+  #   vtA = self.make_vt('a', content=once)
+  #   vtB = self.make_vt('a', invalid=True)
+#
+  #   # Qualify the relationship between the valid and invalid VTs.
+  #   self.assertTrue(vtA.valid)
+  #   self.assertFalse(vtB.valid)
+  #   self.assertFalse(self.is_empty(vtA.results_dir))
+  #   self.assertTrue(self.is_empty(vtB.results_dir))
+  #   self.assertNotEqual(vtA.cache_key, vtB.cache_key)
+  #   self.assertEqual(vtB.previous_cache_key, vtA.cache_key)
+#
+  #   # Run the copy and show that the contents of the previous Vt have been moved into the current VT.
+  #   vtB.copy_previous_results()
+  #   self.assertFalse(self.is_empty(vtB.results_dir))
+  #   self.assertEqual(os.listdir(vtA.results_dir), os.listdir(vtB.results_dir))
+#
+ # #   with open(os.path.join(vtB.unique_results_dir, vtA.target.name), 'rb') as f:
+  #     self.assertEquals(f.read(), once)
+  def test_has_results_dir(self):
+    vt = self.make_vt(invalid=True)
+    self.assertFalse(vt._has_results_dir())
+    vt.create_results_dir()
+    self.assertTrue(vt._has_results_dir())
 
-    # Generate a VT and run the mocked execute. Then change the VT's cache key so that it is invalidated.
-    once = 'twice'
-    three = 'times a lady'
-    vtA = self.make_vt('a', content=once)
-    vtB = self.make_vt('a', invalid=True)
+  def test_live_dirs(self):
+    vt = self.make_vt(invalid=True)
+    self.assertFalse(vt.live_dirs())
+    vt.create_results_dir()
+    self.assertIn(vt.results_dir, vt.live_dirs())
+    self.assertIn(vt.unique_results_dir, vt.live_dirs())
+    self.assertGreater(len(vt.live_dirs()), 0)
+  # def test_live_dirs_includes_previous(self):
+  #   vtA = self.make_vt('a', invalid=True)
+  #   self.assertEquals(len(vtA.live_dirs()), 0)
+  #   previous = vtA._previous_results_path
 
-    # Qualify the relationship between the valid and invalid VTs.
-    self.assertTrue(vtA.valid)
-    self.assertFalse(vtB.valid)
-    self.assertFalse(self.is_empty(vtA.results_dir))
-    self.assertTrue(self.is_empty(vtB.results_dir))
-    self.assertNotEqual(vtA.cache_key, vtB.cache_key)
-    self.assertEqual(vtB.previous_cache_key, vtA.cache_key)
+  #   import pdb; pdb.set_trace()
+  #   safe_mkdir(os.path.join(vtA.root_dir, previous))
 
-    # Run the copy and show that the contents of the previous Vt have been moved into the current VT.
-    vtB.copy_previous_results()
-    self.assertFalse(self.is_empty(vtB.results_dir))
-    self.assertEqual(os.listdir(vtA.results_dir), os.listdir(vtB.results_dir))
+  #   # Show that the previous can be found even if results_dir not created.
+  #   self.assertEquals(len(vtA.live_dirs()), 1)
+  #   # Run vtA and make the rest of the results_dirs.
+  #   self.task_execute(vtA)
 
-    with open(os.path.join(vtB.unique_results_dir, vtA.target.name), 'rb') as f:
-      self.assertEquals(f.read(), once)
+  #   self.assertEquals(len(vtA.live_dirs()), 3)
+  #   self.assertIn(vtA.unique_results_dir, vtA.live_dirs())
+  #   self.assertIn(vtA.results_dir, vtA.live_dirs())
