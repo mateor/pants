@@ -61,7 +61,9 @@ class GoTargetGenerator(object):
     visited = {l.import_path: l.address for l in local_go_targets}
     with temporary_dir() as gopath:
       for local_go_target in local_go_targets:
+
         deps = self._list_deps(gopath, local_go_target.address)
+
         self._generate_missing(gopath, local_go_target.address, deps, visited)
     return visited.items()
 
@@ -108,10 +110,10 @@ class GoTargetGenerator(object):
     src_path = os.path.join(gopath, 'src', import_path)
     safe_mkdir(src_path)
     package_src_root = os.path.join(get_buildroot(), local_address.spec_path)
+    self._build_graph.maybe_inject_address_closure(address=local_address)
     internal = self._build_graph.get_target(local_address)
 
     if isinstance(internal, GoThriftLibrary):
-
       package = os.path.basename(import_path)
       dummy_file = os.path.join(src_path, '{}.go'.format(package))
       with safe_open(dummy_file, 'w') as fp:
@@ -124,7 +126,6 @@ class GoTargetGenerator(object):
         os.symlink(source_path, dest_path)
 
     return self._import_oracle.list_imports(import_path, gopath=gopath)
-
 
 class GoBuildgen(GoTask):
   """Automatically generates Go BUILD files."""
