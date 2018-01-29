@@ -15,6 +15,7 @@ from pants.contrib.go import register
 from pants.contrib.go.subsystems.fetcher import Fetcher
 from pants.contrib.go.targets.go_binary import GoBinary
 from pants.contrib.go.targets.go_library import GoLibrary
+from pants.contrib.go.targets.go_thrift_library import GoThriftLibrary
 from pants.contrib.go.targets.go_remote_library import GoRemoteLibrary
 from pants.contrib.go.tasks.go_buildgen import GoBuildgen, GoTargetGenerator
 
@@ -376,7 +377,6 @@ class GoBuildgenTest(TaskTestBase):
     # Previously, `XTestImports` were not handled.  These imports are those of out-of-package black
     # box tests.  We create one of these below in the `lib/` dir with `lib_test.go` in the
     # `lib_test` package.
-
     self.set_options(remote=False, materialize=False)
 
     self.create_file(relpath='src/go/src/helper/helper.go', contents=dedent("""
@@ -415,3 +415,49 @@ class GoBuildgenTest(TaskTestBase):
 
     helper = self.target('src/go/src/helper')
     self.assertEqual([helper], lib.dependencies)
+
+  def test_issues_4520(self):
+    # go_thrift_gen was not written with buildgen support. This could be a pretty nasty surprise
+    # for folks who took the time to note both of those features only to find that they were
+    # in conflict.
+    # I hacked in the path of least resistance. I have only a single go_thrift_library, so I don't
+    # overly care about that part being right - I just don't want to have to uninstall buildgen in
+    # order for it to actually compile!
+    # This may work correctly by itself, just an FYI that my only priority was no more crashes.
+
+    self.set_options(remote=False, materialize=False)
+    self.create_file(
+      relpath='src/thrift/pantsbuild/thrifttest/duck/gen/duck.thrift',
+      contents=dedent("""
+        namespace go pantsbuild.thrifttest.duck.gen
+
+        struct Duck {
+          1: optional string quack,
+        } 
+      """))
+
+    self.create_file(relpath='src/go/src/pantsbuild/gotest/ducktest/duckreader.go',
+      contents=dedent("""
+        package duckreader
+
+        import (
+          "pantsbuild.thrifttest.duck.gen"
+        )
+
+        func reader(d duck) string {
+          d := duck.NewDuck()
+          return d.GetQuack()
+        }
+      """))
+    lib = self.make_target('src/go/src/pantsbuild/gotest/ducktest', GoLibrary)
+    self.make_target('src/thrift/pantsbuild/thrifttest/duck/gen', GoThriftLibrary)
+
+    self.assertEqual([], lib.dependencies)
+    context = self.context(target_roots=[lib])
+
+    task = self.create_task(context)
+
+    task.execute()
+
+    thrift_dep = self.target('src/thrift/pantsbuild/thrifttest/duck/gen')
+    self.assertEqual([thrift_dep], lib.dependencies)

@@ -11,7 +11,7 @@ from pants.build_graph.target import Target
 
 from pants.contrib.go.targets.go_local_source import GoLocalSource
 from pants.contrib.go.targets.go_target import GoTarget
-
+from pants.contrib.go.targets.go_library import GoLibrary
 
 class GoThriftLibrary(Target):
   """A Go library generated from Thrift IDL files."""
@@ -44,18 +44,5 @@ class GoThriftLibrary(Target):
     return "go_thrift_library"
 
 
-class GoThriftGenLibrary(GoTarget):
-
-  def __init__(self, sources=None, address=None, payload=None, **kwargs):
-    payload = payload or Payload()
-    payload.add_fields({
-      'sources': self.create_sources_field(sources=sources,
-                                           sources_rel_path=address.spec_path,
-                                           key_arg='sources'),
-    })
-    super(GoThriftGenLibrary, self).__init__(address=address, payload=payload, **kwargs)
-
-  @property
-  def import_path(self):
-    """The import path as used in import statements in `.go` source files."""
-    return GoLocalSource.local_import_path(self.target_base, self.address)
+class GoThriftGenLibrary(GoLibrary):
+  """"""
