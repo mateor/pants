@@ -31,7 +31,7 @@ class GoThriftGen(SimpleCodegenTask):
 
     register('--strict', default=True, fingerprint=True, type=bool,
              help='Run thrift compiler with strict warnings.')
-    register('--gen-options', advanced=True, fingerprint=True,
+    register('--gen-options', type=str, advanced=True, fingerprint=True,
             help='Use these apache thrift go gen options.')
     register('--thrift-import', type=str, advanced=True, fingerprint=True,
              help='Use this thrift-import gen option to thrift.')
@@ -54,7 +54,7 @@ class GoThriftGen(SimpleCodegenTask):
   def _deps(self):
     thrift_import_target = self.get_options().thrift_import_target
     thrift_imports = self.context.resolve(thrift_import_target)
-    return thrift_imports
+    return thrift_imports or []
 
   @memoized_property
   def _service_deps(self):
@@ -104,14 +104,16 @@ class GoThriftGen(SimpleCodegenTask):
   @memoized_property
   def _thrift_cmd(self):
     cmd = [self._thrift_binary.path]
-    thrift_import = 'thrift_import={}'.format(self.get_options().thrift_import)
     gen_options = self.get_options().gen_options
+    thrift_import = self.get_options().thrift_import
+    opts = []
     if gen_options:
-      gen_options += ',' + thrift_import
-    else:
-      gen_options = thrift_import
-    cmd.extend(('--gen', 'go:{}'.format(gen_options)))
-
+      opts.append(gen_options)
+    if thrift_import:
+      opts.append('thrift_import={}'.format(thrift_import))
+    if opts:
+      opts = ':{}'.format(','.join(opts))
+    cmd.extend(['--gen', 'go{}'.format(opts)])
     if self.get_options().strict:
       cmd.append('-strict')
     if self.get_options().level == 'debug':
