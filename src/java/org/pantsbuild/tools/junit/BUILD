@@ -4,7 +4,7 @@
 java_library(
   provides=artifact(
     org='org.pantsbuild',
-    name='junit-runner',
+    name='junit-runner-fs',
     repo=public,
     publication_metadata=pants_library("""
       A command line tool for running junit tests that provides functionality above and beyond

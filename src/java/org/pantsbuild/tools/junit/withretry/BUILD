@@ -4,7 +4,7 @@
 java_library(
   provides=artifact(
     org='org.pantsbuild',
-    name='junit-runner-withretry',
+    name='junit-runner-withretry-fs',
     repo=public,
     publication_metadata=pants_library("""
       Provides an org.junit.runner.Runner that supports retries of failing tests.

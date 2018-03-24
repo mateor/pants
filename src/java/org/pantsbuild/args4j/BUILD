@@ -10,7 +10,7 @@ java_library(
   platform='java7',
   provides=artifact(
     org='org.pantsbuild',
-    name='args4j',
+    name='args4j-fs',
     repo=public,
     publication_metadata=pants_library("""
       Utilities to make args4j more like com.twitter.common#args

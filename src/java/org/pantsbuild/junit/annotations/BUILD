@@ -4,7 +4,7 @@
 java_library(
   provides=artifact(
     org='org.pantsbuild',
-    name='junit-runner-annotations',
+    name='junit-runner-annotations-fs',
     repo=public,
     publication_metadata=pants_library("""
       Annotations for use with org.pantsbuild#junit-runner that support running tests in parallel.
