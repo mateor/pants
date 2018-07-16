@@ -89,3 +89,4 @@ if [[ ! -z "${WRAPPER_SRCPATH}" ]]; then
 fi
 
 exec_pants_bare "$@"
+
