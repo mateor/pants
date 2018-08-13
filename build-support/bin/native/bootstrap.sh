@@ -84,7 +84,7 @@ function ensure_native_build_prerequisites() {
     log "A pants owned rustup installation could not be found, installing via the instructions at" \
         "https://www.rustup.rs ..."
     local -r rustup=$(mktemp -t pants.rustup.XXXXXX)
-    curl https://sh.rustup.rs -sSf > ${rustup}
+    curl https://sh.rustup.rs -sSf > ${rustup} || (echo "Bad curl, trying wget" && wget https://sh.rustup.rs -O- > ${rustup})
     sh ${rustup} -y --no-modify-path --default-toolchain "${RUST_TOOLCHAIN}" 1>&2
     rm -f ${rustup}
   fi
