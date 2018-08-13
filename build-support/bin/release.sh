@@ -20,7 +20,9 @@ function run_local_pants() {
 readonly VERSION_FILE="${ROOT}/src/python/pants/VERSION"
 PANTS_STABLE_VERSION="$(cat "${VERSION_FILE}")"
 HEAD_SHA=$(git rev-parse --verify HEAD)
-readonly PANTS_UNSTABLE_VERSION="${PANTS_STABLE_VERSION}+${HEAD_SHA:0:8}"
+readonly SHORT_SHA="${HEAD_SHA:0:8}"
+readonly UNSTABLE_VERSION="${PANTS_STABLE_VERSION}+${HEAD_SHA:0:8}"
+readonly PANTS_UNSTABLE_VERSION="${PANTS_UNSTABLE_VERSION:-$UNSTABLE_VERSION}"
 
 readonly DEPLOY_DIR="${ROOT}/dist/deploy"
 readonly DEPLOY_3RDPARTY_WHEELS_PATH="wheels/3rdparty/${HEAD_SHA}"
